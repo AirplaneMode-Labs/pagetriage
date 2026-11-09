@@ -1,0 +1,34 @@
+# cargo-deny policy, run by the `deny` job in .github/workflows/ci.yml (cargo-deny 0.20.2, a
+# digest-pinned binary; no Docker action). Licence policy: permissive licences only, never GPL, AGPL,
+# LGPL or SSPL. The licence of this repository is "MIT OR Apache-2.0" and does not change.
+
+[graph]
+all-features = true
+
+[advisories]
+# The advisories leg runs with continue-on-error in CI: a new advisory is visible but does not block
+# a merge by itself. A yanked crate is a hard error.
+yanked = "deny"
+
+[licenses]
+allow = [
+  "Apache-2.0",
+  "MIT",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "ISC",
+  "Unicode-3.0",
+  "Zlib",
+  "MPL-2.0",
+  "Apache-2.0 WITH LLVM-exception",   # target-lexicon (Sprint 2, from `cargo tree -f '{p} {l}'`)
+]
+confidence-threshold = 0.9
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

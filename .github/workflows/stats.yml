@@ -1,8 +1,15 @@
 # Weekly snapshot of public usage counts into the `stats` branch (kept out of main so the history
 # does not clutter the code's log). See scripts/stats-snapshot.sh for what is recorded: counts only,
-# never identities. This is the only workflow outside Pages with a write permission: contents: write,
-# on the snapshot job, so it can push the stats branch. No secrets are referenced: the traffic
-# columns (views, clones) stay empty under the workflow token, as the script documents.
+# never identities. No secrets are referenced: the traffic columns (views, clones) stay empty under
+# the workflow token, as the script documents.
+#
+# Two jobs, so the one write permission never sits next to repository code:
+#   snapshot  contents: read. Runs scripts/stats-snapshot.sh, using the token only for `gh api` reads,
+#             and uploads stats.csv as an artifact.
+#   push      contents: write. Runs no repository script. It fetches the stats branch anonymously
+#             (the repository is public), adds the artifact, and pushes. The token is given to that
+#             one step only, as PUSH_TOKEN, and goes to git as a masked extra header instead of being
+#             stored in .git/config (checkouts use persist-credentials: false; BUG-S1-D-01 / S1-047).
 name: stats
 
 on:
@@ -17,23 +24,59 @@ jobs:
   snapshot:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Fetch or create the stats branch
+        with:
+          persist-credentials: false
+      - name: Fetch the previous stats.csv, if the stats branch exists
         run: |
-          git fetch origin stats:stats 2>/dev/null || git branch stats
-          git worktree add ../stats stats
-          cp scripts/stats-snapshot.sh ../stats/
+          mkdir -p "$RUNNER_TEMP/out"
+          if git fetch --no-tags origin stats:refs/remotes/origin/stats 2>/dev/null; then
+            git show origin/stats:stats.csv > "$RUNNER_TEMP/out/stats.csv" 2>/dev/null || true
+          fi
       - name: Append a snapshot
         env:
           GH_TOKEN: ${{ github.token }}
-        run: cd ../stats && bash stats-snapshot.sh stats.csv
-      - name: Commit
+        run: cd "$RUNNER_TEMP/out" && bash "$GITHUB_WORKSPACE/scripts/stats-snapshot.sh" stats.csv
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: stats-csv
+          path: ${{ runner.temp }}/out/stats.csv
+          if-no-files-found: error
+          retention-days: 1
+
+  push:
+    needs: snapshot
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: stats-csv
+          path: ${{ runner.temp }}/artifact
+      - name: Prepare the stats branch (anonymous fetch, no repository script)
         run: |
-          cd ../stats
+          if git fetch --no-tags origin stats:stats 2>/dev/null; then
+            git worktree add "$RUNNER_TEMP/stats" stats
+          else
+            git worktree add --orphan -b stats "$RUNNER_TEMP/stats"
+          fi
+          cp "$RUNNER_TEMP/artifact/stats.csv" "$RUNNER_TEMP/stats/stats.csv"
+          cd "$RUNNER_TEMP/stats"
           git config user.name "stats-bot"
           git config user.email "stats-bot@users.noreply.github.com"
           git add stats.csv
-          git commit -m "stats: $(date -u +%F)" || exit 0
-          git push origin stats
+          git commit -m "stats: $(date -u +%F)" || echo "nothing to commit"
+      - name: Push (the only step that sees the token)
+        env:
+          PUSH_TOKEN: ${{ github.token }}
+        run: |
+          cd "$RUNNER_TEMP/stats"
+          HDR="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$PUSH_TOKEN" | base64 -w0)"
+          echo "::add-mask::$HDR"
+          git -c http.https://github.com/.extraheader="$HDR" push origin stats
