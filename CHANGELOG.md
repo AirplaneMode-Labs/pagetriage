@@ -7,6 +7,37 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
 
 ### Added
 
+- Sprint 2: Windows arm of `scripts/install-wasm-tools.sh` (x86_64 wasm-bindgen and binaryen
+  release assets, SHA-256 digests pinned in the script, unknown asset names exit non-zero), and
+  `windows-latest` in the determinism job of `ci.yml`, with `scripts/determinism.sh` selecting the
+  venv `Scripts/` directory. Configured, not yet executed (D2-01, D2-02).
+- Sprint 2: a `deny` CI job running cargo-deny 0.20.2 from a SHA-256-pinned binary (no Docker
+  action) against the new `deny.toml` licence policy (the eight policy licences plus
+  `Apache-2.0 WITH LLVM-exception`); the advisories leg does not block (D2-05, BUG-T2-S2-05).
+- Sprint 2: `site/pkg/build.json` carries the build commit (first 12 characters of `GITHUB_SHA` only
+  when it is 40 lowercase hex, else `local`) and the demo status line shows it (D2-03).
+- Sprint 2: shell tests under `tests/scripts/` (installer: unknown asset, Windows arm64 and the eight
+  digest rows, with `curl` and `uname` stubbed; build commit validation; `WASM_OUT` guard), run by the
+  `rust` job in `ci.yml` (BUG-T2-S2-03, BUG-T2-S2-08).
+
+### Changed
+
+- Sprint 2: `scripts/install-wasm-tools.sh` looks up both pinned digests before the first download,
+  so an unknown wasm-bindgen or binaryen asset exits 1 with no network call and nothing installed
+  (BUG-T2-S2-04). `docs/release.md` row 1 cites `evidence/sprint-1/D2/gate.log` (BUG-T2-S2-06).
+
+### Security
+
+- Sprint 2: `persist-credentials: false` on every checkout in `stats.yml` and `codeql.yml`;
+  `stats.yml` is split into a read-only `snapshot` job and a `push` job that runs no repository
+  script and gives the token only to the push step, as a masked header (BUG-S1-D-01, S1-047).
+- Sprint 2: `scripts/build-wasm.sh` refuses (exit 2) a `WASM_OUT` that is set but empty, absolute or
+  contains a `..` segment before its `rm -rf`; `scripts/package-npm.sh` removes only the fixed
+  `dist/npm` and needed no change (BUG-T2-S2-08).
+- Sprint 2: the `WASM_OUT` guard in `scripts/build-wasm.sh` also refuses (exit 2) a Windows drive-letter
+  path (`C:/x`, `C:x`) and any value containing a backslash (`..\x`, `a\..\b`, `dist\ok`), before cargo
+  and before `rm -rf`; cases added to `tests/scripts/build-wasm-guard.sh` (BUG-T2-S2-14).
+
 - Deterministic page analysis for scanned documents and PDFs, with one Rust core compiled to three
   runtimes: native (`pagetriage-cli`), Python (`pagetriage-py`, PyO3, abi3) and WebAssembly
   (`pagetriage-wasm`, wasm-bindgen, browser and Node). The same input gives the same report bytes on
