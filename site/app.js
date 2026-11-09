@@ -110,14 +110,20 @@ let worker;
 // separate cache entries.
 async function buildId() {
   let id = "dev";
+  let commit = "local";
   try {
     const r = await fetch("pkg/build.json", { cache: "no-store" });
-    id = (await r.json()).id || "dev";
+    const j = await r.json();
+    id = typeof j.id === "string" && /^[0-9a-f]{16}$/.test(j.id) ? j.id : "dev";
+    // build-site.sh writes 12 hex characters or "local"; anything else is shown as "local".
+    commit = typeof j.commit === "string" && /^([0-9a-f]{12}|local)$/.test(j.commit) ? j.commit : "local";
   } catch {
     id = "dev";
   }
   state.buildId = id;
+  // textContent only: the values above are already pattern-checked, and are never parsed as HTML.
   for (const n of document.querySelectorAll("[data-build]")) n.textContent = id;
+  for (const n of document.querySelectorAll("[data-commit]")) n.textContent = commit;
   return id;
 }
 
