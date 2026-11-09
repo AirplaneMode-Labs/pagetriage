@@ -24,9 +24,20 @@ synthetic pages only**: no real deed has been looked at, and no confidence is ca
 [What works today](#what-works-today), [Benchmarks](#benchmarks), [Limitations](#limitations) and
 the [roadmap](#roadmap).
 
-A browser demo is being set up at <https://airplanemode-labs.github.io/pagetriage/> (GitHub Pages, from
-`site/`): the Rust core compiled to WebAssembly, analysing a dropped page image or PDF in the tab,
-with nothing uploaded.
+## Demo
+
+Live demo: <https://airplanemode-labs.github.io/pagetriage/>. Built from `main` by
+`.github/workflows/pages.yml` on every push; it shows only what works today and has a box titled
+"What this demo does not do yet". It runs entirely in the browser: no upload, no analytics, no
+third-party scripts or fonts.
+
+The page runs the Rust core compiled to WebAssembly (from `site/`) on eight synthetic sample pages
+and eight synthetic sample PDFs, or on a page image or PDF you drop on it. For a page image it shows
+tilt, sharpness, contrast, specks, bleed-through and fold lines with a grade and a binariser
+recommendation, plus the four black-and-white masks; for a PDF, the text-layer state, script and
+legacy-font flag per page, the producer and any edits after the first save. For every sample it puts
+the SHA-256 of the report computed in the tab next to the one the native build produced, and the two
+are identical; the deploy fails when the WebAssembly build stops reproducing them.
 
 ## Why this exists
 

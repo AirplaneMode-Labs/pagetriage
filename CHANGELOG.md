@@ -40,6 +40,8 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
   says why).
 - README: Install, Benchmarks, Limitations and Security and privacy sections; Apple-silicon figures
   labelled as placeholders with the 8 GB Windows laptop marked not measured.
+- Demo page gains CSP, browser-requirements and not-yet boxes; CI builds the demo site; wasm tool
+  installer pins release digests.
 
 ### Security
 
