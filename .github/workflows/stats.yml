@@ -1,6 +1,8 @@
 # Weekly snapshot of public usage counts into the `stats` branch (kept out of main so the history
 # does not clutter the code's log). See scripts/stats-snapshot.sh for what is recorded: counts only,
-# never identities. The traffic endpoints need push access, which the workflow token has here.
+# never identities. This is the only workflow outside Pages with a write permission: contents: write,
+# on the snapshot job, so it can push the stats branch. No secrets are referenced: the traffic
+# columns (views, clones) stay empty under the workflow token, as the script documents.
 name: stats
 
 on:
@@ -9,13 +11,15 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   snapshot:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch or create the stats branch
         run: |
           git fetch origin stats:stats 2>/dev/null || git branch stats
@@ -23,7 +27,7 @@ jobs:
           cp scripts/stats-snapshot.sh ../stats/
       - name: Append a snapshot
         env:
-          GH_TOKEN: ${{ secrets.STATS_TOKEN || github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: cd ../stats && bash stats-snapshot.sh stats.csv
       - name: Commit
         run: |

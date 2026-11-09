@@ -1,0 +1,14 @@
+# Weekly dependency update proposals for the Rust workspace and the pinned GitHub Actions.
+# Actions are pinned by commit SHA; Dependabot updates the SHA and the version comment together.
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
