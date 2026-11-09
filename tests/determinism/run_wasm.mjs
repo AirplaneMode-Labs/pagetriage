@@ -4,7 +4,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -46,7 +46,7 @@ if (inputs.length < 4) {
 
 let failures = 0;
 for (const file of inputs) {
-  const name = file.replace(/^.*\//, "").replace(/\.pgm$/, "");
+  const name = basename(file, ".pgm");
   const { w, h, pixels } = readPgm(join(golden, file));
   const actual = wasm.analyse_page(pixels, undefined, w, h, DPI, undefined, OPTS) + "\n";
   const expected = readFileSync(join(golden, "expected", `${name}.json`), "utf8");
@@ -72,7 +72,7 @@ if (layoutInputs.length < 16) {
   process.exit(1);
 }
 for (const file of layoutInputs) {
-  const name = file.replace(/^.*\//, "").replace(/\.pgm$/, "");
+  const name = basename(file, ".pgm");
   const { w, h, pixels } = readPgm(join(golden, file));
   const actual = wasm.analyse_page(pixels, undefined, w, h, DPI, undefined, LAYOUT_OPTS) + "\n";
   const expected = readFileSync(join(golden, "layout_expected", `${name}.json`), "utf8");

@@ -4,7 +4,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
@@ -54,7 +54,7 @@ if (gray.join() !== "0,255,76,150,29") {
 }
 
 for (const file of inputs) {
-  const name = file.replace(/^.*\//, "").replace(/\.pgm$/, "");
+  const name = basename(file, ".pgm");
   const { w, h, pixels } = readPgm(join(golden, file));
   const bad = [];
   for (const c of cases) {
