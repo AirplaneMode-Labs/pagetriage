@@ -35,8 +35,9 @@ demo/dist/
 
 .DS_Store
 
-# demo site: built WASM package (scripts/build-site.sh)
+# demo site: built WASM package (scripts/build-site.sh) and the assembled Pages tree (pages.yml)
 /site/pkg/
+_site/
 
 # partial downloads, secrets and environment files (never committed anywhere in the organisation)
 *.part
