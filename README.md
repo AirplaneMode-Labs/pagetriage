@@ -4,7 +4,7 @@ Deterministic page analysis for scanned documents and PDFs: what is on each page
 is, and which pages to trust. Written in Rust, with no machine learning. It runs as a command-line
 tool, as a Python module and in the browser, and gives the same bytes out on all three.
 
-[![CI](https://github.com/jtushar53/pagetriage/actions/workflows/ci.yml/badge.svg)](https://github.com/jtushar53/pagetriage/actions/workflows/ci.yml)
+[![CI](https://github.com/AirplaneMode-Labs/pagetriage/actions/workflows/ci.yml/badge.svg)](https://github.com/AirplaneMode-Labs/pagetriage/actions/workflows/ci.yml)
 [![Licence: MIT OR Apache-2.0](https://img.shields.io/badge/licence-MIT%20OR%20Apache--2.0-blue)](#licence)
 [![Rust 1.98](https://img.shields.io/badge/rust-1.98-orange)](rust-toolchain.toml)
 [![Model files: none](https://img.shields.io/badge/model%20files-none-brightgreen)](#what-makes-it-different)
@@ -14,17 +14,17 @@ tool, as a Python module and in the browser, and gives the same bytes out on all
 
 *One synthetic page with show-through from the reverse side, the same crop under Otsu, Sauvola,
 Wolf-Jolion and Howe (static mode), and what pagetriage says about the page. An illustration, not a
-benchmark; the benchmark numbers are [below](#results-and-known-limits).*
+benchmark; the benchmark numbers are [below](#benchmarks).*
 
 **Status: early.** The PDF structure checks, the scan-quality readout, four binarisers and
 near-duplicate detection are built and measured on public benchmarks. Every pixel detector (script,
 handwriting, stamps, signatures, thumb impressions, rulings, redaction, QR, embossed seals, pictures,
 extraction coverage), the page typing and the fusion rules are built and opt-in, and **checked on
 synthetic pages only**: no real deed has been looked at, and no confidence is calibrated. See
-[What works today](#what-works-today), [Results and known limits](#results-and-known-limits) and
+[What works today](#what-works-today), [Benchmarks](#benchmarks), [Limitations](#limitations) and
 the [roadmap](#roadmap).
 
-A browser demo is being set up at <https://jtushar53.github.io/pagetriage/> (GitHub Pages, from
+A browser demo is being set up at <https://airplanemode-labs.github.io/pagetriage/> (GitHub Pages, from
 `site/`): the Rust core compiled to WebAssembly, analysing a dropped page image or PDF in the tab,
 with nothing uploaded.
 
@@ -95,15 +95,20 @@ text.
 | M14 prepare | `pagetriage prepare`: applies the plan. Turns, levels, crops and scales a page and cuts its regions into images, with a manifest that maps every box back to the original. CLI only for now; synthetic checks only | Built | [prepare](docs/prepare.md) |
 | Calibrated confidences | Confidences calibrated on labelled real pages (the fitting tool exists, the labelled data does not) | Not possible yet | [roadmap](#roadmap), [modules](docs/modules.md) |
 
-## Quick start
+## Install
 
-Packages are not published to crates.io, PyPI or npm yet. Build from source; `rust-toolchain.toml`
-selects Rust 1.98 and adds the WebAssembly target.
+Packages are not published to crates.io, PyPI or npm yet. Package names use the placeholder scope
+`@airplanemode` / crate names `pagetriage` until the handles are reserved; nothing is published yet.
+Build from source; `rust-toolchain.toml` selects Rust 1.98 and adds the WebAssembly target.
 
 ```sh
-git clone https://github.com/jtushar53/pagetriage && cd pagetriage
+git clone https://github.com/AirplaneMode-Labs/pagetriage && cd pagetriage
 cargo build --release -p pagetriage-cli
 ```
+
+The release checklist, with what is still open before a first tag, is [docs/release.md](docs/release.md).
+
+## Quick start
 
 **Command line.** `analyse` reads PNG, JPEG, TIFF, PNM and BMP pages; `structure` reads PDFs.
 
@@ -260,10 +265,12 @@ The structure pass never draws a page. Pixel analysis works on page images that 
 (poppler, pdfium, pdf.js): the core has no rasteriser. A page report can take that page's structural
 result as input, so both halves end up in one report.
 
-## Results and known limits
+## Benchmarks
 
 Every number below comes from scripts in `bench/` ([commands](#reproduce-the-numbers)) and is
-written up, with its protocol, in `docs/detectors/`. The last column says how far to trust it.
+written up, with its protocol, in `docs/detectors/`. The last column says how far to trust it. The
+speed and throughput rows were measured on an Apple-silicon development machine and are placeholders
+for the target hardware: the 8 GB Windows laptop without a GPU has not been measured.
 
 | What was measured | Result | How far to trust it |
 |---|---|---|
@@ -274,10 +281,29 @@ written up, with its protocol, in `docs/detectors/`. The last column says how fa
 | Howe binarisation, DIBCO 2011, 16 images held out | F-measure 89.6; the paper reports 91.9 | **Misses our target** of being within 1.5 points of the paper. The gap comes from three pages with large dark regions; on the other 13 pages we score 92.9 against the paper's 92.5 |
 | Other methods on DIBCO 2011 | Otsu 82.1, Sauvola 81.6, Wolf 84.7 | Same images, same scoring |
 | Bleed-through score against hand labels | AUC 0.86 on the pages it was tuned on, 0.71 on held-out pages | Weak out of sample; the labels were made by eye from thumbnails |
-| Speed, one A4 page at 150 dpi (1240 x 1754), one thread | Analysis about 70 to 90 ms a page: medians of 68, 76 and 88 ms over 24 synthetic pages in three runs. Rendering a page with poppler's `pdftoppm` adds about 25 ms in a batch, 40 ms for one page per process | Apple-silicon laptop, release build, through the Python binding; the two slower runs were on a machine busy with other jobs. Binarisers on the same page: Otsu 2 ms, Sauvola 11 ms, Wolf 21 ms, Howe static 1.1 s |
-| Throughput, Python thread pool, same pages | 13 pages/s on 1 thread, 48 on 4, 90 on 8, 129 on 12 | Same busy machine; an earlier run on it reached 142 on 12 threads. `analyse_page` releases the GIL, so 12 threads give about 10 times one thread |
+| Speed, one A4 page at 150 dpi (1240 x 1754), one thread | Analysis about 70 to 90 ms a page: medians of 68, 76 and 88 ms over 24 synthetic pages in three runs. Rendering a page with poppler's `pdftoppm` adds about 25 ms in a batch, 40 ms for one page per process | Apple-silicon development machine, placeholder; 8 GB Windows no-GPU laptop not yet measured. Release build, through the Python binding; the two slower runs were on a machine busy with other jobs. Binarisers on the same page: Otsu 2 ms, Sauvola 11 ms, Wolf 21 ms, Howe static 1.1 s |
+| Throughput, Python thread pool, same pages | 13 pages/s on 1 thread, 48 on 4, 90 on 8, 129 on 12 | Apple-silicon development machine, placeholder; 8 GB Windows no-GPU laptop not yet measured. Same busy machine; an earlier run on it reached 142 on 12 threads. `analyse_page` releases the GIL, so 12 threads give about 10 times one thread |
+| Speed and throughput on an 8 GB Windows laptop without a GPU (the target machine) | not measured | No figure until it is measured on that hardware |
+| In-browser (WebAssembly) speed | not measured | The demo page runs the same core; no timing has been recorded for it |
 
-Known limits, beyond the table:
+## Limitations
+
+What does not work yet, plainly:
+
+- **No real document has been tested.** Every detector from module M4 on, the page typing, the
+  fusion rules and the page plan were checked on synthetic pages only, and no confidence is
+  calibrated (see [fusion](docs/detectors/fusion.md)). The numbers above for the PDF checks and the
+  legacy fonts come from a corpus we wrote.
+- **Nothing is published.** There is no crates.io, PyPI or npm package; the dry runs pass but a user
+  must build from source. No release artefact is signed.
+- **Continuous integration has only run on Linux and macOS.** Windows is in the `ci.yml` matrix but
+  has never run; it is verifiable only once the repository is pushed to its new home.
+- **The target hardware is unmeasured.** No speed figure exists for an 8 GB Windows laptop without
+  a GPU, or for the WebAssembly build in a browser.
+- **The determinism gate does not run on Windows.** `scripts/install-wasm-tools.sh` has no Windows
+  branch, so the Python and WASM runtimes are compared on Linux and macOS only.
+
+Known limits of the detectors that are built:
 
 - **The binariser recommendation is a two-way choice** between Sauvola and Howe. On an evenly lit
   synthetic page with strong bleed-through (the figure at the top), a plain global threshold, Otsu,
@@ -380,7 +406,7 @@ settings were tuned on, is in `docs/detectors/`.
 
 Module codes are defined in [docs/modules.md](docs/modules.md). Nothing is on `main` until it has
 a docs page with a failure gallery, golden tests and a benchmark line, and a new detector first lands
-opt-in so the default report and the golden files do not change. Status as of 2026-10-26.
+opt-in so the default report and the golden files do not change. Status as of 2026-11-09.
 
 <!-- Status vocabulary, one per row: Built | Built, with limits | Skeleton | In progress (branch) | Planned.
      The "What works today" table above has the same rows. -->
@@ -401,7 +427,7 @@ opt-in so the default report and the golden files do not change. Status as of 20
 | M9 rulings | Rulings, tables, checkbox grids, fold lines vs rules | 3 | Built, opt-in (synthetic checks only) |
 | M11 Indian deeds | Stamp-paper header, e-stamp QR code, registrar endorsement, embossed seal. Needs a small annotated set of real deed pages; no public set exists | 4 | All four built; the header and the embossed seal are the weakest; synthetic checks only, no real deed seen |
 | M13 fusion and calibration | Calibrated confidences, abstention, cross-detector consistency | 5 | Log-odds sum and consistency rules built; calibration machinery built, no maps (no labelled data) |
-| Release | PyPI, crates.io and npm packages; docs site; browser demo | 5 | Browser demo built; packages build, install and run in dry runs (`scripts/package-npm.sh`, `scripts/package-python.sh`, `cargo package`); nothing is published, see [RELEASING](docs/RELEASING.md) |
+| Release | PyPI, crates.io and npm packages; docs site; browser demo | 5 | Browser demo built; packages build, install and run in dry runs (`scripts/package-npm.sh`, `scripts/package-python.sh`, `cargo package`); nothing is published and nothing is tagged. The checklist mapped to the definition of done is [docs/release.md](docs/release.md); the procedure is [RELEASING](docs/RELEASING.md) |
 
 ## Built on
 
@@ -441,12 +467,25 @@ The [project rules](CLAUDE.md) say what a change has to respect: no model files,
 with their source, the determinism rules, and a docs page with a failure gallery per detector. A
 golden-file diff is a behaviour change and is reviewed as one. Issues and pull requests are welcome.
 
-## Data and privacy
+## Security and privacy
 
-Real document pages are never committed: deeds contain personal data. The golden inputs and every
-sample in this repository are synthetic and generated by scripts. The benchmark datasets (DIBCO and
-others) forbid redistribution or state no licence, so they are fetched at runtime into `bench/data/`,
-which is gitignored.
+**No network egress, no telemetry.** The core library, the command-line tool, the Python module and
+the WebAssembly package make no network requests and collect nothing; the core never reads the clock,
+the environment or the filesystem ([project rules](CLAUDE.md)). The browser demo analyses the dropped
+file in the tab and uploads nothing; it has no analytics. The only scripts that touch the network are
+`bench/fetch.py` (downloads public benchmark datasets when you ask it to) and `scripts/stats-snapshot.sh`
+(reads public repository counts, run by the weekly `stats` workflow).
+
+**What is stored where.** The command-line tool writes only the files you name on its command line.
+The browser demo keeps the WASM package in the browser's HTTP cache and nothing else. The benchmark
+datasets land in `bench/data/`, which is gitignored.
+
+**Data.** Real document pages are never committed: deeds contain personal data. The golden inputs and
+every sample in this repository are synthetic and generated by scripts. The benchmark datasets (DIBCO
+and others) forbid redistribution or state no licence, so they are fetched at runtime into
+`bench/data/`, which is gitignored.
+
+Reporting a vulnerability: see [SECURITY.md](SECURITY.md).
 
 ## Licence
 

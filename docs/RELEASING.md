@@ -1,9 +1,12 @@
 # Releasing
 
+The release checklist mapped to the definition of done, with what is still Open before a first tag,
+is [release.md](release.md); read it first and do not tag while any Blocker-for-tag row there is Open.
+
 Nothing in this repository publishes by itself. Each step below is a deliberate command run by the person
 who owns the package names and the registry accounts. The dry runs they rely on are scripts that run
-locally; a CI job for them is given at the end (it is not installed: the account that pushed this
-branch could not edit workflow files).
+locally; the `packaging` job in `.github/workflows/ci.yml` runs them on every push and pull request
+(the job definition is reproduced at the end).
 
 ## What is checked before a release
 
@@ -47,9 +50,9 @@ branch could not edit workflow files).
 Every detector from module M4 on was checked on synthetic pages only, and no confidence is calibrated
 (`docs/detectors/fusion.md`). A release note should say so in the same words.
 
-## CI job for the packaging dry runs (not installed)
+## CI job for the packaging dry runs
 
-Add this under `jobs:` in `.github/workflows/ci.yml`:
+This is the `packaging` job in `.github/workflows/ci.yml` (actions pinned by SHA there):
 
 ```yaml
   # Packaging dry runs: the npm tarball and the Python wheel are built, installed in a scratch project,
@@ -57,13 +60,15 @@ Add this under `jobs:` in `.github/workflows/ci.yml`:
   packaging:
     name: packaging dry runs (npm tarball, Python wheel, crate)
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v4
-      - uses: Swatinem/rust-cache@v2
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
       - name: Install pinned wasm-bindgen CLI and wasm-opt
