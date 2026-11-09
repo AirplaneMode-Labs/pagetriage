@@ -77,6 +77,8 @@ const state = {
   ready: false,
   version: null,
   samples: null,
+  buildId: null,
+  moduleWorkerOption: false, // set when the Worker constructor read `type` from its options (see startWorker)
 };
 
 const ui = {
@@ -107,17 +109,24 @@ let worker;
 // fetched fresh and its id goes into the worker's and the package's URLs, so each build's files are
 // separate cache entries.
 async function buildId() {
+  let id = "dev";
   try {
     const r = await fetch("pkg/build.json", { cache: "no-store" });
-    return (await r.json()).id || "dev";
+    id = (await r.json()).id || "dev";
   } catch {
-    return "dev";
+    id = "dev";
   }
+  state.buildId = id;
+  for (const n of document.querySelectorAll("[data-build]")) n.textContent = id;
+  return id;
 }
 
 async function startWorker() {
+  // Module-worker support is detected on the real worker: a browser that understands `type` reads
+  // it from the options object while constructing the worker, so the getter runs exactly then.
+  const options = { get type() { state.moduleWorkerOption = true; return "module"; } };
   try {
-    worker = new Worker(`./worker.js?v=${await buildId()}`, { type: "module" });
+    worker = new Worker(`./worker.js?v=${await buildId()}`, options);
   } catch (err) {
     showError("load", err);
   }
@@ -719,6 +728,32 @@ function currentDpi() {
   return r ? r.dpi : 150;
 }
 
+// ------------------------------------------------------------------ requirements
+
+/** Feature detection for the Browser requirements box, computed at load, never a static list. */
+function detectRequirements() {
+  let canvas = false;
+  try { canvas = !!document.createElement("canvas").getContext("2d"); } catch { canvas = false; }
+  return {
+    wasm: typeof WebAssembly === "object" && WebAssembly !== null && typeof WebAssembly.instantiate === "function",
+    "module-workers": typeof Worker === "function" && state.moduleWorkerOption,
+    canvas,
+    "file-api": typeof File === "function" && typeof Blob === "function" && typeof FileReader === "function",
+  };
+}
+
+function renderRequirements() {
+  const found = detectRequirements();
+  for (const li of document.querySelectorAll("#reqs li[data-req]")) {
+    const ok = found[li.dataset.req] === true;
+    li.classList.toggle("is-ok", ok);
+    li.classList.toggle("is-bad", !ok);
+    const slot = $(".req-state", li);
+    if (slot) slot.replaceChildren(svgIcon(ok ? "ok" : "bad"), el("span.visually-hidden", { text: ok ? "available" : "missing" }));
+  }
+  return found;
+}
+
 // ------------------------------------------------------------------ samples, ledger, boot
 
 async function loadSample(p) {
@@ -762,6 +797,7 @@ function buildLedger(ledger) {
 
 async function boot() {
   await startWorker();
+  renderRequirements();
   selectTab("page");
   try {
     const [samples, ledger] = await Promise.all([

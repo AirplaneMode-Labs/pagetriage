@@ -233,12 +233,33 @@ code, pre, kbd { font-family: var(--mono); font-size: 0.875em; }
 .foot { margin-top: 72px; border-top: 1px solid var(--rule); padding: 28px 0 48px; font: 0.875rem/1.6 var(--sans); color: var(--ink-2); }
 .foot p { max-width: 46rem; margin: 0 0 8px; }
 
+/* ---- about this demo: requirements and not-yet boxes ---- */
+.box-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; margin: 20px 0 8px; }
+.box { background: var(--slip); border: 1.5px solid var(--rule); border-top: 4px solid var(--stamp); border-radius: 6px; padding: 18px 20px 14px; font-family: var(--sans); font-size: 0.9375rem; line-height: 1.55; }
+.box h3 { font: 650 1.0625rem var(--sans); letter-spacing: 0; margin-bottom: 10px; }
+.box p { margin: 0 0 10px; color: var(--ink-2); }
+.box ul { margin: 0 0 10px; padding-left: 1.2em; }
+.box li { margin-bottom: 8px; }
+.box li:last-child { margin-bottom: 0; }
+.box-warn { border-top-color: var(--grade-c); }
+.box-note { font-size: 0.8125rem; margin-top: 12px; }
+.reqs { list-style: none; padding-left: 0; }
+.reqs li { display: grid; grid-template-columns: 1.5rem 1fr; gap: 2px 10px; align-items: baseline; }
+.reqs .req-state { grid-row: 1 / span 2; align-self: start; font-size: 0.75rem; color: var(--ink-2); }
+.reqs .req-state svg { width: 20px; height: 20px; display: block; }
+.reqs .req-name { font-weight: 650; }
+.reqs .req-note { grid-column: 2; display: block; color: var(--ink-2); font-size: 0.8125rem; }
+.reqs li.is-ok .req-state { color: var(--ok); }
+.reqs li.is-bad .req-state { color: var(--bad); }
+.reqs li.is-bad .req-name { color: var(--bad); }
+
 /* ---- narrow screens ---- */
 @media (max-width: 920px) {
   .table { grid-template-columns: minmax(0, 1fr); }
   .bench { position: static; }
   .sheet { max-width: 420px; max-height: none; }
   .code-cols { grid-template-columns: minmax(0, 1fr); }
+  .box-grid { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 720px) {
   .top nav a:not(.gh) { display: none; }

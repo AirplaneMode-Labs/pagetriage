@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>pagetriage: analyse scanned pages in your browser</title>
 <meta name="description" content="Deterministic scanned-page analyser. Measures tilt, blur and bleed-through, reads PDF text layers, flags legacy Hindi fonts. No model, no upload, same answer every time.">
@@ -31,6 +32,7 @@
       <a href="#reads">What it reads</a>
       <a href="#same">Same answer</a>
       <a href="#results">Results</a>
+      <a href="#not-yet">Not yet</a>
       <a href="#run">Run it</a>
       <a class="gh" href="https://github.com/AirplaneMode-Labs/pagetriage">GitHub</a>
     </nav>
@@ -42,7 +44,7 @@
     <div class="wrap">
       <div class="intro">
         <h1 id="h1">Know what is on a scanned page before you run OCR on it.</h1>
-        <p class="lede">pagetriage measures tilt, blur, bleed-through and folds, tells a real text layer from a scan, and flags legacy Hindi fonts. It uses no model, so the same page gives the same answer every time. Try it below: it runs in this tab and nothing is uploaded.</p>
+        <p class="lede">pagetriage measures tilt, blur, bleed-through and folds, tells a real text layer from a scan, and flags legacy Hindi fonts. It uses no model, so the same page gives the same answer every time. Try it below: everything runs in this tab. Nothing is uploaded; the only network requests are for this page's own files.</p>
       </div>
 
       <div class="table">
@@ -153,6 +155,36 @@
       </table>
     </section>
 
+    <section class="section" id="about-demo" aria-labelledby="about-h">
+      <h2 id="about-h">About this demo</h2>
+      <p class="sub">The page is built from <code>main</code> by <code>.github/workflows/pages.yml</code> on every push, and only after the WebAssembly build has reproduced every native fingerprint in <code>samples.json</code>. Package build <span data-build>loading</span>.</p>
+      <div class="box-grid">
+        <section id="requirements" class="box" aria-labelledby="requirements-h">
+          <h3 id="requirements-h">Browser requirements</h3>
+          <p>Checked by this page when it loaded. It needs WebAssembly and module workers: Chrome or Edge 80, Safari 15, Firefox 114, or later.</p>
+          <ul class="reqs" id="reqs">
+            <li data-req="wasm"><span class="req-state">checking</span><span class="req-name">WebAssembly</span><span class="req-note">runs the analyser, the same Rust core as the command-line tool.</span></li>
+            <li data-req="module-workers"><span class="req-state">checking</span><span class="req-name">Module workers</span><span class="req-note">run the analyser off the main thread, so the page stays responsive.</span></li>
+            <li data-req="canvas"><span class="req-state">checking</span><span class="req-name">Canvas 2D</span><span class="req-note">decodes the page image to pixels and draws the black-and-white masks.</span></li>
+            <li data-req="file-api"><span class="req-state">checking</span><span class="req-name">File API</span><span class="req-note">reads a chosen or dropped file in the tab; nothing is uploaded.</span></li>
+          </ul>
+          <p class="box-note">No storage is used beyond the browser's HTTP cache, and no third-party script, font or analytics is loaded.</p>
+        </section>
+        <section id="not-yet" class="box box-warn" aria-labelledby="not-yet-h">
+          <h3 id="not-yet-h">What this demo does not do yet</h3>
+          <ul>
+            <li>No OCR. It does not read or extract text; it tells you what is on the page before you spend OCR on it. Text extraction is a later step in the pipeline (the dockit demo, Sprint 5), not this library's job.</li>
+            <li>No model. Every number comes from hand-written features and fixed thresholds, by project rule, so no confidence is calibrated on real pages; calibration needs labelled real pages and is a Sprint 5 item (M13).</li>
+            <li>No tiling. Images over 36 megapixels are refused in the tab, and the core has no tiling for pages that large; no sprint is scheduled for it. The command-line tool has no such cap.</li>
+            <li>No Windows figures. Speed on the 8 GB Windows laptop without a GPU, and in-browser speed, are unmeasured; the Windows branch of the tool installer is a Sprint 2 item and the measurement follows it.</li>
+            <li>No tagged release. Nothing is on crates.io, PyPI or npm and no version is tagged; the blockers are listed in <a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/release.md">docs/release.md</a>.</li>
+            <li>No upload, ever. Images and PDFs never leave the tab, so there is no server-side analysis, no sharing link and no saved history.</li>
+            <li>No service worker: offline after the first load is best effort (Chrome's HTTP cache), not guaranteed.</li>
+          </ul>
+        </section>
+      </div>
+    </section>
+
     <section class="section" id="run" aria-labelledby="run-h">
       <h2 id="run-h">Run it yourself</h2>
       <p class="sub">It is not yet on crates.io, PyPI or npm, so you build from source. <code>rust-toolchain.toml</code> selects Rust 1.98.</p>
@@ -218,6 +250,7 @@ const report = JSON.parse(analyse_page(
 <footer class="foot">
   <div class="wrap">
     <p>pagetriage is free software under the MIT or Apache-2.0 licence, at your choice. Source, issues and the benchmark scripts are on <a href="https://github.com/AirplaneMode-Labs/pagetriage">GitHub</a>. Analyser version <span data-version>loading</span>.</p>
+    <p>Built from <code>main</code> by <code>.github/workflows/pages.yml</code>, package build <span data-build>loading</span>. One of the <a href="https://airplanemode-labs.github.io/site/">Airplane Mode Labs</a> demos.</p>
     <p>The sample pages are synthetic. No real documents are used or uploaded.</p>
     <p>Made by Tushar Patekar.</p>
   </div>
