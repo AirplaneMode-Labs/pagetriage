@@ -21,6 +21,12 @@ __pycache__/
 # node
 node_modules/
 
+# test and build outputs (every-repo list; pagetriage produces none of these today)
+playwright-report/
+test-results/
+coverage/
+demo/dist/
+
 # bench: datasets are fetched at runtime and must not be redistributed (their terms forbid it
 # or grant no licence);
 # real deed pages contain PII and must never be committed.
@@ -31,3 +37,10 @@ node_modules/
 
 # demo site: built WASM package (scripts/build-site.sh)
 /site/pkg/
+
+# partial downloads, secrets and environment files (never committed anywhere in the organisation)
+*.part
+*.part.json
+*.secret
+.env*
+.playwright/

@@ -1,0 +1,14 @@
+Airplane Mode Labs pagetriage
+Copyright 2026 Tushar (jtushar53@gmail.com)
+
+This product includes software developed at Airplane Mode Labs (https://github.com/AirplaneMode-Labs).
+
+pagetriage is dual-licensed under the MIT licence (LICENSE-MIT) or the Apache License, Version 2.0
+(LICENSE-APACHE), at your option. This choice was made on day one and does not change.
+
+Third-party notices
+-------------------
+pagetriage links against Rust crates published on crates.io under MIT, Apache-2.0, BSD or similar
+permissive licences; `cargo tree -f '{p} {l}'` prints the full list with each crate's licence. No GPL,
+LGPL, AGPL or SSPL code is included. Benchmark datasets (DIBCO, Tobacco800 and others) are fetched at
+runtime by bench/fetch.py under their own terms and are not part of this product.
