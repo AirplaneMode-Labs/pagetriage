@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The determinism gate: the golden inputs must produce byte-identical reports on native, Python and
 # WASM, each compared against the checked-in expected bytes in tests/golden/expected.
-# CI runs this on Linux, macOS and Windows (Windows configured, not yet executed), so passing on all
+# CI runs this on Linux, macOS and Windows, so passing on all
 # also means the OSes agree.
 set -euo pipefail
 cd "$(dirname "$0")/.."

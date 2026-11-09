@@ -22,6 +22,9 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
 
 ### Changed
 
+- Windows CI is no longer described as "configured, not yet executed": the determinism gate first passed on
+  `windows-latest` on 9 Nov 2026, so `docs/release.md` row 1 is Done and the README, demo page and script
+  comments say so; the WASM determinism runners use `path.basename` so golden names resolve on Windows.
 - Sprint 2: `scripts/install-wasm-tools.sh` looks up both pinned digests before the first download,
   so an unknown wasm-bindgen or binaryen asset exits 1 with no network call and nothing installed
   (BUG-T2-S2-04). `docs/release.md` row 1 cites `evidence/sprint-1/D2/gate.log` (BUG-T2-S2-06).

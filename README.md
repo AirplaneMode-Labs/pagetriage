@@ -229,7 +229,7 @@ flowchart TB
   structural["Structural, PDF only (cargo feature pdf)<br/>M1 text layer, M2 font script, M12 provenance"]
   pixel["Pixel<br/>M3 quality readout, Otsu, Sauvola, Wolf, Howe,<br/>opt-in detectors (layout, script, handwriting, stamps, rulings, QR, ...),<br/>M12 pHash and dHash, M13 fusion and page typing"]
   report(["Canonical JSON report<br/>validated against a JSON Schema"])
-  gate["Determinism gate in CI<br/>native = Python = WASM, Linux = macOS = Windows (Windows not yet executed)"]
+  gate["Determinism gate in CI<br/>native = Python = WASM, Linux = macOS = Windows"]
   cli --> core
   py --> core
   wasm --> core
@@ -307,13 +307,11 @@ What does not work yet, plainly:
   legacy fonts come from a corpus we wrote.
 - **Nothing is published.** There is no crates.io, PyPI or npm package; the dry runs pass but a user
   must build from source. No release artefact is signed.
-- **Continuous integration has only run on Linux and macOS.** Windows is in the `ci.yml` matrices
-  but has never run; it is verifiable only once the repository is pushed to its new home.
 - **The target hardware is unmeasured.** No speed figure exists for an 8 GB Windows laptop without
   a GPU, or for the WebAssembly build in a browser.
-- **Windows determinism is configured, not yet executed.** `scripts/install-wasm-tools.sh` has a
-  Windows arm with pinned digests and the `determinism` job lists `windows-latest`, but the Python and
-  WASM runtimes have been compared on Linux and macOS only.
+- **CI runs on Linux, macOS and Windows, on hosted runners only.** The determinism gate (native,
+  Python and WASM) first passed on Windows on 9 Nov 2026 ([run](https://github.com/AirplaneMode-Labs/pagetriage/actions/runs/42634433346)). That is a hosted GitHub
+  runner, not the 8 GB target laptop.
 
 Known limits of the detectors that are built:
 

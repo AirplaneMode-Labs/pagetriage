@@ -107,7 +107,7 @@
     <section class="section" id="same" aria-labelledby="same-h">
       <h2 id="same-h">The same page gives the same answer, byte for byte</h2>
       <div class="measure">
-        <p>One Rust core builds for the command line, for Python and for the browser. Every golden page in the repository runs through all three, on Linux, macOS and Windows (Windows configured, not yet executed), in CI, and the report fingerprints have to match before anything merges.</p>
+        <p>One Rust core builds for the command line, for Python and for the browser. Every golden page in the repository runs through all three, on Linux, macOS and Windows, in CI, and the report fingerprints have to match before anything merges.</p>
         <p>That is harder than it sounds. The platform maths library (exp, sin, cos) differs in the last digit between glibc, Apple's libm and WebAssembly, and unordered maps iterate in a different order on every run. Both are banned from the core; sums over pixels happen in a fixed order, and the report writer rounds and sorts before anything is printed.</p>
         <p>The proof is in the demo above: the fingerprint this tab computes is compared with the one the native build produced for the same sample. The guarantee covers the analyser given identical pixels. Image decoders are outside it, which is why a JPEG opened by two different decoders can differ.</p>
       </div>
@@ -176,7 +176,7 @@
             <li>No OCR. It does not read or extract text; it tells you what is on the page before you spend OCR on it. Text extraction is a later step in the pipeline (the dockit demo, Sprint 5), not this library's job.</li>
             <li>No model. Every number comes from hand-written features and fixed thresholds, by project rule, so no confidence is calibrated on real pages; calibration needs labelled real pages and is a Sprint 5 item (M13).</li>
             <li>No tiling. Images over 36 megapixels are refused in the tab, and the core has no tiling for pages that large; no sprint is scheduled for it. The command-line tool has no such cap.</li>
-            <li>No Windows figures. Speed on the 8 GB Windows laptop without a GPU, and in-browser speed, are unmeasured. The Windows tool installer and the Windows determinism job are configured, not yet executed: nothing has run on a Windows runner until the repository is pushed.</li>
+            <li>No Windows figures. Speed on the 8 GB Windows laptop without a GPU, and in-browser speed, are unmeasured. The Windows determinism job runs on a hosted GitHub runner, which is not the target laptop.</li>
             <li>No tagged release. Nothing is on crates.io, PyPI or npm and no version is tagged; the blockers are listed in <a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/release.md">docs/release.md</a>.</li>
             <li>No upload, ever. Images and PDFs never leave the tab, so there is no server-side analysis, no sharing link and no saved history.</li>
             <li>No service worker: offline after the first load is best effort (Chrome's HTTP cache), not guaranteed.</li>

@@ -44,8 +44,8 @@ jobs:
 
   # The determinism gate: golden inputs must give byte-identical reports on native, Python and WASM,
   # on Linux, macOS and Windows, and the WASM build must stay inside its gzip size budget.
-  # Windows: configured, not yet executed. scripts/install-wasm-tools.sh has a Windows branch with
-  # pinned digests, but nothing has run on a Windows runner until the repository is pushed.
+  # Windows uses the Windows branch of scripts/install-wasm-tools.sh (pinned digests); first green
+  # Windows run on 9 Nov 2026.
   determinism:
     name: determinism + bench tests (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
