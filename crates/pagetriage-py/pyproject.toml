@@ -23,9 +23,9 @@ classifiers = [
 dynamic = ["version"]
 
 [project.urls]
-Homepage = "https://github.com/jtushar53/pagetriage"
-Repository = "https://github.com/jtushar53/pagetriage"
-Documentation = "https://github.com/jtushar53/pagetriage/tree/main/docs"
+Homepage = "https://github.com/AirplaneMode-Labs/pagetriage"
+Repository = "https://github.com/AirplaneMode-Labs/pagetriage"
+Documentation = "https://github.com/AirplaneMode-Labs/pagetriage/tree/main/docs"
 
 [tool.maturin]
 module-name = "pagetriage_py"

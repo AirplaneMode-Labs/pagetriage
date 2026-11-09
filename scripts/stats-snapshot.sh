@@ -8,13 +8,12 @@
 #
 # The traffic endpoints (views, clones) need a token with push access to the repository. The
 # workflow's own token does not have it ("Resource not accessible by integration"), so in Actions
-# those four columns stay empty unless the owner adds a repository secret STATS_TOKEN holding a
-# fine-grained personal access token for this repository with "Administration: read" permission.
-# Locally, `gh` logged in as the owner is enough. A value that is not a plain number is recorded as
-# empty rather than written into the CSV.
+# those four columns stay empty: the stats workflow references no secret by design. Locally, `gh`
+# logged in as an owner of the AirplaneMode-Labs organisation fills them in. A value that is not a
+# plain number is recorded as empty rather than written into the CSV.
 set -euo pipefail
 OUT=${1:-stats.csv}
-REPO=jtushar53/pagetriage
+REPO=AirplaneMode-Labs/pagetriage
 date=$(date -u +%F)
 
 j() {

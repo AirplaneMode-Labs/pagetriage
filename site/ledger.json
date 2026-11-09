@@ -1,6 +1,6 @@
 {
   "note": "The 'What it reads today' table on the demo page. Edit statuses here, not in index.html. 'doc' is relative to docs_base.",
-  "docs_base": "https://github.com/jtushar53/pagetriage/blob/main/docs/",
+  "docs_base": "https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/",
   "rows": [
     {
       "question": "Is this real text, a scan, or a scan with hidden OCR text?",

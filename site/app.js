@@ -7,7 +7,7 @@ const MAX_PDF_BYTES = 256 * 1024 * 1024; // the library's own cap
 const HOWE_AUTO_PIXELS = 2.5e6; // Howe (static) runs by itself up to here, on request above
 const JSON_INLINE_CAP = 200_000; // longer reports are offered as a download instead of inlined
 const PDF_ROWS_SHOWN = 200;
-const DOCS = "https://github.com/jtushar53/pagetriage/blob/main/docs/";
+const DOCS = "https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/";
 
 const METHODS = {
   otsu: { name: "Otsu", why: "One cut-off for the whole page. Fast, for clean pages." },

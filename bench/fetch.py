@@ -35,7 +35,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 DEFAULT_MANIFEST = HERE / "datasets.toml"
 DEFAULT_DATA_DIR = HERE / "data"
-USER_AGENT = "pagetriage-bench-fetch/0.1 (+https://github.com/jtushar53/pagetriage)"
+USER_AGENT = "pagetriage-bench-fetch/0.1 (+https://github.com/AirplaneMode-Labs/pagetriage)"
 CHUNK = 1 << 20
 TIMEOUT_S = 60
 MAX_EXTRACTED_BYTES = 8 * 1024**3  # archive-bomb guard

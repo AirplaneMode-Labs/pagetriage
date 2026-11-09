@@ -31,7 +31,7 @@ cat > "$OUT/package/package.json" <<JSON
   "version": "$VERSION",
   "description": "Deterministic, non-ML page-content analyser for degraded scanned legal documents (WASM build)",
   "license": "MIT OR Apache-2.0",
-  "repository": { "type": "git", "url": "git+https://github.com/jtushar53/pagetriage.git" },
+  "repository": { "type": "git", "url": "git+https://github.com/AirplaneMode-Labs/pagetriage.git" },
   "keywords": ["document-analysis", "scanned-documents", "wasm", "deterministic", "ocr-triage"],
   "main": "nodejs/pagetriage.js",
   "module": "web/pagetriage.js",

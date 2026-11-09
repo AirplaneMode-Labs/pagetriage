@@ -8,8 +8,8 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="pagetriage: analyse scanned pages in your browser">
 <meta property="og:description" content="Deterministic scanned-page analyser. Measures tilt, blur and bleed-through, reads PDF text layers, flags legacy Hindi fonts. No model, no upload, same answer every time.">
-<meta property="og:url" content="https://jtushar53.github.io/pagetriage/">
-<meta property="og:image" content="https://jtushar53.github.io/pagetriage/samples/ghosted.png">
+<meta property="og:url" content="https://airplanemode-labs.github.io/pagetriage/">
+<meta property="og:image" content="https://airplanemode-labs.github.io/pagetriage/samples/ghosted.png">
 <meta property="og:image:alt" content="A synthetic scanned page with ink from the back of the sheet showing through.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="color-scheme" content="light dark">
@@ -32,7 +32,7 @@
       <a href="#same">Same answer</a>
       <a href="#results">Results</a>
       <a href="#run">Run it</a>
-      <a class="gh" href="https://github.com/jtushar53/pagetriage">GitHub</a>
+      <a class="gh" href="https://github.com/AirplaneMode-Labs/pagetriage">GitHub</a>
     </nav>
   </div>
 </header>
@@ -120,32 +120,32 @@
         </thead>
         <tbody>
           <tr>
-            <td data-label="Check"><a href="https://github.com/jtushar53/pagetriage/blob/main/docs/detectors/text_layer.md#measured-results">Text layer</a>, 300 synthetic PDF pages</td>
+            <td data-label="Check"><a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/detectors/text_layer.md#measured-results">Text layer</a>, 300 synthetic PDF pages</td>
             <td data-label="Result">300 of 300 right</td>
             <td data-label="How far to trust it" class="trust">Weak: we wrote the corpus. Two settings were tuned on half of it; the other half scored 159 of 159.</td>
           </tr>
           <tr>
-            <td data-label="Check"><a href="https://github.com/jtushar53/pagetriage/blob/main/docs/detectors/font_script.md#measured-results">Legacy Hindi fonts</a>, same corpus</td>
+            <td data-label="Check"><a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/detectors/font_script.md#measured-results">Legacy Hindi fonts</a>, same corpus</td>
             <td data-label="Result">17 of 17 found, none among the other 283 pages</td>
             <td data-label="How far to trust it" class="trust">Weak: the font list was written from memory and no real deed was tested.</td>
           </tr>
           <tr>
-            <td data-label="Check"><a href="https://github.com/jtushar53/pagetriage/blob/main/docs/detectors/quality.md#results">Tilt</a>, 984 rotations of 82 DIBCO pages</td>
+            <td data-label="Check"><a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/detectors/quality.md#results">Tilt</a>, 984 rotations of 82 DIBCO pages</td>
             <td data-label="Result">median error 0.05 degrees</td>
             <td data-label="How far to trust it" class="trust">Solid for the median; the tail is poor (90th percentile 0.75 degrees, worst 26.5 on papyri).</td>
           </tr>
           <tr>
-            <td data-label="Check"><a href="https://github.com/jtushar53/pagetriage/blob/main/docs/detectors/binarize.md#results">Howe black-and-white method</a>, DIBCO 2011 (held out)</td>
+            <td data-label="Check"><a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/detectors/binarize.md#results">Howe black-and-white method</a>, DIBCO 2011 (held out)</td>
             <td data-label="Result">F-measure 89.6, the paper reports 91.9</td>
             <td data-label="How far to trust it" class="trust">Short of the target we set; three dark-background pages cause the gap.</td>
           </tr>
           <tr>
-            <td data-label="Check"><a href="https://github.com/jtushar53/pagetriage/blob/main/docs/detectors/binarize.md#results">Howe</a>, DIBCO 2009 and 2010 (tuned here)</td>
+            <td data-label="Check"><a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/detectors/binarize.md#results">Howe</a>, DIBCO 2009 and 2010 (tuned here)</td>
             <td data-label="Result">F-measure 94.0, the paper reports 93.8</td>
             <td data-label="How far to trust it" class="trust">Settings were chosen on these pages.</td>
           </tr>
           <tr>
-            <td data-label="Check"><a href="https://github.com/jtushar53/pagetriage/blob/main/docs/detectors/quality.md#cost">Speed</a></td>
+            <td data-label="Check"><a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/detectors/quality.md#cost">Speed</a></td>
             <td data-label="Result">about 68 ms per A4 page at 150 dpi, one thread</td>
             <td data-label="How far to trust it" class="trust">Measured on an Apple-silicon laptop, native; 142 pages per second on 12 threads.</td>
           </tr>
@@ -159,7 +159,7 @@
       <div class="code-cols">
         <div>
           <h3>Command line</h3>
-<pre><code>git clone https://github.com/jtushar53/pagetriage
+<pre><code>git clone https://github.com/AirplaneMode-Labs/pagetriage
 cd pagetriage
 cargo build --release -p pagetriage-cli
 
@@ -210,14 +210,14 @@ const report = JSON.parse(analyse_page(
         <li>B. B. Chaudhuri and U. Pal, "Skew angle detection of digitized Indian script documents", 1997.</li>
         <li>ISO 32000, the PDF specification.</li>
       </ul>
-      <p class="measure">The full list, with what each paper is used for, is in <a href="https://github.com/jtushar53/pagetriage/blob/main/docs/REFERENCES.md">docs/REFERENCES.md</a>. A few entries there are marked unverified: a citation or formula recalled from memory and not yet checked against the paper.</p>
+      <p class="measure">The full list, with what each paper is used for, is in <a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/REFERENCES.md">docs/REFERENCES.md</a>. A few entries there are marked unverified: a citation or formula recalled from memory and not yet checked against the paper.</p>
     </section>
   </div>
 </main>
 
 <footer class="foot">
   <div class="wrap">
-    <p>pagetriage is free software under the MIT or Apache-2.0 licence, at your choice. Source, issues and the benchmark scripts are on <a href="https://github.com/jtushar53/pagetriage">GitHub</a>. Analyser version <span data-version>loading</span>.</p>
+    <p>pagetriage is free software under the MIT or Apache-2.0 licence, at your choice. Source, issues and the benchmark scripts are on <a href="https://github.com/AirplaneMode-Labs/pagetriage">GitHub</a>. Analyser version <span data-version>loading</span>.</p>
     <p>The sample pages are synthetic. No real documents are used or uploaded.</p>
     <p>Made by Tushar Patekar.</p>
   </div>
