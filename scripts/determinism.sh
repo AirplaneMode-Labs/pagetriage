@@ -10,9 +10,9 @@ PYTHON=${PYTHON:-python3}
 VENV=${VENV:-.venv}
 
 echo "== native"
-cargo test -p pagetriage-core --test golden --quiet
-cargo test -p pagetriage-core --test binarize_golden --quiet
-cargo test -p pagetriage-core --features pdf --test golden_pdf --quiet
+cargo test --locked -p pagetriage-core --test golden --quiet
+cargo test --locked -p pagetriage-core --test binarize_golden --quiet
+cargo test --locked -p pagetriage-core --features pdf --test golden_pdf --quiet
 
 echo "== python"
 # Python virtual environments put their executables in Scripts/ on Windows and bin/ elsewhere.
@@ -23,11 +23,11 @@ esac
 if [ ! -x "$VBIN/maturin" ] && [ ! -x "$VBIN/maturin.exe" ]; then
   "$PYTHON" -m venv "$VENV"
   if [ -d "$VENV/Scripts" ]; then VBIN="$VENV/Scripts"; else VBIN="$VENV/bin"; fi
-  "$VBIN/pip" install --quiet maturin
+  "$VBIN/pip" install --quiet maturin==1.16.0
 fi
 export VIRTUAL_ENV="$PWD/$VENV"
 export PATH="$PWD/$VBIN:$PATH"
-maturin develop --release --quiet --manifest-path crates/pagetriage-py/Cargo.toml
+maturin develop --locked --release --quiet --manifest-path crates/pagetriage-py/Cargo.toml
 python -I tests/determinism/run_python.py
 python -I tests/determinism/run_python_binarize.py
 python -I tests/determinism/run_python_pdf.py

@@ -34,7 +34,7 @@ FEATURE_ARGS=()
 if [ -n "${PAGETRIAGE_WASM_FEATURES:-}" ]; then FEATURE_ARGS=(--features "$PAGETRIAGE_WASM_FEATURES"); fi
 # shellcheck source=remap-flags.sh
 . scripts/remap-flags.sh
-cargo build --profile wasm --target wasm32-unknown-unknown -p pagetriage-wasm ${FEATURE_ARGS[@]+"${FEATURE_ARGS[@]}"}
+cargo build --locked --profile wasm --target wasm32-unknown-unknown -p pagetriage-wasm ${FEATURE_ARGS[@]+"${FEATURE_ARGS[@]}"}
 RAW=target/wasm32-unknown-unknown/wasm/pagetriage_wasm.wasm
 
 # Post-link features rustc emits for wasm32-unknown-unknown. The profile strips the target_features

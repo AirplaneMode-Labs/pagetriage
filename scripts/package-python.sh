@@ -11,10 +11,12 @@ cd "$(dirname "$0")/.."
 VENV=${VENV:-.venv}
 if [ ! -x "$VENV/bin/maturin" ]; then
   python3 -m venv "$VENV"
-  "$VENV/bin/pip" install --quiet maturin
+  "$VENV/bin/pip" install --quiet maturin==1.16.0
 fi
+# shellcheck source=remap-flags.sh
+. scripts/remap-flags.sh   # no builder path in the shipped extension module
 rm -rf dist/wheels
-"$VENV/bin/maturin" build --release -m crates/pagetriage-py/Cargo.toml -o dist/wheels
+"$VENV/bin/maturin" build --locked --release -m crates/pagetriage-py/Cargo.toml -o dist/wheels
 WHEEL=$(ls dist/wheels/*.whl)
 echo "built $WHEEL ($(wc -c < "$WHEEL" | tr -d ' ') bytes)"
 
