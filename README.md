@@ -155,8 +155,7 @@ What was proven: wheel `pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl`, platf
 with `uv pip install --offline`), and the tarball `pagetriage-0.1.0.tgz` installed from an empty npm
 cache, each followed by an analysis of `tests/golden/inputs/blank_speckle.pgm` whose output is
 byte-equal to `tests/golden/expected/blank_speckle.json`. **Linux and Windows wheels are not built yet**
-(a wheel for PyPI needs manylinux, macOS and Windows builds in CI; the owner's step, a Sprint 4
-carry-over), and the wheel above only installs on macOS arm64. Evidence: `evidence/sprint-3/D2/`.
+(a wheel for PyPI needs manylinux, macOS and Windows builds in CI; cut to Sprint 6), and the wheel above only installs on macOS arm64. Evidence: `evidence/sprint-3/D2/`.
 
 ### After the owner publishes
 
@@ -338,7 +337,7 @@ measured" on every row. The accuracy rows were measured in earlier sprints and w
 Sprint 3; the Sprint 3 speed log and install proofs are under `evidence/sprint-3/D2/` (the architect
 copies them there at wrap-up).
 
-Full-page analysis time and thread-pool throughput are not measured by a repo script yet (Sprint 4).
+Full-page analysis time and thread-pool throughput are not measured by a repo script yet (cut to Sprint 6).
 Earlier speed and throughput figures for them had no script or log behind them and were removed.
 
 | What was measured | Result (Apple-silicon development machine) | 8 GB Windows no-GPU laptop | How far to trust it |
@@ -363,12 +362,12 @@ What does not work yet, plainly:
   legacy fonts come from a corpus we wrote.
 - **Nothing is published or tagged.** There is no crates.io, PyPI or npm package, and the names are not
   reserved. The wheel and the npm tarball install from locally built files on macOS arm64 only
-  ([Install](#install)); **Linux and Windows wheels are not built yet**, and there is no sdist. No
+  ([Install](#install)); **Linux and Windows wheels are not built yet and there is no sdist (cut to Sprint 6)**. No
   release artefact is signed: `scripts/release-manifest.mjs` writes an unsigned manifest, and signing
   with a real key is the owner's step ([docs/release.md](docs/release.md) row 4).
 - **The target hardware is unmeasured.** No speed figure exists for an 8 GB Windows laptop without
   a GPU, or for the WebAssembly build in a browser. Full-page analysis time and thread-pool throughput
-  are not measured by a repo script yet (Sprint 4); only the quality pass on one synthetic A4 page is. A large-document bench script (time and peak memory on big PDFs) is a Sprint 4 item.
+  are not measured by a repo script yet (cut to Sprint 6); only the quality pass on one synthetic A4 page is. A large-document bench script (time and peak memory on big PDFs) is cut to Sprint 6. Not measured on 8 GB.
 - **The wheel carries no SBOM.** maturin's Rust CycloneDX SBOM records the builder's absolute checkout path, so it is switched off (`sbom = { rust = false }`) until a path-free one exists. Compiler path strings are remapped with `scripts/remap-flags.sh`, and `scripts/check-no-builder-paths.sh` fails if a wheel or tarball holds a home or temp path.
 - **CI runs on Linux, macOS and Windows, on hosted runners only.** The determinism gate (native,
   Python and WASM) first passed on Windows on 9 Nov 2026 ([run](https://github.com/AirplaneMode-Labs/pagetriage/actions/runs/42634433346)). That is a hosted GitHub
@@ -415,7 +414,7 @@ type from 6 to 24 pt: the lines drawn were found every time and the tilt was rea
 
 The structure pass reads PDF objects and content streams without rendering.
 
-Large-document time and memory were measured ad hoc in Sprint 1 with no repo script; the figures are removed until a script reproduces them (Sprint 4).
+Large-document time and memory were measured ad hoc in Sprint 1 with no repo script; the figures are removed until a script reproduces them (cut to Sprint 6).
 
 **Limits.** The structure pass accepts files up to 1 GiB and analyses up to 100,000 pages per file.
 These are safety limits for untrusted input, not tuned numbers. Past the page cap a file is analysed up to the cap and marked
@@ -441,7 +440,7 @@ because 13,000 pages of bookkeeping dominate when the pages themselves are small
 
 **Pixel work is the expensive part.** The quality pass on one synthetic A4 page at 150 dpi takes about
 60 ms ([Benchmarks](#benchmarks)); full-page analysis time, rendering time and thread-pool throughput are
-not measured by a repo script yet (Sprint 4), so no total for 13,000 pages is given here. Howe
+not measured by a repo script yet (cut to Sprint 6), so no total for 13,000 pages is given here. Howe
 binarisation is far slower, about 50 seconds per A4 page in `dual` mode (extrapolated from 23 s per
 megapixel), so run it only on the pages the quality readout flags. Near-duplicate search over 13,000
 page hashes takes under 0.1 s. A browser tab has far less memory than a workstation, and the demo

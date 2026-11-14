@@ -45,7 +45,7 @@
       <div class="intro">
         <h1 id="h1">Know what is on a scanned page before you run OCR on it.</h1>
         <p class="lede">pagetriage measures tilt, blur, bleed-through and folds, tells a real text layer from a scan, and flags legacy Hindi fonts. It uses no model, so the same page gives the same answer every time. Try it below: everything runs in this tab. Nothing is uploaded; the only network requests are for this page's own files.</p>
-        <p class="status" id="sprint-status">Sprint 3 (14 Nov 2026). Installable from a locally built macOS arm64 wheel and npm tarball, proven in fresh offline environments; not published; no tag; v1.0.0 held by release rows 2, 4, 5, 6 and 7.</p>
+        <p class="status" id="sprint-status">Sprint 4 (14 Nov 2026): Working: the same page analysis as before, now with the footer NOTICE listing each MIT-only compiled crate with its copyright line and full MIT text, an attributed BSD-3-Clause paragraph for alloc-stdlib, and NOTICE inside the locally built wheel. Not yet: OCR, 8 GB figures (not measured on 8 GB), a signed release, a tag, a published package, Linux and Windows wheels (cut to Sprint 6).</p>
       </div>
 
       <div class="table">
@@ -150,7 +150,7 @@
           <tr>
             <td data-label="Check"><a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/detectors/quality.md#cost">Speed</a></td>
             <td data-label="Result">quality pass about 63 ms on one synthetic A4 page at 150 dpi</td>
-            <td data-label="How far to trust it" class="trust">Measured on an Apple-silicon laptop, native, one page type; full-page time and throughput are not measured yet (Sprint 4); the 8 GB Windows laptop is not measured.</td>
+            <td data-label="How far to trust it" class="trust">Measured on an Apple-silicon laptop, native, one page type; full-page time and throughput are not measured yet (cut to Sprint 6); the 8 GB Windows laptop is not measured.</td>
           </tr>
         </tbody>
       </table>
@@ -177,9 +177,9 @@
             <li>No OCR. It does not read or extract text; it tells you what is on the page before you spend OCR on it. Text extraction is a later step in the pipeline (the dockit demo, Sprint 5), not this library's job.</li>
             <li>No model. Every number comes from hand-written features and fixed thresholds, by project rule, so no confidence is calibrated on real pages; calibration needs labelled real pages and is a Sprint 5 item (M13).</li>
             <li>No tiling over 36 megapixels. Images over 36 megapixels are refused in the tab, and the core has no tiling for pages that large; no sprint is scheduled for it. The command-line tool has no such cap.</li>
-            <li>No 8 GB figures. Speed and memory on the 8 GB Windows laptop without a GPU, and in-browser speed, are unmeasured (release row 2, the owner's step). The Windows determinism job ran on a hosted GitHub runner, which is not the target laptop.</li>
+            <li>No 8 GB figures. Speed and memory on the 8 GB Windows laptop without a GPU, and in-browser speed, are not measured on 8 GB (release row 2, the owner's step); the full-page and large-PDF bench scripts are cut to Sprint 6. The Windows determinism job ran on a hosted GitHub runner, which is not the target laptop.</li>
             <li>No published package. Nothing is on crates.io, PyPI or npm and the names are not reserved. A wheel and an npm tarball install from locally built files, proven on macOS arm64 only; no version is tagged. The blockers are listed in <a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/release.md">docs/release.md</a>.</li>
-            <li>No Linux or Windows wheel. Only the macOS arm64 wheel has been built; wheels for the other platforms are a Sprint 4 carry-over.</li>
+            <li>No Linux or Windows wheel. Only the macOS arm64 wheel has been built; wheels for the other platforms and an sdist are cut to Sprint 6 and are not built.</li>
             <li>No signed release. A release manifest can be written and checked, but no real signing key exists, so nothing is signed (release row 4, the owner's step).</li>
             <li>No upload, ever. Images and PDFs never leave the tab, so there is no server-side analysis, no sharing link and no saved history.</li>
             <li>No service worker: offline after the first load is best effort (Chrome's HTTP cache), not guaranteed.</li>

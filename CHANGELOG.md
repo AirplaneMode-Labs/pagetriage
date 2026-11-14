@@ -38,7 +38,15 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
 - Sprint 3 fix round: `LICENSE-MIT` and `LICENSE-APACHE` copied into `crates/pagetriage-core` and `crates/pagetriage-cli` so each crate tarball carries them, with `tests/scripts/crate-licences.sh` requiring byte equality with the root files (BUG-T2-S3-05).
 - Sprint 3 fix round: `scripts/remap-flags.sh` (appends `--remap-path-prefix` for the cargo home, rustup home and repository root to `RUSTFLAGS`, used by `scripts/build-wasm.sh` and the wheel build commands) and `scripts/check-no-builder-paths.sh`, which fails if a wheel or tarball contains `/Users/`, `/home/` or `/private/tmp`; `prove-install.sh` and `package-npm.sh` run it; test `tests/scripts/path-leak-gate.sh` (BUG-T2-S3-03, T3-S3-008).
 
+- Sprint 4: `scripts/gen-site-notice.mjs --py` regenerates the root `NOTICE` from `cargo tree --locked -p pagetriage-py`
+  and `cargo metadata --locked`, and `tests/scripts/build-site-notices.sh` (in `run-all.sh`) fails when a block, the upstream SHA
+  or a BSD crate name is removed from the root, served or wheel `NOTICE`.
+- Sprint 4: the demo page shows a Sprint 4 status line and a refreshed "What this demo does not do yet" box (D2-03).
+
 ### Changed
+
+- Sprint 4: `scripts/package-python.sh` sources `scripts/remap-flags.sh`, so a wheel built by it holds no
+  builder path (the Sprint 3 proof used the same flags by hand).
 
 - Windows CI is no longer described as "configured, not yet executed": the determinism gate first passed on
   `windows-latest` on 9 Nov 2026, so `docs/release.md` row 1 is Done and the README, demo page and script
@@ -77,6 +85,25 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
 - Sprint 3 fix round: the README Install sentence is one plain line and `scripts/prove-install.sh` asserts it in full; `docs/release.md` begins each Open row's instructions with `Owner must:` and moves the registry commands into an "After the owner publishes" block; the wheel classifier is `Operating System :: MacOS` until Linux and Windows wheels exist (BUG-T2-S3-06, T3-S3-012).
 
 ### Fixed
+
+- BUG-T1-S3-R2-02, BUG-T2-S3-20-R2, TD-03, TD-28: the demo `NOTICE.txt` and the root `NOTICE` carry, for every crate whose
+  `cargo metadata --locked` licence is exactly `MIT` (the WASM tree, and the `pagetriage-py` tree that the wheel ships),
+  the name, version, copyright line (or the `Cargo.toml` author where the licence file has none) and the full MIT
+  text (evidence/sprint-4/D2/red-D2-01.log, green-D2-01.log, mutation-D2-01.log, red-fix1-D2-notice.log, green-fix1-D2-notice.log).
+- S1-082, S1-090a: the Python wheel carries `NOTICE` (`license-files` in `crates/pagetriage-py/pyproject.toml`, with a
+  copy of the root file in that crate, checked by the same test), now including the MIT blocks
+  (evidence/sprint-4/D2/wheel-listing.log).
+- BUG-T2-S4-08: the `NOTICE` names brotli-decompressor 5.0.3 (BSD-3-Clause/MIT, Copyright (c) 2016 Dropbox, Inc.) beside
+  the alloc crates, and the test checks the served `NOTICE.txt` for the upstream SHA and the BSD crates.
+- S1-085: reworded a domain-specific example in a params comment to a neutral one; golden diff empty and params output
+  identical (evidence/sprint-4/D2/golden-diff.log, params-diff.log). Attribution trailers in already-pushed history
+  are left as they are (docs/release.md, History).
+- TD-04: the `NOTICE` alloc-stdlib paragraph states its sources: `Cargo.toml` names BSD-3-Clause, author Daniel Reiter
+  Horn and the dropbox/rust-alloc-no-stdlib repository, whose root `LICENSE` was read at upstream commit
+  3b341ccfa783a136449eef7dcf4f818f81c077f1 (evidence/sprint-4/D2/upstream-licence.log).
+- BUG-T2-S4-06, BUG-T3-S4-02, S1-093: every `cargo` and `maturin` invocation in `ci.yml` and `scripts/` uses `--locked`;
+  `maturin` is pinned to 1.16.0 in `package-python.sh` and `determinism.sh` (version only, listed as known gaps in
+  docs/release.md).
 
 - BUG-T2-S3-13: removed the unbacked large-document time and memory figures from the README (measured
   ad hoc in Sprint 1, no repo script); a bench script is a Sprint 4 item.
