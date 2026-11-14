@@ -45,3 +45,6 @@ _site/
 *.secret
 .env*
 .playwright/
+
+# npm pack tarballs
+*.tgz

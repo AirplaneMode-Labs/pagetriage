@@ -55,6 +55,7 @@ JSON
 ( cd "$OUT" && npm pack --silent ./package --pack-destination . >/dev/null )
 TARBALL=$(ls "$OUT"/pagetriage-*.tgz)
 echo "packed $TARBALL ($(wc -c < "$TARBALL" | tr -d ' ') bytes)"
+scripts/check-no-builder-paths.sh "$TARBALL"
 tar -tzf "$TARBALL" | sed 's/^/  /'
 
 # Install the tarball in a scratch project and run it: a blank page and the wrong-length buffer error.

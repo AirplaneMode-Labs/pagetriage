@@ -32,6 +32,8 @@ command -v wasm-opt >/dev/null || { echo "error: wasm-opt not found (brew instal
 # artifact). WASM_OUT picks the output folder (default dist/wasm).
 FEATURE_ARGS=()
 if [ -n "${PAGETRIAGE_WASM_FEATURES:-}" ]; then FEATURE_ARGS=(--features "$PAGETRIAGE_WASM_FEATURES"); fi
+# shellcheck source=remap-flags.sh
+. scripts/remap-flags.sh
 cargo build --profile wasm --target wasm32-unknown-unknown -p pagetriage-wasm ${FEATURE_ARGS[@]+"${FEATURE_ARGS[@]}"}
 RAW=target/wasm32-unknown-unknown/wasm/pagetriage_wasm.wasm
 

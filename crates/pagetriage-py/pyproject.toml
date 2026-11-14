@@ -13,7 +13,7 @@ keywords = ["document-analysis", "scanned-documents", "deterministic", "ocr-tria
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Developers",
-  "Operating System :: OS Independent",
+  "Operating System :: MacOS",
   "Programming Language :: Rust",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: Implementation :: CPython",
@@ -30,3 +30,6 @@ Documentation = "https://github.com/AirplaneMode-Labs/pagetriage/tree/main/docs"
 [tool.maturin]
 module-name = "pagetriage_py"
 features = ["pyo3/extension-module"]
+# The Rust CycloneDX SBOM that maturin embeds records the builder's absolute checkout path
+# ("path+file:///Users/..."), which must not ship in a published wheel. Off until a path-free SBOM exists.
+sbom = { rust = false }
