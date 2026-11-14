@@ -20,6 +20,24 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
   digest rows, with `curl` and `uname` stubbed; build commit validation; `WASM_OUT` guard), run by the
   `rust` job in `ci.yml` (BUG-T2-S2-03, BUG-T2-S2-08).
 
+- Sprint 3: `scripts/release-manifest.mjs` (Node 22, no dependencies) writes an unsigned
+  `airplanemode.manifest/0.1` listing release artifacts with their SHA-256 and size. It has no signing
+  option and never reads a key, refuses a `SOURCE_DATE_EPOCH` outside 0..253402300799 and any `--out`
+  that does not resolve inside `dist/` (symlinks resolved), and is tested by
+  `tests/scripts/release-manifest.sh`, now part of `tests/scripts/run-all.sh` (D2-02, release row 4).
+- Sprint 3: `scripts/prove-install.sh` installs the locally built wheel into a `python3 -m venv` (pip
+  `--no-index --no-deps`) and a `uv venv` (`--offline`), and the `npm pack` tarball into a fresh empty
+  directory (`--ignore-scripts --offline`, empty cache), runs a real analysis in each, requires output
+  byte-equal to a golden report, and checks the archives (licence files, no test data, source maps,
+  lifecycle scripts or files over 5 MB, the "Not published yet" sentence) (D2-01, release row 6).
+- Sprint 3: `docs/writeup-1.0-draft.md`, marked "Draft, not published", built from existing evidence
+  only, with the 8 GB figures reading "not measured" (D2-03, release row 7).
+- Sprint 3: the demo page shows a Sprint 3 status line and a refreshed "What this demo does not do yet"
+  box (D2-04).
+
+- Sprint 3 fix round: `LICENSE-MIT` and `LICENSE-APACHE` copied into `crates/pagetriage-core` and `crates/pagetriage-cli` so each crate tarball carries them, with `tests/scripts/crate-licences.sh` requiring byte equality with the root files (BUG-T2-S3-05).
+- Sprint 3 fix round: `scripts/remap-flags.sh` (appends `--remap-path-prefix` for the cargo home, rustup home and repository root to `RUSTFLAGS`, used by `scripts/build-wasm.sh` and the wheel build commands) and `scripts/check-no-builder-paths.sh`, which fails if a wheel or tarball contains `/Users/`, `/home/` or `/private/tmp`; `prove-install.sh` and `package-npm.sh` run it; test `tests/scripts/path-leak-gate.sh` (BUG-T2-S3-03, T3-S3-008).
+
 ### Changed
 
 - Windows CI is no longer described as "configured, not yet executed": the determinism gate first passed on
@@ -29,7 +47,52 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
   so an unknown wasm-bindgen or binaryen asset exits 1 with no network call and nothing installed
   (BUG-T2-S2-04). `docs/release.md` row 1 cites `evidence/sprint-1/D2/gate.log` (BUG-T2-S2-06).
 
+- Sprint 3: README Install now has "From source", "From locally built artifacts" (the exact offline
+  wheel and tarball commands, the proven platform tag `macosx_11_0_arm64`, the statement that Linux and
+  Windows wheels are not built yet) and "After the owner publishes" (the bare registry commands); the
+  "Not published yet" sentence ships inside the wheel and the npm tarball because both carry this README
+  (D2-01). Nothing is published, tagged or reserved; the version is still 0.1.0.
+- Sprint 3: `docs/release.md` rewritten for 14 Nov 2026: one row per definition-of-done item with
+  evidence paths, an "Owner must" section with the commands for every Open row (the 8 GB Windows
+  procedure, signing, tag, install from a registry, write-up), and row 1 reworded because no CI run covers
+  the Sprint 3 changes until the owner pushes. Rows 2, 4, 5, 6 and 7 stay Open (D2-03).
+- Sprint 3: README WebAssembly size corrected from 246 KB to 479 KB gzipped (855 KB with the PDF parser),
+  as measured by `scripts/check-wasm-size.sh` on 14 Nov 2026; both are inside the 1,000,000-byte budget (D2-04).
+- Sprint 3: `docs/RELEASING.md` gains "Signing the manifest" and the install-proof script in the checks
+  table (D2-02).
+
+- The repository moved from its original personal-account home to `AirplaneMode-Labs/pagetriage`; every URL,
+  badge and the GitHub Pages address (`https://airplanemode-labs.github.io/pagetriage/`) now point at
+  the organisation. No behaviour change; no golden file changed.
+- CI: every action pinned by commit SHA, every job declares its own permissions, Windows added to the
+  fmt/clippy/test matrix, the packaging dry runs added as a CI job, Dependabot configured for cargo and
+  GitHub Actions. The determinism job stays on Linux and macOS ([docs/release.md](docs/release.md)
+  says why).
+- README: Install, Benchmarks, Limitations and Security and privacy sections; Apple-silicon figures
+  labelled as placeholders with the 8 GB Windows laptop marked not measured.
+- Demo page gains CSP, browser-requirements and not-yet boxes; CI builds the demo site; wasm tool
+  installer pins release digests.
+
+- Sprint 3 fix round: README Benchmarks drops the unbacked full-page medians (68, 76, 88 ms) and thread-pool throughput (13 to 129 pages/s) and the 13,000-page extrapolation built on them; the speed row is now the quality pass on one synthetic A4 page at 150 dpi (`bench/quality_synth_eval.py --only time`, median 62.7 ms, `evidence/sprint-3/D2/bench-quality-time.log`), a column "8 GB Windows no-GPU laptop" reads "not measured" on every row, and the Limitations say full-page time and throughput are not measured by a repo script yet (Sprint 4). `docs/release.md` row 2 says what each command measures and drops the PowerShell `Measure-Command` line; the demo page speed row says the same (BUG-T2-S3-04).
+- Sprint 3 fix round: the README Install sentence is one plain line and `scripts/prove-install.sh` asserts it in full; `docs/release.md` begins each Open row's instructions with `Owner must:` and moves the registry commands into an "After the owner publishes" block; the wheel classifier is `Operating System :: MacOS` until Linux and Windows wheels exist (BUG-T2-S3-06, T3-S3-012).
+
+### Fixed
+
+- BUG-T2-S3-13: removed the unbacked large-document time and memory figures from the README (measured
+  ad hoc in Sprint 1, no repo script); a bench script is a Sprint 4 item.
+- BUG-T2-S3-12: `docs/release.md` row 6 states the current `cargo package` file counts and cites lists
+  regenerated after the licence copies; row 2 gets its full stop.
+- T3-S3-023: `scripts/build-site.sh` copies `NOTICE`, `LICENSE-MIT` and `LICENSE-APACHE` into the served
+  demo (as `.txt`), the page footer links them, and `NOTICE` now carries the BSD-3-Clause and Unicode-3.0
+  texts of the compiled crates that are not offered under MIT or Apache-2.0 alone.
+- T3-S3-021: wheel and npm tarball rebuilt after the last README edit, so the packaged README equals
+  the repo README.
+
 ### Security
+
+- Sprint 3: the dry-run signature of the release manifest used the public RFC 8032 test key through
+  `cp-sign --allow-test-key`, verified, and was refused without the flag; the signed file and all keys
+  stayed outside the repository, and the release script cannot sign (D2-02).
 
 - Sprint 2: `persist-credentials: false` on every checkout in `stats.yml` and `codeql.yml`;
   `stats.yml` is split into a read-only `snapshot` job and a `push` job that runs no repository
@@ -63,25 +126,11 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
 - Packaging dry runs for the npm tarball, the Python wheel and the core crate
   ([docs/RELEASING.md](docs/RELEASING.md)); nothing is published.
 
-### Changed
-
-- The repository moved from its original personal-account home to `AirplaneMode-Labs/pagetriage`; every URL,
-  badge and the GitHub Pages address (`https://airplanemode-labs.github.io/pagetriage/`) now point at
-  the organisation. No behaviour change; no golden file changed.
-- CI: every action pinned by commit SHA, every job declares its own permissions, Windows added to the
-  fmt/clippy/test matrix, the packaging dry runs added as a CI job, Dependabot configured for cargo and
-  GitHub Actions. The determinism job stays on Linux and macOS ([docs/release.md](docs/release.md)
-  says why).
-- README: Install, Benchmarks, Limitations and Security and privacy sections; Apple-silicon figures
-  labelled as placeholders with the 8 GB Windows laptop marked not measured.
-- Demo page gains CSP, browser-requirements and not-yet boxes; CI builds the demo site; wasm tool
-  installer pins release digests.
-
-### Security
-
 - NOTICE and SECURITY.md added (90-day coordinated disclosure, no telemetry, no key material in this
   repository).
 - The `stats` workflow no longer references a repository secret; it runs with the workflow token only.
+
+- Sprint 3 fix round: the wheel no longer embeds the Rust CycloneDX SBOM (`sbom = { rust = false }` in `pyproject.toml`), which recorded the builder's absolute checkout path; compiler path strings are remapped (BUG-T2-S3-03).
 
 ### What a release does not claim
 

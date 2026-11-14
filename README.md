@@ -8,7 +8,7 @@ tool, as a Python module and in the browser, and gives the same bytes out on all
 [![Licence: MIT OR Apache-2.0](https://img.shields.io/badge/licence-MIT%20OR%20Apache--2.0-blue)](#licence)
 [![Rust 1.98](https://img.shields.io/badge/rust-1.98-orange)](rust-toolchain.toml)
 [![Model files: none](https://img.shields.io/badge/model%20files-none-brightgreen)](#what-makes-it-different)
-[![WebAssembly: 246 KB gzipped](https://img.shields.io/badge/WebAssembly-246%20KB%20gzipped-654ff0)](#quick-start)
+[![WebAssembly: 479 KB gzipped](https://img.shields.io/badge/WebAssembly-479%20KB%20gzipped-654ff0)](#quick-start)
 
 ![One synthetic page with show-through from the reverse side, the same crop under four binarisers, and the quality readout](docs/img/hero.png)
 
@@ -69,7 +69,7 @@ text.
   measurement, its value, the threshold, its contribution to the confidence, and where the threshold
   came from.
 - **One core, three runtimes.** The same Rust crate builds the CLI, a Python wheel and a
-  WebAssembly package (246 KB gzipped without the PDF parser, 625 KB with it). The core does no file
+  WebAssembly package (479 KB gzipped without the PDF parser, 855 KB with it (measured 14 Nov 2026, `evidence/sprint-3/D2/wasm-size.log`)). The core does no file
   or network I/O and never reads the clock.
 - **The failures are written down.** Each detector has a docs page with measured results, a failure
   gallery, what it was tuned on, and the targets it missed.
@@ -108,13 +108,65 @@ text.
 
 ## Install
 
-Packages are not published to crates.io, PyPI or npm yet. Package names use the placeholder scope
-`@airplanemode` / crate names `pagetriage` until the handles are reserved; nothing is published yet.
-Build from source; `rust-toolchain.toml` selects Rust 1.98 and adds the WebAssembly target.
+Not published yet: the npm scope @airplanemode and the PyPI and crates.io names are not reserved. The commands below were proven from locally built artifacts on macOS arm64 (an npm pack tarball installed offline into a fresh empty directory, a wheel installed into a fresh venv); publishing to the registries is the owner's step.
+
+Release candidate status: not tagged (version 0.1.0 in the workspace; v1.0.0 is held by the open rows of [docs/release.md](docs/release.md)). Package names are placeholders
+until the handles are reserved.
+
+### From source
+
+`rust-toolchain.toml` selects Rust 1.98 and adds the WebAssembly target.
 
 ```sh
 git clone https://github.com/AirplaneMode-Labs/pagetriage && cd pagetriage
 cargo build --release -p pagetriage-cli
+```
+
+### From locally built artifacts
+
+Build the two artifacts, then install them offline into fresh environments. `scripts/prove-install.sh`
+runs all of the commands below and checks a real call against a golden report in each environment.
+
+```sh
+# Python wheel (abi3, CPython 3.9 or newer)
+# the remap flags keep the builder's home and repository paths out of the wheel
+RUSTFLAGS="$(. scripts/remap-flags.sh; echo "$RUSTFLAGS")" uvx maturin build --release -m crates/pagetriage-py/Cargo.toml -o /tmp/pt/wheels
+python3 -m venv /tmp/pt/pipvenv
+/tmp/pt/pipvenv/bin/pip install --no-index --no-deps /tmp/pt/wheels/pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl
+uv venv /tmp/pt/venv
+uv pip install --offline --no-index --no-deps --python /tmp/pt/venv/bin/python /tmp/pt/wheels/pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl
+/tmp/pt/venv/bin/python -I -c "import pagetriage_py; print(len(pagetriage_py.schema_json()))"
+
+# npm tarball (the WASM package; the node entry is CommonJS, the default entry an ES module)
+scripts/install-wasm-tools.sh        # once; add the PATH line it prints
+scripts/build-wasm.sh && scripts/package-npm.sh        # build-wasm.sh sets the same remap flags; -> dist/npm/pagetriage-0.1.0.tgz
+mkdir -p /tmp/pt/npm-fresh /tmp/pt/npm-cache-empty && cd /tmp/pt/npm-fresh && npm init -y
+npm i "$OLDPWD/dist/npm/pagetriage-0.1.0.tgz" --ignore-scripts --offline --no-audit --no-fund --cache /tmp/pt/npm-cache-empty
+npm ls --all                         # exactly one package: pagetriage
+node -e 'console.log(require("pagetriage").version())'
+
+# all of the above, with a real analysis of a synthetic golden page compared byte for byte
+scripts/prove-install.sh /tmp/pt/wheels/pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl dist/npm/pagetriage-0.1.0.tgz /tmp/pt/proof
+cargo package -p pagetriage-core --no-verify --list     # what the crate tarball would contain
+```
+
+What was proven: wheel `pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl`, platform tag
+`macosx_11_0_arm64`, installed twice (`python3 -m venv` with `pip --no-index --no-deps`, and `uv venv`
+with `uv pip install --offline`), and the tarball `pagetriage-0.1.0.tgz` installed from an empty npm
+cache, each followed by an analysis of `tests/golden/inputs/blank_speckle.pgm` whose output is
+byte-equal to `tests/golden/expected/blank_speckle.json`. **Linux and Windows wheels are not built yet**
+(a wheel for PyPI needs manylinux, macOS and Windows builds in CI; the owner's step, a Sprint 4
+carry-over), and the wheel above only installs on macOS arm64. Evidence: `evidence/sprint-3/D2/`.
+
+### After the owner publishes
+
+These registry commands do not work today. They are listed so the owner can run them on a clean machine
+after the publish steps in [docs/release.md](docs/release.md) and record the output.
+
+```sh
+pip install pagetriage
+npm i pagetriage
+cargo install pagetriage-cli
 ```
 
 The release checklist, with what is still open before a first tag, is [docs/release.md](docs/release.md).
@@ -280,22 +332,26 @@ result as input, so both halves end up in one report.
 
 Every number below comes from scripts in `bench/` ([commands](#reproduce-the-numbers)) and is
 written up, with its protocol, in `docs/detectors/`. The last column says how far to trust it. The
-speed and throughput rows were measured on an Apple-silicon development machine and are placeholders
-for the target hardware: the 8 GB Windows laptop without a GPU has not been measured.
+speed row was measured on an Apple-silicon development machine and is a placeholder for the target
+hardware: the 8 GB Windows laptop without a GPU has not been measured, so that column reads "not
+measured" on every row. The accuracy rows were measured in earlier sprints and were not re-measured in
+Sprint 3; the Sprint 3 speed log and install proofs are under `evidence/sprint-3/D2/` (the architect
+copies them there at wrap-up).
 
-| What was measured | Result | How far to trust it |
-|---|---|---|
-| PDF text-layer state, 300 pages of a synthetic PDF corpus | 300 of 300 correct | Weak evidence for real PDFs: we wrote the corpus. Two thresholds were tuned on the odd-numbered documents; the other half (159 pages) scored 159 of 159, run once |
-| Legacy Devanagari fonts, same corpus | 17 of 17 flagged, none flagged among the other 283 pages | Weak: same corpus, the font-name list was written from memory, no real Kruti Dev PDF has been tested |
-| Skew: 82 held-out DIBCO pages, each rotated 12 ways (984 measurements) | Median error 0.05 degrees; 90th percentile 0.75; worst 26.5 | The median is sound. The tail is poor: 60 of 984 measurements are off by more than 1 degree, concentrated in a papyri set and short handwritten crops. DIBCO is not deed material |
-| Howe binarisation, 20 images from DIBCO 2009 and 2010 | F-measure 94.0; the Howe 2013 paper's figures for the same images average 93.8 | Optimistic: the implementation's conventions were chosen on these images |
-| Howe binarisation, DIBCO 2011, 16 images held out | F-measure 89.6; the paper reports 91.9 | **Misses our target** of being within 1.5 points of the paper. The gap comes from three pages with large dark regions; on the other 13 pages we score 92.9 against the paper's 92.5 |
-| Other methods on DIBCO 2011 | Otsu 82.1, Sauvola 81.6, Wolf 84.7 | Same images, same scoring |
-| Bleed-through score against hand labels | AUC 0.86 on the pages it was tuned on, 0.71 on held-out pages | Weak out of sample; the labels were made by eye from thumbnails |
-| Speed, one A4 page at 150 dpi (1240 x 1754), one thread | Analysis about 70 to 90 ms a page: medians of 68, 76 and 88 ms over 24 synthetic pages in three runs. Rendering a page with poppler's `pdftoppm` adds about 25 ms in a batch, 40 ms for one page per process | Apple-silicon development machine, placeholder; 8 GB Windows no-GPU laptop not yet measured. Release build, through the Python binding; the two slower runs were on a machine busy with other jobs. Binarisers on the same page: Otsu 2 ms, Sauvola 11 ms, Wolf 21 ms, Howe static 1.1 s |
-| Throughput, Python thread pool, same pages | 13 pages/s on 1 thread, 48 on 4, 90 on 8, 129 on 12 | Apple-silicon development machine, placeholder; 8 GB Windows no-GPU laptop not yet measured. Same busy machine; an earlier run on it reached 142 on 12 threads. `analyse_page` releases the GIL, so 12 threads give about 10 times one thread |
-| Speed and throughput on an 8 GB Windows laptop without a GPU (the target machine) | not measured | No figure until it is measured on that hardware |
-| In-browser (WebAssembly) speed | not measured | The demo page runs the same core; no timing has been recorded for it |
+Full-page analysis time and thread-pool throughput are not measured by a repo script yet (Sprint 4).
+Earlier speed and throughput figures for them had no script or log behind them and were removed.
+
+| What was measured | Result (Apple-silicon development machine) | 8 GB Windows no-GPU laptop | How far to trust it |
+|---|---|---|---|
+| PDF text-layer state, 300 pages of a synthetic PDF corpus | 300 of 300 correct | not measured | Weak evidence for real PDFs: we wrote the corpus. Two thresholds were tuned on the odd-numbered documents; the other half (159 pages) scored 159 of 159, run once |
+| Legacy Devanagari fonts, same corpus | 17 of 17 flagged, none flagged among the other 283 pages | not measured | Weak: same corpus, the font-name list was written from memory, no real Kruti Dev PDF has been tested |
+| Skew: 82 held-out DIBCO pages, each rotated 12 ways (984 measurements) | Median error 0.05 degrees; 90th percentile 0.75; worst 26.5 | not measured | The median is sound. The tail is poor: 60 of 984 measurements are off by more than 1 degree, concentrated in a papyri set and short handwritten crops. DIBCO is not deed material |
+| Howe binarisation, 20 images from DIBCO 2009 and 2010 | F-measure 94.0; the Howe 2013 paper's figures for the same images average 93.8 | not measured | Optimistic: the implementation's conventions were chosen on these images |
+| Howe binarisation, DIBCO 2011, 16 images held out | F-measure 89.6; the paper reports 91.9 | not measured | **Misses our target** of being within 1.5 points of the paper. The gap comes from three pages with large dark regions; on the other 13 pages we score 92.9 against the paper's 92.5 |
+| Other methods on DIBCO 2011 | Otsu 82.1, Sauvola 81.6, Wolf 84.7 | not measured | Same images, same scoring |
+| Bleed-through score against hand labels | AUC 0.86 on the pages it was tuned on, 0.71 on held-out pages | not measured | Weak out of sample; the labels were made by eye from thumbnails |
+| Quality pass on one synthetic A4 page at 150 dpi, native core through the Python binding (`python -I bench/quality_synth_eval.py --only time`) | median 62.7 ms (min 62.1, max 67.5), log `evidence/sprint-3/D2/bench-quality-time.log` | not measured | One page type, the quality pass only (not the full `analyse_page`). Release wheel built in Sprint 3 on one Apple-silicon machine; placeholder for the target hardware |
+| In-browser (WebAssembly) speed | not measured | not measured | The demo page runs the same core; no timing has been recorded for it |
 
 ## Limitations
 
@@ -305,10 +361,15 @@ What does not work yet, plainly:
   fusion rules and the page plan were checked on synthetic pages only, and no confidence is
   calibrated (see [fusion](docs/detectors/fusion.md)). The numbers above for the PDF checks and the
   legacy fonts come from a corpus we wrote.
-- **Nothing is published.** There is no crates.io, PyPI or npm package; the dry runs pass but a user
-  must build from source. No release artefact is signed.
+- **Nothing is published or tagged.** There is no crates.io, PyPI or npm package, and the names are not
+  reserved. The wheel and the npm tarball install from locally built files on macOS arm64 only
+  ([Install](#install)); **Linux and Windows wheels are not built yet**, and there is no sdist. No
+  release artefact is signed: `scripts/release-manifest.mjs` writes an unsigned manifest, and signing
+  with a real key is the owner's step ([docs/release.md](docs/release.md) row 4).
 - **The target hardware is unmeasured.** No speed figure exists for an 8 GB Windows laptop without
-  a GPU, or for the WebAssembly build in a browser.
+  a GPU, or for the WebAssembly build in a browser. Full-page analysis time and thread-pool throughput
+  are not measured by a repo script yet (Sprint 4); only the quality pass on one synthetic A4 page is. A large-document bench script (time and peak memory on big PDFs) is a Sprint 4 item.
+- **The wheel carries no SBOM.** maturin's Rust CycloneDX SBOM records the builder's absolute checkout path, so it is switched off (`sbom = { rust = false }`) until a path-free one exists. Compiler path strings are remapped with `scripts/remap-flags.sh`, and `scripts/check-no-builder-paths.sh` fails if a wheel or tarball holds a home or temp path.
 - **CI runs on Linux, macOS and Windows, on hosted runners only.** The determinism gate (native,
   Python and WASM) first passed on Windows on 9 Nov 2026 ([run](https://github.com/AirplaneMode-Labs/pagetriage/actions/runs/42634433346)). That is a hosted GitHub
   runner, not the 8 GB target laptop.
@@ -352,20 +413,12 @@ type from 6 to 24 pt: the lines drawn were found every time and the tilt was rea
 
 ## Large documents
 
-The structure pass reads PDF objects and content streams without rendering, so its cost grows about
-linearly with page count. Measured on synthetic PDFs on an Apple-silicon Mac, with `/usr/bin/time -l`
-for peak memory; not on a real document:
+The structure pass reads PDF objects and content streams without rendering.
 
-| File | Result |
-|---|---|
-| 13,000-page scan with an invisible OCR layer (one JPEG per page), 655 MB, analysed whole | 1.5 to 1.9 s; peak memory 1.7 GB, about 2.6 times the file size |
-| The same file split into 13 chunks of 1,000 pages with `qpdf --split-pages=1000` | Splitting takes 0.7 to 0.9 s; each 49 MB chunk analyses in 0.15 s with a peak of about 135 MB |
-| 13,000 born-digital text pages, 22 MB, analysed whole | 1.1 s; peak memory 270 MB, twelve times the file size, because per-page bookkeeping dominates when the pages themselves are small |
-| 13,000-page scan with a larger JPEG per page, 1.32 GB | Refused by default (`PDF is 1316826254 bytes; the limit is 1073741824`). With the limit raised: 3.7 s, peak memory 3.0 GB |
+Large-document time and memory were measured ad hoc in Sprint 1 with no repo script; the figures are removed until a script reproduces them (Sprint 4).
 
 **Limits.** The structure pass accepts files up to 1 GiB and analyses up to 100,000 pages per file.
-These are safety limits for untrusted input, not tuned numbers; they were 256 MB and 5,000 pages
-until a 13,000-page file hit both. Past the page cap a file is analysed up to the cap and marked
+These are safety limits for untrusted input, not tuned numbers. Past the page cap a file is analysed up to the cap and marked
 `degraded`, with the warning `page tree cut short at 100000 pages or depth 48`; a larger file fails
 with `PDF is N bytes; the limit is 1073741824`. Both can be changed with a TOML file:
 
@@ -386,9 +439,9 @@ fixture peak memory was about 2.6 times the file size and on the 1.32 GB one abo
 1 GiB scan of that kind needs roughly 3 GB; the 22 MB born-digital fixture used far more per byte,
 because 13,000 pages of bookkeeping dominate when the pages themselves are small.
 
-**Pixel work is the expensive part.** For 13,000 A4 pages at 150 dpi, analysis plus rendering is
-about 20 to 25 minutes on one thread (roughly 100 ms a page, extrapolated). Analysis alone is about
-100 seconds at 130 pages/s on 12 threads (extrapolated); parallel rendering was not measured. Howe
+**Pixel work is the expensive part.** The quality pass on one synthetic A4 page at 150 dpi takes about
+60 ms ([Benchmarks](#benchmarks)); full-page analysis time, rendering time and thread-pool throughput are
+not measured by a repo script yet (Sprint 4), so no total for 13,000 pages is given here. Howe
 binarisation is far slower, about 50 seconds per A4 page in `dual` mode (extrapolated from 23 s per
 megapixel), so run it only on the pages the quality readout flags. Near-duplicate search over 13,000
 page hashes takes under 0.1 s. A browser tab has far less memory than a workstation, and the demo

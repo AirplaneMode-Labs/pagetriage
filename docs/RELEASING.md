@@ -18,6 +18,8 @@ locally; the `packaging` job in `.github/workflows/ci.yml` runs them on every pu
 | npm tarball | `scripts/build-wasm.sh && scripts/package-npm.sh` | The tarball installs in a scratch project and `require("pagetriage")` analyses a page |
 | Python wheel | `scripts/package-python.sh` | The wheel installs into a fresh virtual environment and `pagetriage_py` analyses a page |
 | Crate | `cargo package -p pagetriage-core` | The core crate builds from its own tarball |
+| Install proof | `scripts/prove-install.sh <wheel> <tgz> <new-scratch-dir>` | The wheel installs into a `python3 -m venv` and a `uv venv`, and the tarball into a fresh npm directory, all offline from an empty cache, each with a real call byte-equal to a golden report; the archives hold the licence files and no test data, source maps, lifecycle scripts or files over 5 MB |
+| Manifest tool | `tests/scripts/release-manifest.sh` | `scripts/release-manifest.mjs` writes a valid unsigned manifest, refuses bad dates and output paths, and has no key or signing option |
 
 ## Publishing, in order
 
@@ -34,6 +36,30 @@ locally; the `packaging` job in `.github/workflows/ci.yml` runs them on every pu
    package name `pagetriage` has not been checked for availability.
 5. **Site.** The `pages` workflow deploys `site/` on every push to `main` that touches it; it refuses to
    deploy when the WASM build stops reproducing the native fingerprints.
+
+## Signing the manifest
+
+`scripts/release-manifest.mjs` lists the release artifacts (npm tarball, wheels, crate tarball) with their
+SHA-256 and size in an unsigned `airplanemode.manifest/0.1` and writes it inside `dist/`. It cannot sign
+and never reads a key.
+
+```sh
+SOURCE_DATE_EPOCH=$(git log -1 --format=%ct) node scripts/release-manifest.mjs --out dist/release-manifest.json \
+  dist/npm/pagetriage-X.Y.Z.tgz dist/wheels/*.whl
+```
+
+Signing is the owner's step, on the offline key machine, with `cp-sign` from the private `control-plane`
+repository (the real key is generated there with `cp-sign keygen`; nothing here ever holds it):
+
+```sh
+cargo run -p cp-sign -- sign --key ./keys/key.secret dist/release-manifest.json --out dist/release-manifest.signed.json
+cargo run -p cp-sign -- verify --pub ./keys/key.pub dist/release-manifest.signed.json
+```
+
+Publish the signed manifest and `key.pub` next to the artifacts. `--allow-test-key` exists for tests only:
+the RFC 8032 test key is public, and a manifest signed with it proves the tooling, not a release. On 14 Nov
+2026 a dry run with that key verified and was refused without the flag (`evidence/sprint-3/D2/dry-run-sign.log`);
+it stayed outside the repository.
 
 ## When real labelled pages exist
 
