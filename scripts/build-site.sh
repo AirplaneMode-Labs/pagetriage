@@ -19,5 +19,10 @@ cp dist/wasm-pdf/web/pagetriage.js dist/wasm-pdf/web/pagetriage_bg.wasm site/pkg
 COMMIT=local
 if [[ "${GITHUB_SHA:-}" =~ ^[0-9a-f]{40}$ ]]; then COMMIT=${GITHUB_SHA:0:12}; fi
 BUILD_COMMIT=$COMMIT node -e 'const c=require("crypto"),f=require("fs");const h=c.createHash("sha256");for(const n of ["pagetriage.js","pagetriage_bg.wasm"])h.update(f.readFileSync("site/pkg/"+n));f.writeFileSync("site/pkg/build.json",JSON.stringify({id:h.digest("hex").slice(0,16),commit:process.env.BUILD_COMMIT})+"\n")'
+# Licence and notice files served next to the page (the compiled crates are redistributed in pkg/). The
+# .txt names make GitHub Pages serve them as plain text instead of a download.
+cp NOTICE site/NOTICE.txt
+cp LICENSE-MIT site/LICENSE-MIT.txt
+cp LICENSE-APACHE site/LICENSE-APACHE.txt
 node site/tools/check-samples.mjs
 echo "site ready in site/ (gzipped wasm: $(gzip -9 -c site/pkg/pagetriage_bg.wasm | wc -c | tr -d ' ') bytes)"

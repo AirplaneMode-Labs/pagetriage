@@ -45,6 +45,7 @@
       <div class="intro">
         <h1 id="h1">Know what is on a scanned page before you run OCR on it.</h1>
         <p class="lede">pagetriage measures tilt, blur, bleed-through and folds, tells a real text layer from a scan, and flags legacy Hindi fonts. It uses no model, so the same page gives the same answer every time. Try it below: everything runs in this tab. Nothing is uploaded; the only network requests are for this page's own files.</p>
+        <p class="status" id="sprint-status">Sprint 3 (14 Nov 2026). Installable from a locally built macOS arm64 wheel and npm tarball, proven in fresh offline environments; not published; no tag; v1.0.0 held by release rows 2, 4, 5, 6 and 7.</p>
       </div>
 
       <div class="table">
@@ -148,8 +149,8 @@
           </tr>
           <tr>
             <td data-label="Check"><a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/detectors/quality.md#cost">Speed</a></td>
-            <td data-label="Result">about 68 ms per A4 page at 150 dpi, one thread</td>
-            <td data-label="How far to trust it" class="trust">Measured on an Apple-silicon laptop, native; 142 pages per second on 12 threads.</td>
+            <td data-label="Result">quality pass about 63 ms on one synthetic A4 page at 150 dpi</td>
+            <td data-label="How far to trust it" class="trust">Measured on an Apple-silicon laptop, native, one page type; full-page time and throughput are not measured yet (Sprint 4); the 8 GB Windows laptop is not measured.</td>
           </tr>
         </tbody>
       </table>
@@ -175,9 +176,11 @@
           <ul>
             <li>No OCR. It does not read or extract text; it tells you what is on the page before you spend OCR on it. Text extraction is a later step in the pipeline (the dockit demo, Sprint 5), not this library's job.</li>
             <li>No model. Every number comes from hand-written features and fixed thresholds, by project rule, so no confidence is calibrated on real pages; calibration needs labelled real pages and is a Sprint 5 item (M13).</li>
-            <li>No tiling. Images over 36 megapixels are refused in the tab, and the core has no tiling for pages that large; no sprint is scheduled for it. The command-line tool has no such cap.</li>
-            <li>No Windows figures. Speed on the 8 GB Windows laptop without a GPU, and in-browser speed, are unmeasured. The Windows determinism job runs on a hosted GitHub runner, which is not the target laptop.</li>
-            <li>No tagged release. Nothing is on crates.io, PyPI or npm and no version is tagged; the blockers are listed in <a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/release.md">docs/release.md</a>.</li>
+            <li>No tiling over 36 megapixels. Images over 36 megapixels are refused in the tab, and the core has no tiling for pages that large; no sprint is scheduled for it. The command-line tool has no such cap.</li>
+            <li>No 8 GB figures. Speed and memory on the 8 GB Windows laptop without a GPU, and in-browser speed, are unmeasured (release row 2, the owner's step). The Windows determinism job ran on a hosted GitHub runner, which is not the target laptop.</li>
+            <li>No published package. Nothing is on crates.io, PyPI or npm and the names are not reserved. A wheel and an npm tarball install from locally built files, proven on macOS arm64 only; no version is tagged. The blockers are listed in <a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/release.md">docs/release.md</a>.</li>
+            <li>No Linux or Windows wheel. Only the macOS arm64 wheel has been built; wheels for the other platforms are a Sprint 4 carry-over.</li>
+            <li>No signed release. A release manifest can be written and checked, but no real signing key exists, so nothing is signed (release row 4, the owner's step).</li>
             <li>No upload, ever. Images and PDFs never leave the tab, so there is no server-side analysis, no sharing link and no saved history.</li>
             <li>No service worker: offline after the first load is best effort (Chrome's HTTP cache), not guaranteed.</li>
           </ul>
@@ -187,7 +190,7 @@
 
     <section class="section" id="run" aria-labelledby="run-h">
       <h2 id="run-h">Run it yourself</h2>
-      <p class="sub">It is not yet on crates.io, PyPI or npm, so you build from source. <code>rust-toolchain.toml</code> selects Rust 1.98.</p>
+      <p class="sub">It is not yet on crates.io, PyPI or npm, so you build from source (the README's Install section also shows how to build and install a wheel and an npm tarball locally). <code>rust-toolchain.toml</code> selects Rust 1.98.</p>
       <div class="code-cols">
         <div>
           <h3>Command line</h3>
@@ -251,6 +254,7 @@ const report = JSON.parse(analyse_page(
   <div class="wrap">
     <p>pagetriage is free software under the MIT or Apache-2.0 licence, at your choice. Source, issues and the benchmark scripts are on <a href="https://github.com/AirplaneMode-Labs/pagetriage">GitHub</a>. Analyser version <span data-version>loading</span>.</p>
     <p>Built from <code>main</code> by <code>.github/workflows/pages.yml</code>, package build <span data-build>loading</span> · commit <span data-commit>loading</span>. One of the <a href="https://airplanemode-labs.github.io/site/">Airplane Mode Labs</a> demos.</p>
+    <p>Licences and third-party notices: <a href="NOTICE.txt">NOTICE</a>, <a href="LICENSE-MIT.txt">LICENSE-MIT</a>, <a href="LICENSE-APACHE.txt">LICENSE-APACHE</a>.</p>
     <p>The sample pages are synthetic. No real documents are used or uploaded.</p>
     <p>Made by Tushar Patekar.</p>
   </div>
