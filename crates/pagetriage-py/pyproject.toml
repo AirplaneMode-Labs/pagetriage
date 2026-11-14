@@ -7,7 +7,7 @@ name = "pagetriage"
 description = "Deterministic, non-ML page-content analyser for degraded scanned legal documents"
 requires-python = ">=3.9"
 license = "MIT OR Apache-2.0"
-license-files = ["LICENSE-MIT", "LICENSE-APACHE"]
+license-files = ["LICENSE-MIT", "LICENSE-APACHE", "NOTICE"]
 readme = "README.md"
 keywords = ["document-analysis", "scanned-documents", "deterministic", "ocr-triage", "pdf"]
 classifiers = [
