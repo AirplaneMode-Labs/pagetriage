@@ -111,19 +111,26 @@ let worker;
 async function buildId() {
   let id = "dev";
   let commit = "local";
+  let source = "local";
   try {
     const r = await fetch("pkg/build.json", { cache: "no-store" });
     const j = await r.json();
     id = typeof j.id === "string" && /^[0-9a-f]{16}$/.test(j.id) ? j.id : "dev";
-    // build-site.sh writes 12 hex characters or "local"; anything else is shown as "local".
-    commit = typeof j.commit === "string" && /^([0-9a-f]{12}|local)$/.test(j.commit) ? j.commit : "local";
+    // build-site.sh writes 12 hex characters (with "-dirty" for a local tree that differs from HEAD) or "local";
+    // anything else is shown as "local".
+    commit = typeof j.commit === "string" && /^([0-9a-f]{12}(-dirty)?|local)$/.test(j.commit) ? j.commit : "local";
+    source = j.source === "ci" ? "ci" : "local";
   } catch {
     id = "dev";
   }
   state.buildId = id;
+  // "Built from main at <sha12>" only for a CI build with a clean 12-hex commit; a local build says so.
+  const label = source === "ci" && /^[0-9a-f]{12}$/.test(commit)
+    ? `Built from main at ${commit}`
+    : commit === "local" ? "Local build, commit unknown" : `Local build ${commit}`;
   // textContent only: the values above are already pattern-checked, and are never parsed as HTML.
   for (const n of document.querySelectorAll("[data-build]")) n.textContent = id;
-  for (const n of document.querySelectorAll("[data-commit]")) n.textContent = commit;
+  for (const n of document.querySelectorAll("[data-buildlabel]")) n.textContent = label;
   return id;
 }
 

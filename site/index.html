@@ -45,7 +45,7 @@
       <div class="intro">
         <h1 id="h1">Know what is on a scanned page before you run OCR on it.</h1>
         <p class="lede">pagetriage measures tilt, blur, bleed-through and folds, tells a real text layer from a scan, and flags legacy Hindi fonts. It uses no model, so the same page gives the same answer every time. Try it below: everything runs in this tab. Nothing is uploaded; the only network requests are for this page's own files.</p>
-        <p class="status" id="sprint-status">Sprint 4 (14 Nov 2026): Working: the same page analysis as before, now with the footer NOTICE listing each MIT-only compiled crate with its copyright line and full MIT text, an attributed BSD-3-Clause paragraph for alloc-stdlib, and NOTICE inside the locally built wheel. Not yet: OCR, 8 GB figures (not measured on 8 GB), a signed release, a tag, a published package, Linux and Windows wheels (cut to Sprint 6).</p>
+        <p class="status" id="sprint-status">Sprint 5 (18 Nov 2026): Working: the same page analysis as before, now with the PDF structure call that the dockit demo uses documented (analyse_pdf_structure: which pages of a PDF hold a readable text layer), with its WebAssembly size and its timings measured in Chrome on a 48 GB Apple M5 Pro (not measured on 8 GB). Not yet: OCR, 8 GB figures (not measured on 8 GB), a signed release, a tag, a published package, Linux and Windows wheels (Sprint 6).</p>
       </div>
 
       <div class="table">
@@ -158,7 +158,7 @@
 
     <section class="section" id="about-demo" aria-labelledby="about-h">
       <h2 id="about-h">About this demo</h2>
-      <p class="sub">The page is built from <code>main</code> by <code>.github/workflows/pages.yml</code> on every push, and only after the WebAssembly build has reproduced every native fingerprint in <code>samples.json</code>. Package build <span data-build>loading</span> · commit <span data-commit>loading</span>.</p>
+      <p class="sub">The page is built from <code>main</code> by <code>.github/workflows/pages.yml</code> on every push, and only after the WebAssembly build has reproduced every native fingerprint in <code>samples.json</code>. <span data-buildlabel>loading</span> · package build <span data-build>loading</span>.</p>
       <div class="box-grid">
         <section id="requirements" class="box" aria-labelledby="requirements-h">
           <h3 id="requirements-h">Browser requirements</h3>
@@ -174,11 +174,11 @@
         <section id="not-yet" class="box box-warn" aria-labelledby="not-yet-h">
           <h3 id="not-yet-h">What this demo does not do yet</h3>
           <ul>
-            <li>No OCR. It does not read or extract text; it tells you what is on the page before you spend OCR on it. Text extraction is a later step in the pipeline (the dockit demo, Sprint 5), not this library's job.</li>
-            <li>No model. Every number comes from hand-written features and fixed thresholds, by project rule, so no confidence is calibrated on real pages; calibration needs labelled real pages and is a Sprint 5 item (M13).</li>
+            <li>No OCR, and no text extraction. This library does not read text; it tells you what is on the page before you spend OCR on it. For PDFs it says which pages hold a text layer (the call the dockit demo uses is documented in <a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/wasm-api.md">docs/wasm-api.md</a>); reading that text is dockit's step, and scanned pages are not read at all yet.</li>
+            <li>No model. Every number comes from hand-written features and fixed thresholds, by project rule, so no confidence is calibrated on real pages; calibration needs labelled real pages and is not part of Sprint 5.</li>
             <li>No tiling over 36 megapixels. Images over 36 megapixels are refused in the tab, and the core has no tiling for pages that large; no sprint is scheduled for it. The command-line tool has no such cap.</li>
-            <li>No 8 GB figures. Speed and memory on the 8 GB Windows laptop without a GPU, and in-browser speed, are not measured on 8 GB (release row 2, the owner's step); the full-page and large-PDF bench scripts are cut to Sprint 6. The Windows determinism job ran on a hosted GitHub runner, which is not the target laptop.</li>
-            <li>No published package. Nothing is on crates.io, PyPI or npm and the names are not reserved. A wheel and an npm tarball install from locally built files, proven on macOS arm64 only; no version is tagged. The blockers are listed in <a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/release.md">docs/release.md</a>.</li>
+            <li>No 8 GB figures. Speed and memory on the 8 GB Windows laptop without a GPU are not measured on 8 GB (release row 2, the owner's step). The only in-browser timings, for the PDF structure call, were measured on a 48 GB Apple M5 Pro in Chrome (<a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/benchmarks/wasm-structure.csv">docs/benchmarks/wasm-structure.csv</a>); the full-page and large-PDF bench scripts are cut to Sprint 6. The Windows determinism job ran on a hosted GitHub runner, which is not the target laptop.</li>
+            <li>No published package, and no tag. Nothing is on crates.io, PyPI or npm and the names are not reserved. A wheel and an npm tarball install from locally built files, proven on macOS arm64 only; no version is tagged. The blockers are listed in <a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/release.md">docs/release.md</a>.</li>
             <li>No Linux or Windows wheel. Only the macOS arm64 wheel has been built; wheels for the other platforms and an sdist are cut to Sprint 6 and are not built.</li>
             <li>No signed release. A release manifest can be written and checked, but no real signing key exists, so nothing is signed (release row 4, the owner's step).</li>
             <li>No upload, ever. Images and PDFs never leave the tab, so there is no server-side analysis, no sharing link and no saved history.</li>
@@ -253,7 +253,7 @@ const report = JSON.parse(analyse_page(
 <footer class="foot">
   <div class="wrap">
     <p>pagetriage is free software under the MIT or Apache-2.0 licence, at your choice. Source, issues and the benchmark scripts are on <a href="https://github.com/AirplaneMode-Labs/pagetriage">GitHub</a>. Analyser version <span data-version>loading</span>.</p>
-    <p>Built from <code>main</code> by <code>.github/workflows/pages.yml</code>, package build <span data-build>loading</span> · commit <span data-commit>loading</span>. One of the <a href="https://airplanemode-labs.github.io/site/">Airplane Mode Labs</a> demos.</p>
+    <p><span data-buildlabel>loading</span> · package build <span data-build>loading</span>. The live page is built from <code>main</code> by <code>.github/workflows/pages.yml</code> on every push. One of the <a href="https://airplanemode-labs.github.io/site/">Airplane Mode Labs</a> demos.</p>
     <p>Licences and third-party notices: <a href="NOTICE.txt">NOTICE</a>, <a href="LICENSE-MIT.txt">LICENSE-MIT</a>, <a href="LICENSE-APACHE.txt">LICENSE-APACHE</a>.</p>
     <p>The sample pages are synthetic. No real documents are used or uploaded.</p>
     <p>Made by Tushar Patekar.</p>
