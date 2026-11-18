@@ -19,7 +19,7 @@ locally; the `packaging` job in `.github/workflows/ci.yml` runs them on every pu
 | Python wheel | `scripts/package-python.sh` | The wheel installs into a fresh virtual environment and `pagetriage_py` analyses a page |
 | Crate | `cargo package -p pagetriage-core` | The core crate builds from its own tarball |
 | Install proof | `scripts/prove-install.sh <wheel> <tgz> <new-scratch-dir>` | The wheel installs into a `python3 -m venv` and a `uv venv`, and the tarball into a fresh npm directory, all offline from an empty cache, each with a real call byte-equal to a golden report; the archives hold the licence files and no test data, source maps, lifecycle scripts or files over 5 MB |
-| Manifest tool | `tests/scripts/release-manifest.sh` | `scripts/release-manifest.mjs` writes a valid unsigned manifest, refuses bad dates and output paths, and has no key or signing option |
+| Manifest tool | `tests/scripts/release-manifest.sh`, `tests/scripts/confine.test.mjs` | `scripts/release-manifest.mjs` writes a valid unsigned manifest, refuses bad dates and output paths (Windows path forms, symlinks and junctions included: [release.md](release.md), "Output confinement"), and has no key or signing option |
 
 ## Publishing, in order
 

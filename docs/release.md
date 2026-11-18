@@ -14,8 +14,8 @@ History note.
 
 | # | Definition-of-done item | Status | Evidence | Owner | Blocker-for-tag |
 |---|---|---|---|---|---|
-| 1 | Tests written before the implementation; CI green on Linux, macOS and Windows | Tests-first evidence Done (red/green logs); local macOS green; CI on three OSes configured, pending the owner's push | Tests first: every detector has a golden input and expected report under `tests/golden/`; the Sprint 3 script (`scripts/release-manifest.mjs`) has `red-D2-02.log` before `green-D2-02.log` in `evidence/sprint-3/D2/`. Local macOS: `cargo fmt`, `clippy -D warnings`, `cargo test`, `scripts/determinism.sh` and `tests/scripts/run-all.sh` pass (`evidence/sprint-3/D2/gates-s3.log`; Sprint 4 re-run: `evidence/sprint-4/D2/gates-s4.log`). The three-OS matrix is configured in `.github/workflows/ci.yml`. Its last run, on the commit pushed on 9 Nov 2026, was green on `ubuntu-latest`, `macos-latest` and `windows-latest` ([run](https://github.com/AirplaneMode-Labs/pagetriage/actions/runs/42634433346)); the Sprint 3 changes have not been pushed, so no CI run covers them. Not marked Done until the owner pushes and reads CI | D2, then owner (push, read CI) | no |
-| 2 | Benchmark on an 8 GB laptop recorded in the README | Open | README [Benchmarks](../README.md#benchmarks) carries one Apple-silicon speed figure (quality pass on one synthetic A4 page at 150 dpi, `evidence/sprint-3/D2/bench-quality-time.log`) labelled as a placeholder; the 8 GB Windows no-GPU column reads "not measured" on every row. Full-page analysis time and thread-pool throughput are not measured by a repo script yet (bench scripts cut to Sprint 6). No figure for that machine exists, and none was invented. The procedure is below | owner | yes |
+| 1 | Tests written before the implementation; CI green on Linux, macOS and Windows | Tests-first evidence Done (red/green logs); local macOS green; pushed 15 Nov 2026 at b290cc8; CI at that head red: run 43667700010, fmt, clippy, test (windows-latest); the row stays open until the owner pushes the Sprint 5 fix and reads a green run | Tests first: every detector has a golden input and expected report under `tests/golden/`; the Sprint 3 script (`scripts/release-manifest.mjs`) has `red-D2-02.log` before `green-D2-02.log` in `evidence/sprint-3/D2/`. Local macOS: `cargo fmt`, `clippy -D warnings`, `cargo test`, `scripts/determinism.sh` and `tests/scripts/run-all.sh` pass (`evidence/sprint-3/D2/gates-s3.log`; Sprint 4 re-run: `evidence/sprint-4/D2/gates-s4.log`). The three-OS matrix is configured in `.github/workflows/ci.yml`. Its last run, on the commit pushed on 9 Nov 2026, was green on `ubuntu-latest`, `macos-latest` and `windows-latest` ([run](https://github.com/AirplaneMode-Labs/pagetriage/actions/runs/42634433346)); the Sprint 3 and 4 commits were pushed on 15 Nov 2026 at b290cc8 and that head is red on windows-latest (run 43667700010). Not marked Done until the owner pushes the Sprint 5 fix and reads a green run | D2, then owner (push, read CI) | no |
+| 2 | Benchmark on an 8 GB laptop recorded in the README | Open | README [Benchmarks](../README.md#benchmarks) carries one Apple-silicon speed figure (quality pass on one synthetic A4 page at 150 dpi, `evidence/sprint-3/D2/bench-quality-time.log`) labelled as a placeholder; the 8 GB Windows no-GPU column reads "not measured on 8 GB" on every row. Full-page analysis time and thread-pool throughput are not measured by a repo script yet (bench scripts cut to Sprint 6). No figure for that machine exists, and none was invented. The procedure is below | owner | yes |
 | 3 | README limitations section | Done | README [Limitations](../README.md#limitations): synthetic-only checks, nothing published or tagged, Linux and Windows wheels not built, nothing signed, target hardware unmeasured; detector limits follow | D2 | no |
 | 4 | Signed artifacts and manifest | Open | Tooling exists, signing does not. `scripts/release-manifest.mjs` writes an unsigned `airplanemode.manifest/0.1` (tests: `tests/scripts/release-manifest.sh`, `evidence/sprint-3/D2/red-D2-02.log` then `green-D2-02.log`). A dry run with the public RFC 8032 test key through `cp-sign` verified with `--allow-test-key` and was refused without it (`evidence/sprint-3/D2/dry-run-sign.log`). That signature proves the tooling only: it is not a release signature, and no signed manifest or key is in this repository. A real key does not exist yet | owner, D6 (tooling) | yes |
 | 5 | CHANGELOG and semver tag | Open | [CHANGELOG.md](../CHANGELOG.md) `[Unreleased]` is complete through Sprint 3 and holds the 1.0.0 notes. The tag does not exist (`git tag` prints nothing) and must not be created until every row above and below is Done. The version is still 0.1.0 | owner | yes |
@@ -43,6 +43,56 @@ The pip that `actions/setup-python` ships is not pinned either, and the digest-p
 `cargo-deny` release binaries are pinned by SHA-256, not by a lockfile.
 
 Known gap: MIT-only crates linked only into `pagetriage-cli` (fax 0.2.7, strsim 0.11.1, tiff 0.11.3) are not yet in NOTICE. No CLI binary is distributed in Sprint 4. `gen-site-notice.mjs` and `build-site-notices.sh` must cover the `pagetriage-cli` tree before any CLI binary or CLI-bearing artefact ships (Sprint 6, with the Linux and Windows wheels). The list comes from `cargo tree --locked -p pagetriage-cli -e normal` plus `cargo metadata --locked` (BUG-T3-S4-19).
+
+## Output confinement of `release-manifest.mjs` (Sprint 5, Part A)
+
+`node scripts/release-manifest.mjs --out <file> <artifact>...` writes only to a regular file inside this
+repository's `dist/`. The check and the write live in `scripts/lib/confine.mjs`, which takes `{pathMod, fs,
+platform}` so that every rule below is unit-tested on any OS (`tests/scripts/confine.test.mjs`, with
+`path.win32` and an in-memory volume) and again against real files and real links (`tests/scripts/release-manifest.sh`).
+Any refusal exits 2 and writes nothing.
+
+Rules, in the order they are applied:
+
+1. `--out` is not empty and has no NUL; no component is `..` (backslash counts as a separator for this test on
+   every OS).
+2. On Windows only, on the text as typed: no `\\?\` or `\\.\` prefix; no UNC path (`\\server\share`, also
+   `//server/share` and the admin share of the local drive); no drive-relative path (`C:name`, `C:dir\name`,
+   `C:`), whose meaning depends on a per-drive working directory; no `:` after the drive (an alternate data
+   stream, `name:stream`); no reserved device name (`CON PRN AUX NUL COM1-9 LPT1-9 CONIN$ CONOUT$`, any case, with or
+   without an extension); no component ending in `.` or a space (Windows strips them, so the name on disk
+   would not be the name that was checked); no character Windows forbids in a file name (`< > " | ? *` and
+   control characters).
+3. `dist/` and the deepest existing ancestor of `--out` are resolved with `fs.realpathSync.native`. On Windows
+   that expands 8.3 short names (`RUNNER~1`), gives each name its on-disk case, uppercases the drive letter and
+   follows every symlink and junction, including a reparse point that `lstat` does not report as a link. A
+   dangling link on the way is refused.
+4. If `--out` itself exists it must be a regular file. A symbolic link or junction is refused whatever it
+   points at (even a file inside `dist/`), and so is a directory, a FIFO, a socket or a device. A regular file or
+   a dangling link at `dist/` itself is a one-line refusal (exit 2), not a stack trace.
+5. Containment: `rel = relative(distReal, final)` must be non-empty, not absolute (another drive), and not `..`
+   or start with `..` plus a separator (a file called `..foo` is fine). The comparison is case-insensitive on
+   Windows only because `path.win32.relative` is, and only after step 3 made both sides canonical; elsewhere it
+   is exact, so a difference in spelling can refuse a path but never accept one.
+6. The bytes go to a temporary name (`.release-manifest-<random>.tmp`) opened with the `wx` flag inside the
+   realpath'd parent, are flushed, and are renamed over the target. The parent is resolved and checked a
+   second time just before the temporary file is created. `rename` replaces a link at the target instead of
+   following it.
+
+What is not closed: between the second check and the `rename` another process that can already write inside
+`dist/` could replace a directory by a link. This is a local tool run by the owner on their own checkout, so
+that process would have to be the owner's own account; the window is narrowed, not removed, and nothing here
+claims otherwise. `dist/` itself may be a link (the check is relative to what it resolves to). On a
+case-insensitive macOS volume a differently-cased spelling of `dist/` is accepted because `realpath` returns the
+on-disk case; on a case-sensitive volume it is another directory and is refused.
+
+Windows has no skipped case. `tests/scripts/release-manifest.sh` sets `MSYS=winsymlinks:nativestrict` (without it
+Git Bash's `ln -s` copies, which is how the first Windows run never reached the containment code), asserts
+`[ -L ]` after every link, creates a junction with `cmd /c mklink /J` run with MSYS path conversion off (`MSYS2_ARG_CONV_EXCL='*' MSYS_NO_PATHCONV=1`, PowerShell `New-Item -ItemType Junction` as the fallback), and fails with "could not create a
+symlink: containment unproven on this runner" when a link cannot be made. On macOS and Linux the cases that need
+Windows print "not applicable on <os>" and the path rules are covered by the `path.win32` unit tests instead. Windows per-directory case sensitivity (`fsutil file setCaseSensitiveInfo`) is unsupported; the exact-prefix fix is planned for Sprint 6 (S1-106). The CI leg that
+proves all of this on a real Windows volume is `fmt, clippy, test (windows-latest)`; until the owner has pushed
+and read that run, the Windows rules are tested only against a model of Windows.
 
 ## Owner must
 

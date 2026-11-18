@@ -42,6 +42,21 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
   and `cargo metadata --locked`, and `tests/scripts/build-site-notices.sh` (in `run-all.sh`) fails when a block, the upstream SHA
   or a BSD crate name is removed from the root, served or wheel `NOTICE`.
 - Sprint 4: the demo page shows a Sprint 4 status line and a refreshed "What this demo does not do yet" box (D2-03).
+- Sprint 5: `docs/wasm-api.md` documents the call the dockit demo makes, `analyse_pdf_structure`: the build command, how to
+  load it (including the `'wasm-unsafe-eval'` CSP requirement, checked in Chrome), every throw case with its message, the core
+  limits quoted from `structural_limits.toml` and what each does (a stream that inflates past 1 GiB is capped at 64 MiB and
+  returned as a degraded report), the fields dockit reads and the text-layer states. Its size and timing in Chrome on a 48 GB
+  Apple M5 Pro (not measured on 8 GB) are in `docs/benchmarks/wasm-structure.csv`, produced by `site/tools/bench-structure.mjs`
+  (WASM 2,335,481 bytes raw, 854,940 gzipped; 7.4 ms median for 20 pages, 88.4 ms for 300). `tests/scripts/wasm-api-doc.sh`
+  fails when a documented field, state, limit, export or number leaves the schema, the TOML, `lib.rs` or the CSV (D2-02).
+- Sprint 5: `scripts/lib/confine.mjs` (the `--out` confinement of `release-manifest.mjs`, taking `{pathMod, fs, platform}`) and
+  `tests/scripts/confine.test.mjs` (31 cases with `path.win32`, an in-memory Windows volume and real links; part of
+  `tests/scripts/run-all.sh`). See Fixed and Security (D2-01).
+- Sprint 5: a `doc` job in `ci.yml` running `RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked` (D2-03,
+  BUG-T2-S4-22).
+- Sprint 5: `site/pkg/build.json` gains `source` (`ci` or `local`); a local build records git HEAD's first 12 characters, with
+  `-dirty` when the tree differs. The demo shows "Built from main at <sha12>" or "Local build <sha12>[-dirty]" next to the package
+  build id (D2-04).
 
 ### Changed
 
@@ -83,6 +98,12 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
 
 - Sprint 3 fix round: README Benchmarks drops the unbacked full-page medians (68, 76, 88 ms) and thread-pool throughput (13 to 129 pages/s) and the 13,000-page extrapolation built on them; the speed row is now the quality pass on one synthetic A4 page at 150 dpi (`bench/quality_synth_eval.py --only time`, median 62.7 ms, `evidence/sprint-3/D2/bench-quality-time.log`), a column "8 GB Windows no-GPU laptop" reads "not measured" on every row, and the Limitations say full-page time and throughput are not measured by a repo script yet (Sprint 4). `docs/release.md` row 2 says what each command measures and drops the PowerShell `Measure-Command` line; the demo page speed row says the same (BUG-T2-S3-04).
 - Sprint 3 fix round: the README Install sentence is one plain line and `scripts/prove-install.sh` asserts it in full; `docs/release.md` begins each Open row's instructions with `Owner must:` and moves the registry commands into an "After the owner publishes" block; the wheel classifier is `Operating System :: MacOS` until Linux and Windows wheels exist (BUG-T2-S3-06, T3-S3-012).
+- Sprint 5: `release-manifest.mjs` now refuses an `--out` that is an existing symbolic link, junction or directory (even a link to
+  a file inside `dist/`), writes through a temporary file opened with `wx` in the resolved parent and renames it, and exits 1
+  (not a stack trace) on a write error. Output for valid input is unchanged. Residual window documented in `docs/release.md`.
+- Sprint 5: the demo status line and "does not do yet" box say Sprint 5, link the dockit call documentation and the timings
+  (not measured on 8 GB), and no longer say the calibration is a Sprint 5 item. README Benchmarks: the 8 GB column reads "not
+  measured on 8 GB" on every row, with a new row for the structure call (D2-04).
 
 ### Fixed
 
@@ -114,6 +135,14 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
   texts of the compiled crates that are not offered under MIT or Apache-2.0 alone.
 - T3-S3-021: wheel and npm tarball rebuilt after the last README edit, so the packaged README equals
   the repo README.
+- Sprint 5: the three `windows-latest` failures of run 43667700010 in `tests/scripts/release-manifest.sh`. The two symlink cases
+  never made a link (Git Bash's `ln -s` copies unless `MSYS=winsymlinks:nativestrict`, and the file link had no target), so the
+  containment code was never exercised; the test now asserts `[ -L ]` after every link and fails loudly when one cannot be made, adds
+  a junction case, and prints the script's stderr on any unexpected exit code. The refusal of an absolute `--out` inside `dist/`
+  compared two spellings of one path as strings; confinement now resolves both sides with `realpath.native` and compares with
+  `relative()`. The cause of that one is a hypothesis proven only by `windows-latest` (D2-01).
+- Sprint 5: `cargo doc -D warnings` in `pagetriage-core` (a link to a private function in `phash.rs`, two bare `<set>` tags); no
+  behaviour change, the checked-in schema is unchanged (D2-03, BUG-T2-S4-22).
 
 ### Security
 
@@ -158,6 +187,10 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
 - The `stats` workflow no longer references a repository secret; it runs with the workflow token only.
 
 - Sprint 3 fix round: the wheel no longer embeds the Rust CycloneDX SBOM (`sbom = { rust = false }` in `pyproject.toml`), which recorded the builder's absolute checkout path; compiler path strings are remapped (BUG-T2-S3-03).
+- Sprint 5: `--out` confinement of `release-manifest.mjs` hardened for Windows path forms (extended-length and device prefixes, UNC,
+  drive-relative, alternate data streams, reserved device names, trailing dot or space, short names, case, junctions). Severity
+  Info, not exploitable (a local tool the owner runs on their own checkout). Review by the security consultant pending; tested on a
+  model of Windows only until `windows-latest` runs it (D2-01).
 
 ### What a release does not claim
 

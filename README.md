@@ -16,6 +16,8 @@ tool, as a Python module and in the browser, and gives the same bytes out on all
 Wolf-Jolion and Howe (static mode), and what pagetriage says about the page. An illustration, not a
 benchmark; the benchmark numbers are [below](#benchmarks).*
 
+Sprint 5 (18 Nov 2026): Working: the same page analysis as before, now with the PDF structure call that the dockit demo uses documented (analyse_pdf_structure: which pages of a PDF hold a readable text layer), with its WebAssembly size and its timings measured in Chrome on a 48 GB Apple M5 Pro (not measured on 8 GB). Not yet: OCR, 8 GB figures (not measured on 8 GB), a signed release, a tag, a published package, Linux and Windows wheels (Sprint 6).
+
 **Status: early.** The PDF structure checks, the scan-quality readout, four binarisers and
 near-duplicate detection are built and measured on public benchmarks. Every pixel detector (script,
 handwriting, stamps, signatures, thumb impressions, rulings, redaction, QR, embossed seals, pictures,
@@ -38,6 +40,11 @@ recommendation, plus the four black-and-white masks; for a PDF, the text-layer s
 legacy-font flag per page, the producer and any edits after the first save. For every sample it puts
 the SHA-256 of the report computed in the tab next to the one the native build produced, and the two
 are identical; the deploy fails when the WebAssembly build stops reproducing them.
+
+The live page changes only after the repository owner pushes: until then the page described here exists only as a local build
+(it shows "Local build <commit>" and the live one shows "Built from main at <commit>"). The PDF call that the dockit demo
+(offline PDF question answering) makes, `analyse_pdf_structure`, is documented, with its limits, its fields, its size and its timing
+in Chrome, in [docs/wasm-api.md](docs/wasm-api.md).
 
 ## Why this exists
 
@@ -333,7 +340,7 @@ Every number below comes from scripts in `bench/` ([commands](#reproduce-the-num
 written up, with its protocol, in `docs/detectors/`. The last column says how far to trust it. The
 speed row was measured on an Apple-silicon development machine and is a placeholder for the target
 hardware: the 8 GB Windows laptop without a GPU has not been measured, so that column reads "not
-measured" on every row. The accuracy rows were measured in earlier sprints and were not re-measured in
+measured on 8 GB" on every row. The accuracy rows were measured in earlier sprints and were not re-measured in
 Sprint 3; the Sprint 3 speed log and install proofs are under `evidence/sprint-3/D2/` (the architect
 copies them there at wrap-up).
 
@@ -342,15 +349,16 @@ Earlier speed and throughput figures for them had no script or log behind them a
 
 | What was measured | Result (Apple-silicon development machine) | 8 GB Windows no-GPU laptop | How far to trust it |
 |---|---|---|---|
-| PDF text-layer state, 300 pages of a synthetic PDF corpus | 300 of 300 correct | not measured | Weak evidence for real PDFs: we wrote the corpus. Two thresholds were tuned on the odd-numbered documents; the other half (159 pages) scored 159 of 159, run once |
-| Legacy Devanagari fonts, same corpus | 17 of 17 flagged, none flagged among the other 283 pages | not measured | Weak: same corpus, the font-name list was written from memory, no real Kruti Dev PDF has been tested |
-| Skew: 82 held-out DIBCO pages, each rotated 12 ways (984 measurements) | Median error 0.05 degrees; 90th percentile 0.75; worst 26.5 | not measured | The median is sound. The tail is poor: 60 of 984 measurements are off by more than 1 degree, concentrated in a papyri set and short handwritten crops. DIBCO is not deed material |
-| Howe binarisation, 20 images from DIBCO 2009 and 2010 | F-measure 94.0; the Howe 2013 paper's figures for the same images average 93.8 | not measured | Optimistic: the implementation's conventions were chosen on these images |
-| Howe binarisation, DIBCO 2011, 16 images held out | F-measure 89.6; the paper reports 91.9 | not measured | **Misses our target** of being within 1.5 points of the paper. The gap comes from three pages with large dark regions; on the other 13 pages we score 92.9 against the paper's 92.5 |
-| Other methods on DIBCO 2011 | Otsu 82.1, Sauvola 81.6, Wolf 84.7 | not measured | Same images, same scoring |
-| Bleed-through score against hand labels | AUC 0.86 on the pages it was tuned on, 0.71 on held-out pages | not measured | Weak out of sample; the labels were made by eye from thumbnails |
-| Quality pass on one synthetic A4 page at 150 dpi, native core through the Python binding (`python -I bench/quality_synth_eval.py --only time`) | median 62.7 ms (min 62.1, max 67.5), log `evidence/sprint-3/D2/bench-quality-time.log` | not measured | One page type, the quality pass only (not the full `analyse_page`). Release wheel built in Sprint 3 on one Apple-silicon machine; placeholder for the target hardware |
-| In-browser (WebAssembly) speed | not measured | not measured | The demo page runs the same core; no timing has been recorded for it |
+| PDF text-layer state, 300 pages of a synthetic PDF corpus | 300 of 300 correct | not measured on 8 GB | Weak evidence for real PDFs: we wrote the corpus. Two thresholds were tuned on the odd-numbered documents; the other half (159 pages) scored 159 of 159, run once |
+| Legacy Devanagari fonts, same corpus | 17 of 17 flagged, none flagged among the other 283 pages | not measured on 8 GB | Weak: same corpus, the font-name list was written from memory, no real Kruti Dev PDF has been tested |
+| Skew: 82 held-out DIBCO pages, each rotated 12 ways (984 measurements) | Median error 0.05 degrees; 90th percentile 0.75; worst 26.5 | not measured on 8 GB | The median is sound. The tail is poor: 60 of 984 measurements are off by more than 1 degree, concentrated in a papyri set and short handwritten crops. DIBCO is not deed material |
+| Howe binarisation, 20 images from DIBCO 2009 and 2010 | F-measure 94.0; the Howe 2013 paper's figures for the same images average 93.8 | not measured on 8 GB | Optimistic: the implementation's conventions were chosen on these images |
+| Howe binarisation, DIBCO 2011, 16 images held out | F-measure 89.6; the paper reports 91.9 | not measured on 8 GB | **Misses our target** of being within 1.5 points of the paper. The gap comes from three pages with large dark regions; on the other 13 pages we score 92.9 against the paper's 92.5 |
+| Other methods on DIBCO 2011 | Otsu 82.1, Sauvola 81.6, Wolf 84.7 | not measured on 8 GB | Same images, same scoring |
+| Bleed-through score against hand labels | AUC 0.86 on the pages it was tuned on, 0.71 on held-out pages | not measured on 8 GB | Weak out of sample; the labels were made by eye from thumbnails |
+| Quality pass on one synthetic A4 page at 150 dpi, native core through the Python binding (`python -I bench/quality_synth_eval.py --only time`) | median 62.7 ms (min 62.1, max 67.5), log `evidence/sprint-3/D2/bench-quality-time.log` | not measured on 8 GB | One page type, the quality pass only (not the full `analyse_page`). Release wheel built in Sprint 3 on one Apple-silicon machine; placeholder for the target hardware |
+| `analyse_pdf_structure` in the browser (WebAssembly, in a worker, Chrome 157.0.8103.79): median of 5 calls on synthetic text PDFs | 20 pages 7.40 ms; 100 pages 32.20 ms; 300 pages 88.40 ms; a 1.07 GiB decompression bomb 26.60 ms, capped and returned as a degraded report. The first call after load is slower (worst of 5: 24.70 ms at 20 pages). WASM file 2,335,481 bytes, 854,940 gzipped | not measured on 8 GB | Apple M5 Pro 48 GB; `node site/tools/bench-structure.mjs --wasm dist/wasm/web --out docs/benchmarks/wasm-structure.csv`; commit b290cc84c08d-dirty (Sprint 5 changes not yet committed); every row of the data is in `docs/benchmarks/wasm-structure.csv` and the method in [docs/wasm-api.md](docs/wasm-api.md). Synthetic PDFs we generated, no real document; one machine, one browser |
+| In-browser pixel analysis (`analyse_page`) speed | not measured | not measured on 8 GB | The demo page runs the same core; no timing has been recorded for the pixel path |
 
 ## Limitations
 
@@ -366,8 +374,14 @@ What does not work yet, plainly:
   release artefact is signed: `scripts/release-manifest.mjs` writes an unsigned manifest, and signing
   with a real key is the owner's step ([docs/release.md](docs/release.md) row 4).
 - **The target hardware is unmeasured.** No speed figure exists for an 8 GB Windows laptop without
-  a GPU, or for the WebAssembly build in a browser. Full-page analysis time and thread-pool throughput
+  a GPU. The only browser timings, for the PDF structure call in Chrome, come from a 48 GB Apple M5 Pro (not measured on 8 GB); the
+  pixel path in a browser has none. Full-page analysis time and thread-pool throughput
   are not measured by a repo script yet (cut to Sprint 6); only the quality pass on one synthetic A4 page is. A large-document bench script (time and peak memory on big PDFs) is cut to Sprint 6. Not measured on 8 GB.
+- **The release-manifest tool's Windows path rules are proven only against a model of Windows.** `scripts/release-manifest.mjs`
+  refuses `--out` paths that leave `dist/` (symlinks, junctions, 8.3 names, drive-relative, UNC, stream and device names;
+  [docs/release.md](docs/release.md), "Output confinement"). Those rules were developed on a Mac with `path.win32` and an in-memory file
+  system; the first Windows CI run of the new tests had not happened when this was written, so the rules are unproven on a real Windows
+  volume until the owner has pushed and read that run. A small window between the last check and the write is documented and not closed.
 - **The wheel carries no SBOM.** maturin's Rust CycloneDX SBOM records the builder's absolute checkout path, so it is switched off (`sbom = { rust = false }`) until a path-free one exists. Compiler path strings are remapped with `scripts/remap-flags.sh`, and `scripts/check-no-builder-paths.sh` fails if a wheel or tarball holds a home or temp path.
 - **CI runs on Linux, macOS and Windows, on hosted runners only.** The determinism gate (native,
   Python and WASM) first passed on Windows on 9 Nov 2026 ([run](https://github.com/AirplaneMode-Labs/pagetriage/actions/runs/42634433346)). That is a hosted GitHub
