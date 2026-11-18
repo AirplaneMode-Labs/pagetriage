@@ -115,6 +115,6 @@ if [ -n "${PAGETRIAGE_WHEEL:-}" ]; then
   unzip -p "$PAGETRIAGE_WHEEL" "$WN" > "$TMP/wheel-NOTICE" 2>/dev/null
   out=$(check_notice "$TMP/wheel-NOTICE" "$TMP/expected-py.tsv") && ok "wheel NOTICE carries every MIT-only crate block of the pagetriage-py tree" || fail "wheel NOTICE blocks: $out"
 else
-  echo "skip - wheel listing (set PAGETRIAGE_WHEEL=<whl>; built with: uvx maturin build --release --locked -m crates/pagetriage-py/Cargo.toml)"
+  echo "not applicable: no wheel in this job (PAGETRIAGE_WHEEL unset; wheels are Sprint 6, TD-09; set PAGETRIAGE_WHEEL=<whl>; built with: uvx maturin build --release --locked -m crates/pagetriage-py/Cargo.toml)"
 fi
 finish
