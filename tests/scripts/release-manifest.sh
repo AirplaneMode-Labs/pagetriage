@@ -41,6 +41,14 @@ rc_check() {
   got=$(rm_run "$@")
   if [ "$want" = "$got" ]; then ok "$name"; else fail "$name (want '$want', got '$got')"; echo "      stderr: $(head -c 600 "$SCRATCH/last.err" | tr '\n' ' ')"; fi
 }
+# err_check <name> <fixed string> <want count>: how many lines of the LAST run's stderr contain the string. Exit code alone
+# cannot tell two refusals apart (every refusal is 2), so a check that a run was refused for a given reason reads stderr.
+# The stderr is printed when the count differs, for the same reason as in rc_check.
+err_check() {
+  local name=$1 pat=$2 want=$3 got
+  got=$(grep -cF -- "$pat" "$SCRATCH/last.err")
+  if [ "$want" = "$got" ]; then ok "$name"; else fail "$name (want '$want', got '$got')"; echo "      stderr: $(head -c 600 "$SCRATCH/last.err" | tr '\n' ' ')"; fi
+}
 na() { echo "na   - $1"; }
 # mklink <target> <link>: ln -s, then [ -L ]. A link that cannot be made is a FAILURE, never a skip.
 mklink() {
@@ -197,8 +205,23 @@ expect_eq "missing --out refused" 2 "$(rm_run $RM $T)"
 expect_eq "missing artifact refused" 2 "$(rm_run $RM --out dist/e.json art/nope.tgz)"
 expect_eq "a directory as artifact refused" 2 "$(rm_run $RM --out dist/e.json art)"
 expect_eq "artifact name that is not a valid id refused" 2 "$(rm_run $RM --out dist/e.json "art/a b.tgz")"
-expect_eq "duplicate ids (case-folded) refused" 2 "$(rm_run $RM --out dist/e.json $W art/../art/pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl)"
-expect_eq "duplicate ids refused for the duplicate-id reason (stderr names it)" 1 "$(grep -c 'duplicate entry id' "$SCRATCH/last.err")"
+# Duplicate ids. Both artifacts must be REAL files on every filesystem. The case-folded pair is $W (capital P, in art/) and
+# a lower-case-p twin in a DIFFERENT directory (art2/), so the two names never collide on a case-insensitive volume and
+# neither is a path that exists only there. The earlier form, 'art/../art/pagetriage-...' for a file created as
+# 'PageTriage-...', resolved on macOS and Windows but was 'artifact not found' on Linux: it exited 2 for the wrong
+# reason, which the exit-code check could not see (CI run 44325732090). Each check below therefore also reads stderr.
+mkdir -p "$SCRATCH/art2"
+printf 'a different wheel with the same id once folded\n' > "$SCRATCH/art2/pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl"
+WL=art2/pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl
+expect_eq "duplicate-id fixtures are two different real files whose ids differ only in case" "yes" "$([ -f "$SCRATCH/$W" ] && [ -f "$SCRATCH/$WL" ] && ! cmp -s "$SCRATCH/$W" "$SCRATCH/$WL" && echo yes || echo no)"
+rc_check "duplicate ids (case-folded) refused" 2 $RM --out dist/e.json $W $WL
+err_check "duplicate ids refused for the duplicate-id reason (stderr names it)" "duplicate entry id" 1
+err_check "duplicate ids were not refused for a missing file (the fixtures are found on this filesystem)" "artifact not found" 0
+rc_check "duplicate ids (case-folded, order reversed) refused" 2 $RM --out dist/e.json $WL $W
+err_check "reversed order refused for the duplicate-id reason" "duplicate entry id" 1
+rc_check "the same file given twice under two spellings refused" 2 $RM --out dist/e.json $W art/../$W
+err_check "the same file twice is refused for the duplicate-id reason" "duplicate entry id" 1
+expect_eq "no manifest written by a duplicate-id refusal" no "$([ -e "$SCRATCH/dist/e.json" ] && echo yes || echo no)"
 expect_eq "unknown option refused" 2 "$(rm_run $RM --out dist/e.json --sign x $T)"
 expect_eq "unknown option --key refused" 2 "$(rm_run $RM --out dist/e.json --key x $T)"
 
