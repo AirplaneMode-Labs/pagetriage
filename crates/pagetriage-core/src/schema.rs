@@ -32,6 +32,9 @@ pub struct Evidence {
     pub llr: f64,
     pub note: String,
     /// Source the feature or threshold comes from, or "tuned on <set>".
+    // The doc text above is the `description` of this field in the checked-in schema
+    // (schema/pagetriage-0.1.schema.json), so it stays as written; rustdoc reads `<set>` as an HTML tag.
+    #[allow(rustdoc::invalid_html_tags)]
     pub citation: String,
 }
 

@@ -11,7 +11,7 @@
 //! significant bit, so the string reads in scan order.
 //!
 //! Determinism: the resize accumulates in exact `u64` integers (overlap weights are integers, see
-//! [`axis_weights`]) and divides once per cell; the DCT uses a cosine table built with
+//! `axis_weights`) and divides once per cell; the DCT uses a cosine table built with
 //! [`math::cos`] and sums every product list with [`math::pairwise_sum`] in fixed order. Nothing
 //! depends on the platform libm, thread count or SIMD width.
 //!

@@ -1,5 +1,5 @@
 //! Parameters of the quality pass (module M3). Defaults live in `params/quality.toml`; every key
-//! there carries its source or "tuned on <set>".
+//! there carries its source or "tuned on `<set>`".
 
 use serde::Deserialize;
 
