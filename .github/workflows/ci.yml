@@ -42,6 +42,20 @@ jobs:
       - name: Script tests
         run: bash tests/scripts/run-all.sh
 
+  # Rustdoc with warnings denied (BUG-T2-S4-22): a broken intra-doc link, a link to a private item or bare
+  # HTML in a doc comment fails here and not on docs.rs. Same command as the local check; Linux only.
+  doc:
+    name: cargo doc -D warnings
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: RUSTDOCFLAGS="-D warnings" cargo doc --workspace --no-deps --locked
+
   # The determinism gate: golden inputs must give byte-identical reports on native, Python and WASM,
   # on Linux, macOS and Windows, and the WASM build must stay inside its gzip size budget.
   # Windows uses the Windows branch of scripts/install-wasm-tools.sh (pinned digests); first green
