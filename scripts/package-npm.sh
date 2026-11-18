@@ -23,7 +23,7 @@ OUT=dist/npm
 rm -rf "$OUT"
 mkdir -p "$OUT/package"
 cp -R "$SRC/web" "$SRC/nodejs" "$OUT/package/"
-cp LICENSE-MIT LICENSE-APACHE "$OUT/package/"
+cp LICENSE-MIT LICENSE-APACHE NOTICE "$OUT/package/"
 cp README.md "$OUT/package/README.md"
 cat > "$OUT/package/package.json" <<JSON
 {
@@ -47,7 +47,7 @@ cat > "$OUT/package/package.json" <<JSON
     "./web": "./web/pagetriage.js",
     "./web/pagetriage_bg.wasm": "./web/pagetriage_bg.wasm"
   },
-  "files": ["web", "nodejs", "README.md", "LICENSE-MIT", "LICENSE-APACHE"],
+  "files": ["web", "nodejs", "README.md", "LICENSE-MIT", "LICENSE-APACHE", "NOTICE"],
   "sideEffects": false
 }
 JSON
