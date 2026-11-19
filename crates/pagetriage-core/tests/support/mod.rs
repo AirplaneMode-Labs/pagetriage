@@ -4,6 +4,9 @@
 
 use std::collections::BTreeMap;
 
+#[cfg(feature = "pdf")]
+pub mod bombs;
+
 pub struct Builder {
     pub out: Vec<u8>,
     offsets: BTreeMap<u32, usize>,
@@ -22,6 +25,13 @@ impl Builder {
             pending: Vec::new(),
             last_xref: None,
         }
+    }
+
+    /// Make the next cross-reference section list `num` at `offset`, whatever is there (for tests that
+    /// point an object at bytes that are not at an object boundary).
+    pub fn alias_offset(&mut self, num: u32, offset: usize) {
+        self.offsets.insert(num, offset);
+        self.pending.push(num);
     }
 
     pub fn obj(&mut self, num: u32, body: &str) {

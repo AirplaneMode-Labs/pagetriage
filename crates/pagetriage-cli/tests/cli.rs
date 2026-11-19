@@ -397,3 +397,123 @@ fn prepare_refuses_a_bad_rotation() {
         .unwrap();
     assert!(!out.status.success());
 }
+
+// ---------------------------------------------------------------------------------------------
+// `pagetriage streams` (S1-107): exit 0 for an accepted document, exit 1 with `error:` on stderr for
+// a refused one (the report is still printed on stdout), the same convention as every other refusal.
+// ---------------------------------------------------------------------------------------------
+
+fn golden(sub: &str) -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../tests/golden")
+        .join(sub)
+}
+
+#[test]
+fn streams_subcommand_accepts_a_clean_pdf_and_matches_the_library() {
+    let path = scratch("streams-clean.pdf");
+    fs::write(&path, tiny_pdf()).unwrap();
+    let out = bin().arg("streams").arg(&path).output().unwrap();
+    let report = stdout_json(&out);
+    assert_eq!(report["schema"], "pagetriage.streams/0.1");
+    assert_eq!(report["verdict"], "ok");
+    assert_eq!(report["reason"], "");
+    let lib = pagetriage_core::structural::account_pdf_streams(&tiny_pdf(), None).unwrap();
+    assert_eq!(
+        String::from_utf8(out.stdout.clone()).unwrap(),
+        format!("{lib}\n"),
+        "the CLI prints the canonical bytes of the library"
+    );
+    let pretty = bin()
+        .args(["streams", "--pretty"])
+        .arg(&path)
+        .output()
+        .unwrap();
+    assert!(String::from_utf8_lossy(&pretty.stdout).contains("\n  "));
+}
+
+#[test]
+fn streams_subcommand_refuses_a_bomb_with_exit_1_and_still_prints_the_report() {
+    let seed = golden("streams_inputs/seed_font_bomb.pdf");
+    let out = bin().arg("streams").arg(&seed).output().unwrap();
+    assert_eq!(out.status.code(), Some(1), "refusal is exit 1");
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).expect("report on stdout");
+    assert_eq!(report["verdict"], "refuse");
+    assert_eq!(report["reason"], "font_over_limit");
+    let err = String::from_utf8_lossy(&out.stderr);
+    assert!(
+        err.starts_with("error: ") && err.contains("font_over_limit"),
+        "{err}"
+    );
+}
+
+#[test]
+fn streams_subcommand_treats_a_non_pdf_as_unaccounted_and_a_missing_file_as_an_error() {
+    let junk = scratch("streams-junk.pdf");
+    fs::write(&junk, b"just some text").unwrap();
+    let out = bin().arg("streams").arg(&junk).output().unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(report["reason"], "unaccounted");
+
+    let out = bin()
+        .arg("streams")
+        .arg(scratch("nope.pdf"))
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    assert!(
+        out.stdout.is_empty(),
+        "no report for a file that cannot be read"
+    );
+    assert!(String::from_utf8_lossy(&out.stderr).contains("cannot read"));
+}
+
+#[test]
+fn streams_params_can_lower_a_limit_and_cannot_raise_one() {
+    let seed = golden("streams_inputs/seed_font_bomb.pdf");
+    // a raise: ignored, the 33 MiB font is still over the 32 MiB cap
+    let raise = scratch("streams-raise.toml");
+    fs::write(&raise, "font_decoded_max = 99999999999\n").unwrap();
+    let out = bin()
+        .arg("streams")
+        .arg("--params")
+        .arg(&raise)
+        .arg(&seed)
+        .output()
+        .unwrap();
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(report["reason"], "font_over_limit");
+    assert_eq!(report["limits"]["font_decoded_max"], 33554432);
+
+    // a lowering: a clean document is refused
+    let low = scratch("streams-low.toml");
+    fs::write(&low, "content_decoded_max = 10\n").unwrap();
+    let path = scratch("streams-low.pdf");
+    fs::write(&path, tiny_pdf()).unwrap();
+    let out = bin()
+        .arg("streams")
+        .arg("--params")
+        .arg(&low)
+        .arg(&path)
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    let report: serde_json::Value = serde_json::from_slice(&out.stdout).unwrap();
+    assert_eq!(report["reason"], "content_over_limit");
+    assert_eq!(report["limits"]["content_decoded_max"], 10);
+
+    // an unknown key is an error with no report
+    let bad = scratch("streams-bad.toml");
+    fs::write(&bad, "no_such_limit = 1\n").unwrap();
+    let out = bin()
+        .arg("streams")
+        .arg("--params")
+        .arg(&bad)
+        .arg(&path)
+        .output()
+        .unwrap();
+    assert_eq!(out.status.code(), Some(1));
+    assert!(out.stdout.is_empty());
+    assert!(String::from_utf8_lossy(&out.stderr).contains("no_such_limit"));
+}

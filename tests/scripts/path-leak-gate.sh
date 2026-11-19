@@ -28,6 +28,45 @@ for d in leak1 leak2 leak3 leak4; do
   expect_eq "$d wheel is refused" 1 "$(run $d.whl)"
   expect_eq "$d tgz is refused" 1 "$(run $d.tgz)"
 done
+
+# BUG-T2-S6-05: Windows builder paths (drive letter in either case, either slash, the runner user) are refused too.
+mkdir -p w1 w2 w3 w4 w5 w6
+python3 - <<'PY'
+open("w1/a.bin","wb").write(b"\x00D:\\a\\pagetriage\\src\\lib.rs\x00")
+open("w2/a.bin","wb").write(b"\x00C:\\Users\\runneradmin\\.cargo\\registry\x00")
+open("w3/a.bin","wb").write(b"\x00c:/users/someone/x\x00")
+open("w4/a.bin","wb").write(b"\x00d:/a/pagetriage/pagetriage\x00")
+open("w5/a.bin","wb").write(b"\x00path RunnerAdmin here\x00")
+open("w6/a.bin","wb").write(b"\x00C:\\USERS\\x\x00")
+PY
+for d in w1 w2 w3 w4 w5 w6; do mk $d; done
+for d in w1 w2 w3 w4 w5 w6; do
+  expect_eq "$d (Windows form) wheel is refused" 1 "$(run $d.whl)"
+  expect_eq "$d (Windows form) tgz is refused" 1 "$(run $d.tgz)"
+done
+
+# BUG-T2-S6-09: JSON-escaped doubled separators, any drive letter, and UTF-16LE forms are refused; look-alikes pass.
+mkdir -p x1 x2 x3 x4 x5 x6 x7 g1 g2
+python3 - <<'PY'
+open("x1/a.json","wb").write(b'{"p":"D:\\\\a\\\\pagetriage\\\\x"}')
+open("x2/a.json","wb").write(b'{"p":"C:\\\\Users\\\\bob\\\\.cargo"}')
+open("x3/a.bin","wb").write(b"\x00E:\\a\\pagetriage\x00")
+open("x4/a.bin","wb").write(b"\x00E:\\Users\\bob\\.cargo\x00")
+open("x5/a.bin","wb").write("D:\\a\\pagetriage".encode("utf-16-le"))
+open("x6/a.bin","wb").write("C:\\Users\\bob".encode("utf-16-le"))
+open("x7/a.bin","wb").write(b'\x00z:/users/bob/x\x00')
+open("g1/a.bin","wb").write(b"uuid:/a/ and more")
+open("g2/a.bin","wb").write(b"xD:\\a\\ here")
+PY
+for d in x1 x2 x3 x4 x5 x6 x7 g1 g2; do mk $d; done
+for d in x1 x2 x3 x4 x5 x6 x7; do
+  expect_eq "$d (S6-09 form) wheel is refused" 1 "$(run $d.whl)"
+  expect_eq "$d (S6-09 form) tgz is refused" 1 "$(run $d.tgz)"
+done
+for d in g1 g2; do
+  expect_eq "$d (look-alike) wheel passes" 0 "$(run $d.whl)"
+  expect_eq "$d (look-alike) tgz passes" 0 "$(run $d.tgz)"
+done
 expect_eq "no arguments is a usage error" 2 "$(run)"
 # The README sentence is one plain line.
 S1='Not published yet: the npm scope @airplanemode and the PyPI and crates.io names are not reserved. The commands below were proven from locally built artifacts on macOS arm64 (an npm pack tarball installed offline into a fresh empty directory, a wheel installed into a fresh venv); publishing to the registries is the owner'"'"'s step.'

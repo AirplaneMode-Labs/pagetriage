@@ -27,8 +27,13 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import zlib
 
 OUT = pathlib.Path(__file__).resolve().parent / "pdf"
+# Stream-accounting seeds (S1-107): tiny synthetic bombs, each under 100 KB, checked by
+# tests/streams_golden.rs and the Python and WASM runners. They live apart from OUT so the
+# structure goldens (tests/golden/pdf_expected) keep exactly the inputs they had.
+SEEDS = pathlib.Path(__file__).resolve().parent / "streams_inputs"
 
 # --- a minimal PDF assembler ---------------------------------------------------------------------
 
@@ -298,8 +303,87 @@ def encrypted(plain):
     return dst.read_bytes()
 
 
+# --- stream-accounting seeds (S1-107) --------------------------------------------------------------
+#
+# Each seed is a one-page document (objects 1 to 7, as in the Rust tests) plus the one stream that
+# makes the seed interesting. A seed is small because zeros deflate about 1000 to 1: 33 MiB is about
+# 33 KB. The committed bytes are authoritative; another zlib may deflate to different bytes, which
+# changes the raw sizes in the golden reports and nothing else.
+#
+#   seed_font_bomb         FontFile2 inflating to 33 MiB (the font cap is 32 MiB)
+#   seed_content_bomb      page content inflating to 65 MiB (the cap is 64 MiB)
+#   seed_unreferenced_bomb a stream nothing refers to, inflating to 65 MiB (counted as "other")
+#   seed_image_raster      a 16-byte image that declares 100000 x 100000 pixels
+#   seed_jpeg_sof          a 10 x 10 image whose JPEG header says 65000 x 65000
+#   seed_xref_broken       a clean document whose startxref points at nothing (needs repair)
+#   seed_chains_ok         ASCIIHex + Flate, ASCII85 and RunLength streams (all small, accepted)
+
+MIB = 1 << 20
+
+
+def zeros_flate(mib):
+    return zlib.compress(bytes(MIB) * mib, 9)
+
+
+def seed_base(pdf, content=b"BT /F1 12 Tf 72 700 Td (Hello) Tj ET", content_dict="", font_dict="/Length1 4", font_file=b"\0\x01\0\0"):
+    pdf.obj(1, "<< /Type /Catalog /Pages 2 0 R >>")
+    pdf.obj(2, "<< /Type /Pages /Kids [3 0 R] /Count 1 >>")
+    pdf.obj(3, "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>")
+    pdf.stream(4, content_dict, content)
+    pdf.obj(5, "<< /Type /Font /Subtype /TrueType /BaseFont /Test /FirstChar 32 /LastChar 32 /Widths [500] /FontDescriptor 6 0 R >>")
+    pdf.obj(6, "<< /Type /FontDescriptor /FontName /Test /Flags 32 /FontBBox [0 0 1000 1000] /ItalicAngle 0 /Ascent 800 /Descent -200 /CapHeight 700 /StemV 80 /FontFile2 7 0 R >>")
+    pdf.stream(7, font_dict, font_file)
+
+
+def seed_doc(more=None, **kw):
+    pdf = Pdf()
+    seed_base(pdf, **kw)
+    if more:
+        more(pdf)
+    return pdf.finish(1, 9 if more else 8)
+
+
+def seed_jpeg(w, h):
+    sof = bytes([0xFF, 0xC0, 0x00, 0x11, 0x08, h >> 8, h & 255, w >> 8, w & 255, 3, 1, 0x22, 0, 2, 0x11, 1, 3, 0x11, 1])
+    sos = bytes([0xFF, 0xDA, 0x00, 0x08, 1, 1, 0, 0, 0x3F, 0, 0xFF, 0xD9])
+    return bytes([0xFF, 0xD8]) + sof + sos
+
+
+def stream_seeds():
+    seeds = {}
+    seeds["seed_font_bomb"] = seed_doc(font_dict="/Filter /FlateDecode /Length1 100", font_file=zeros_flate(33))
+    seeds["seed_content_bomb"] = seed_doc(content_dict="/Filter /FlateDecode", content=zeros_flate(65))
+    seeds["seed_unreferenced_bomb"] = seed_doc(more=lambda p: p.stream(8, "/Filter /FlateDecode", zeros_flate(65)))
+    seeds["seed_image_raster"] = seed_doc(more=lambda p: p.stream(
+        8, "/Type /XObject /Subtype /Image /Width 100000 /Height 100000 /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode",
+        zlib.compress(bytes(16), 9)))
+    seeds["seed_jpeg_sof"] = seed_doc(more=lambda p: p.stream(
+        8, "/Type /XObject /Subtype /Image /Width 10 /Height 10 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode",
+        seed_jpeg(65000, 65000)))
+    clean = seed_doc()
+    at = clean.rindex(b"startxref")
+    seeds["seed_xref_broken"] = clean[:at] + b"startxref\n17\n%%EOF\n"
+
+    def chains(p):
+        hexed = zlib.compress(b"BT ET " * 40, 9).hex().upper().encode("ascii") + b">"
+        p.stream(8, "/Filter [/ASCIIHexDecode /FlateDecode]", hexed)
+        p.stream(9, "/Filter /ASCII85Decode", b'87cURD]i,"Ebo7~>')
+        p.stream(10, "/Filter /RunLengthDecode", b"\x03abcd\xfca\x80")
+        p.stream(11, "/Filter /FlateDecode /DecodeParms << /Predictor 15 /Columns 9 >>", zlib.compress(bytes(10) * 20, 9))
+    pdf = Pdf()
+    seed_base(pdf)
+    chains(pdf)
+    seeds["seed_chains_ok"] = pdf.finish(1, 12)
+    return seeds
+
+
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    SEEDS.mkdir(parents=True, exist_ok=True)
+    seeds = stream_seeds()
+    for name, data in seeds.items():
+        assert len(data) < 100 * 1024, f"{name} is {len(data)} bytes; seeds stay under 100 KB"
+        (SEEDS / f"{name}.pdf").write_bytes(data)
     files = {
         "native_latin": native_latin(),
         "scanned_ocr": scanned_ocr(),
@@ -313,7 +397,7 @@ def main():
         (OUT / f"{name}.pdf").write_bytes(data)
     if encrypted(files["native_latin"]) is None:
         print("qpdf not found: encrypted.pdf left as it is", file=sys.stderr)
-    print(f"wrote {len(files)} PDFs to {OUT}")
+    print(f"wrote {len(files)} PDFs to {OUT} and {len(seeds)} stream seeds to {SEEDS}")
 
 
 if __name__ == "__main__":
