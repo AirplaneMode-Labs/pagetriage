@@ -11,7 +11,7 @@
 //   2. No '..' component in either separator spelling.
 //   3. Windows only (platform === 'win32'), on the text as typed: no extended-length or device prefix
 //      (\\?\ \\.\), no UNC path, no drive-relative path (C:x), no ':' after the drive (alternate data stream),
-//      no reserved device name (CON PRN AUX NUL COM1-9 LPT1-9, any case, with or without an extension), no
+//      no reserved device name (CON PRN AUX NUL COM0-9 LPT0-9, any case, with or without an extension), no
 //      component ending in '.' or ' ' (Windows strips those, so the name on disk would differ from the name
 //      checked), no character Windows does not allow in a file name.
 //   4. dist/ and the deepest existing ancestor of --out are resolved with realpathSync.native (on Windows that
@@ -20,11 +20,15 @@
 //      report as links). A dangling link on the way is refused.
 //   5. If --out itself exists it must be a regular file: a symbolic link or junction (whatever it points at) and
 //      a directory are refused.
-//   6. Containment is rel = relative(distReal, final): rel must be non-empty, must not be absolute (another
-//      drive), and must not be '..' or start with '..' plus a separator. A name that merely starts with two dots
-//      ('..foo') is fine. The comparison is case-insensitive only because path.win32.relative is, and only
-//      after realpath.native has made both sides canonical. On POSIX it is exact: a spelling difference
-//      refuses, it never accepts.
+//   6. Containment is two tests, and both must pass. (a) rel = relative(distReal, final): rel must be non-empty, must
+//      not be absolute (another drive), and must not be '..' or start with '..' plus a separator. A name that merely
+//      starts with two dots ('..foo') is fine. path.win32.relative compares case-insensitively. (b) Since Sprint 6
+//      (S1-106) final must also start with distReal plus a separator, compared exactly. By then realpath.native has
+//      given both sides the on-disk spelling of every component that exists, so a case difference left over is a
+//      different directory: on an NTFS directory with per-directory case sensitivity (fsutil file
+//      setCaseSensitiveInfo, WSL) 'DIST' next to 'dist' is not dist, and test (a) alone would have accepted it. On
+//      a normal case-insensitive volume every spelling of dist resolves to the one on-disk name, so (b) accepts
+//      what (a) accepts. On POSIX both tests are exact.
 //
 // writeConfined then writes to a temporary name opened with the 'wx' flag inside the realpath'd parent and
 // renames it over the target, after re-resolving the parent and repeating the containment test. rename()
@@ -40,7 +44,9 @@ function refuse(msg) {
   throw new Refusal(msg);
 }
 
-const WIN_RESERVED = /^(con|prn|aux|nul|com[1-9\u00b9\u00b2\u00b3]|lpt[1-9\u00b9\u00b2\u00b3]|conin\$|conout\$)$/i;
+// COM0 and LPT0 are in the list since Sprint 6 (T2-NOTE-COM0): current Windows treats them as devices as well, and
+// refusing a name that might be one costs nothing. The superscripts are U+00B9, U+00B2 and U+00B3.
+const WIN_RESERVED = /^(con|prn|aux|nul|com[0-9\u00b9\u00b2\u00b3]|lpt[0-9\u00b9\u00b2\u00b3]|conin\$|conout\$)$/i;
 const WIN_BAD_CHARS = /[<>"|?*\u0000-\u001f]/;
 
 // Rules that only make sense on Windows, applied to the text as typed (before any resolution).
@@ -56,7 +62,7 @@ function checkWindowsSyntax(out) {
     if (WIN_BAD_CHARS.test(comp)) refuse(`--out contains a character Windows does not allow in a file name: '${comp.replace(/[\u0000-\u001f]/g, "?")}'`);
     if (/[. ]$/.test(comp)) refuse(`--out components must not end in '.' or ' ' on Windows (Windows strips them): '${comp}'`);
     const stem = comp.split(".")[0].replace(/ +$/, "");
-    if (WIN_RESERVED.test(stem)) refuse(`--out must not use a reserved device name (CON, PRN, AUX, NUL, COM1-9, LPT1-9) on Windows: '${comp}'`);
+    if (WIN_RESERVED.test(stem)) refuse(`--out must not use a reserved device name (CON, PRN, AUX, NUL, COM0-9, LPT0-9 and their superscript forms) on Windows: '${comp}'`);
   }
 }
 
@@ -70,6 +76,11 @@ function containment(pathMod, distReal, final) {
   if (rel === "") refuse("--out must be a file inside dist/");
   if (pathMod.isAbsolute(rel) || rel === ".." || rel.startsWith(".." + pathMod.sep)) {
     refuse(`--out must resolve inside dist/ (resolves to ${final})`);
+  }
+  // Test (b), exact: relative() above ignores case on win32, and both paths are canonical here (S1-106).
+  const prefix = distReal.endsWith(pathMod.sep) ? distReal : distReal + pathMod.sep;
+  if (!final.startsWith(prefix)) {
+    refuse(`--out must resolve inside dist/ (resolves to ${final}, which is not under ${distReal} when case is compared exactly)`);
   }
 }
 

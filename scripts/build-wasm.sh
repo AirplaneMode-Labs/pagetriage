@@ -35,7 +35,9 @@ if [ -n "${PAGETRIAGE_WASM_FEATURES:-}" ]; then FEATURE_ARGS=(--features "$PAGET
 # shellcheck source=remap-flags.sh
 . scripts/remap-flags.sh
 cargo build --locked --profile wasm --target wasm32-unknown-unknown -p pagetriage-wasm ${FEATURE_ARGS[@]+"${FEATURE_ARGS[@]}"}
-RAW=target/wasm32-unknown-unknown/wasm/pagetriage_wasm.wasm
+# cargo writes under $CARGO_TARGET_DIR when it is set and non-empty (absolute, or relative to this directory, where
+# cargo runs), and under target/ otherwise (BUG-T2-S5-14).
+RAW=${CARGO_TARGET_DIR:-target}/wasm32-unknown-unknown/wasm/pagetriage_wasm.wasm
 
 # Post-link features rustc emits for wasm32-unknown-unknown. The profile strips the target_features
 # section, so wasm-opt cannot detect them and they are listed here. This is also the browser
