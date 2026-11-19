@@ -105,7 +105,8 @@
    "blurb": "Real text with fonts. The text layer is trustworthy.",
    "file": "samples/pdf/native_latin.pdf",
    "bytes": 1012,
-   "native_report_sha256": "6607948b2227d3e1c454bb29de7e739e0cbf3df51510f27aa008ad0982777145"
+   "native_report_sha256": "6607948b2227d3e1c454bb29de7e739e0cbf3df51510f27aa008ad0982777145",
+   "native_streams_sha256": "ba0d59fa2cc1dcae592f414c4bceeb4a235b4be563c32771c1d48566485f9aaa"
   },
   {
    "id": "scanned_ocr",
@@ -113,7 +114,8 @@
    "blurb": "A page image with invisible text laid over it by an OCR engine. Text exists, but it is the OCR's guess.",
    "file": "samples/pdf/scanned_ocr.pdf",
    "bytes": 2610,
-   "native_report_sha256": "5000a195b828f60b8b658104b22bd3039b032dd52294962fa67e91ee58ace222"
+   "native_report_sha256": "5000a195b828f60b8b658104b22bd3039b032dd52294962fa67e91ee58ace222",
+   "native_streams_sha256": "c548887e7d07161065ba6c363ab8792f29b5b6358edfbf44a00e3dbe0b156263"
   },
   {
    "id": "jpeg_scan",
@@ -121,7 +123,8 @@
    "blurb": "Just a JPEG of a page. The JPEG quality is read from its tables.",
    "file": "samples/pdf/jpeg_scan.pdf",
    "bytes": 1460,
-   "native_report_sha256": "89fd5cbe3354d91772f14392431e78521418764eff17a8a5856673243d9c50fd"
+   "native_report_sha256": "89fd5cbe3354d91772f14392431e78521418764eff17a8a5856673243d9c50fd",
+   "native_streams_sha256": "9cafe5b651e983736d82697e7043ea2e81497ae4ddd46befe051c964961f875c"
   },
   {
    "id": "scripts_legacy",
@@ -129,7 +132,8 @@
    "blurb": "One page uses a legacy font (Kruti Dev) that looks like Devanagari on screen but copies as Latin gibberish. It is flagged.",
    "file": "samples/pdf/scripts_legacy.pdf",
    "bytes": 2783,
-   "native_report_sha256": "cac1ff6cb43bf63ec905d9a2170cf4a38ce9b9656f89f6f502b44c81c04fd2a5"
+   "native_report_sha256": "cac1ff6cb43bf63ec905d9a2170cf4a38ce9b9656f89f6f502b44c81c04fd2a5",
+   "native_streams_sha256": "6907cb6313819526e15d36bead4d49b63da57431807d56dd9795a78ff22f020d"
   },
   {
    "id": "signed_then_edited",
@@ -137,7 +141,8 @@
    "blurb": "An incremental update was appended after the first save, the footprint of a change made later.",
    "file": "samples/pdf/signed_then_edited.pdf",
    "bytes": 1663,
-   "native_report_sha256": "c15ac5b9b444b9018e3b7bc600217dcc242eee99dd5bba4819972ddc55883170"
+   "native_report_sha256": "c15ac5b9b444b9018e3b7bc600217dcc242eee99dd5bba4819972ddc55883170",
+   "native_streams_sha256": "8805537bec7ce05df01b6b34b2f732ded2e8100e34e4a88f0c970d1ca3b4fdcc"
   },
   {
    "id": "encrypted",
@@ -145,7 +150,8 @@
    "blurb": "Cannot be read without a password. Reported as such, not guessed at.",
    "file": "samples/pdf/encrypted.pdf",
    "bytes": 1536,
-   "native_report_sha256": "9464b700e1c29c369932072b51a73f813189f8791ef809520c1653588924e71b"
+   "native_report_sha256": "9464b700e1c29c369932072b51a73f813189f8791ef809520c1653588924e71b",
+   "native_streams_sha256": "c33b7308bc392087e5decaefbb5b6548e02928cb299e536df6f042142c825d4b"
   },
   {
    "id": "redacted_text",
@@ -153,7 +159,8 @@
    "blurb": "A black box over a name and a white box over an address, both painted on top of text that is still in the file. Anyone can copy the text out from under them.",
    "file": "samples/pdf/redacted_text.pdf",
    "bytes": 1034,
-   "native_report_sha256": "12e871e15b48645923ba4eb16905565aa69c5a5bdf4891f68607461688af85a2"
+   "native_report_sha256": "12e871e15b48645923ba4eb16905565aa69c5a5bdf4891f68607461688af85a2",
+   "native_streams_sha256": "0c36eebd7817ce992bf6425e57c3f3a28aabd34f4c421cceface945e78b77886"
   },
   {
    "id": "vector_empty_mixed",
@@ -161,7 +168,34 @@
    "blurb": "Drawn lines with no text, an empty page, and a page mixing both.",
    "file": "samples/pdf/vector_empty_mixed.pdf",
    "bytes": 35734,
-   "native_report_sha256": "7a552177d6c7613130c57750ab134de0ab327456e70fd475767cada5f28b6d2b"
+   "native_report_sha256": "7a552177d6c7613130c57750ab134de0ab327456e70fd475767cada5f28b6d2b",
+   "native_streams_sha256": "5ee6b7cf0f0f2382f9f2a470ac4564b398d8df11feabbef7de503924ba580047"
+  }
+ ],
+ "seeds": [
+  {
+   "id": "seed_font_bomb",
+   "title": "A font that inflates to 33 MiB",
+   "blurb": "A 34 KB file whose embedded font decodes to 33 MiB, one MiB over the 32 MiB font limit. The stream check refuses it before the PDF is opened.",
+   "file": "samples/pdf/seed_font_bomb.pdf",
+   "bytes": 34612,
+   "native_streams_sha256": "6dae1554db1d47773a66ac91fd96c3e3c6ff8a7994997450b06b191d2d2c31f3"
+  },
+  {
+   "id": "seed_image_raster",
+   "title": "An image that declares 100000 x 100000 pixels",
+   "blurb": "A 1 KB file with 16 bytes of image data and a declared size that would need 40 GB to draw. Refused by the stream check without decoding anything.",
+   "file": "samples/pdf/seed_image_raster.pdf",
+   "bytes": 1140,
+   "native_streams_sha256": "f3050beef4e1f87f3fc3bbc3d524dd873d13a3048f4563016243817c14dd126e"
+  },
+  {
+   "id": "seed_xref_broken",
+   "title": "A file whose index points nowhere",
+   "blurb": "The cross-reference table is damaged and had to be repaired. The stream check says it cannot vouch for the structure; the analysis still runs and reports the repair.",
+   "file": "samples/pdf/seed_xref_broken.pdf",
+   "bytes": 933,
+   "native_streams_sha256": "59d240286e1351f73005dc5b5bac9a961d49ca76c5585cd39a3994f38130697a"
   }
  ]
 }

@@ -76,5 +76,14 @@ for (const p of manifest.pdfs) {
   const json = wasm.analyse_pdf_structure(new Uint8Array(readFileSync(join(site, p.file))), undefined);
   const got = sha256(Buffer.from(json, "utf8"));
   report(got === p.native_report_sha256, "pdf", p.id, got, p.native_report_sha256);
+  const streams = wasm.account_pdf_streams(new Uint8Array(readFileSync(join(site, p.file))), undefined);
+  const sgot = sha256(Buffer.from(streams, "utf8"));
+  report(sgot === p.native_streams_sha256, "strm", p.id, sgot, p.native_streams_sha256);
+}
+// The refused seeds: only the stream report exists (the page is refused before it is opened).
+for (const p of manifest.seeds ?? []) {
+  const streams = wasm.account_pdf_streams(new Uint8Array(readFileSync(join(site, p.file))), undefined);
+  const got = sha256(Buffer.from(streams, "utf8"));
+  report(got === p.native_streams_sha256, "strm", p.id, got, p.native_streams_sha256);
 }
 process.exit(failures ? 1 : 0);

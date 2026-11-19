@@ -111,11 +111,29 @@ onmessage = async (e) => {
         }, 0);
         return;
       case "pdf": {
+        const bytes = new Uint8Array(m.bytes);
+        // The stream check runs first (S1-107): how many bytes each font, image and content stream decodes to,
+        // with a limit per kind. A PDF over a limit is refused here, before anything opens it. An unreadable
+        // structure ("unaccounted") is reported but the analysis still runs: this library reads such files.
+        const s0 = performance.now();
+        let streams = null;
+        try {
+          streams = wasm.account_pdf_streams(bytes, undefined);
+        } catch (err) {
+          streams = null; // a thrown error is treated like an unaccounted report: said, not hidden
+        }
+        const streamsMs = Math.round(performance.now() - s0);
+        let verdict = null;
+        try { verdict = streams ? JSON.parse(streams) : null; } catch (err) { verdict = null; }
+        if (verdict && verdict.verdict === "refuse" && verdict.reason !== "unaccounted") {
+          postMessage({ type: "pdf-result", job: m.job, refused: true, streams, streamsMs });
+          return;
+        }
         const t0 = performance.now();
-        const json = wasm.analyse_pdf_structure(new Uint8Array(m.bytes), undefined);
+        const json = wasm.analyse_pdf_structure(bytes, undefined);
         const ms = Math.round(performance.now() - t0);
         const sha = await sha256Hex(json);
-        postMessage({ type: "pdf-result", job: m.job, json, sha, ms });
+        postMessage({ type: "pdf-result", job: m.job, json, sha, ms, streams, streamsMs });
         return;
       }
       default:

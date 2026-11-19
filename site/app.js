@@ -186,6 +186,15 @@ function onWorkerMessage(m) {
     case "pdf-result": {
       const r = state.results.pdf;
       if (!r || m.job !== r.job) return;
+      r.streams = null; r.streamsMs = m.streamsMs;
+      try { r.streams = m.streams ? JSON.parse(m.streams) : null; } catch (err) { r.streams = null; }
+      if (m.refused) {
+        // Refused by the stream check before the PDF was opened: there is no structure report.
+        r.refused = true; r.pending = false;
+        if (state.mode === "pdf") renderSlip();
+        setStatus(`Refused before the PDF was opened (stream check: ${fmt.int(m.streamsMs)} ms on your device).`);
+        return;
+      }
       r.json = m.json; r.sha = m.sha; r.ms = m.ms;
       try { r.report = JSON.parse(m.json); } catch (err) { showError("pdf", err); return; }
       r.pending = false;
@@ -506,7 +515,7 @@ function renderSlip() {
     ui.slipBody.replaceChildren(slipHead(r, null));
     return;
   }
-  ui.slipBody.replaceChildren(r.kind === "page" ? pageSlip(r) : pdfSlip(r));
+  ui.slipBody.replaceChildren(r.kind === "page" ? pageSlip(r) : r.refused ? refusedSlip(r) : pdfSlip(r));
 }
 
 function slipHead(r, grade) {
@@ -656,11 +665,66 @@ function download(r) {
   setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 
+// What a stream-check reason means, in plain words (the limits are in docs/detectors/streams.md).
+const STREAM_REASONS = {
+  font_over_limit: "A font in this file decodes to more than 32 MiB.",
+  image_over_limit: "An image in this file decodes, or would be drawn, at more than 256 MiB.",
+  content_over_limit: "A page's content decodes to more than 64 MiB.",
+  other_over_limit: "A stream in this file decodes to more than 64 MiB.",
+  total_over_limit: "All the streams in this file together decode to more than 512 MiB.",
+  too_many_streams: "This file holds more than three million streams.",
+  unaccounted: "The structure of this file cannot be vouched for, so its streams cannot be counted safely.",
+};
+const STREAM_KINDS = [["font", "Fonts"], ["image", "Images"], ["form", "Forms"], ["content", "Page content"], ["other", "Everything else"]];
+
+/** The stream check as text nodes only: the verdict, the reason in words, and the counts per kind. No note from the report is shown. */
+function streamsBox(r) {
+  const s = r.streams;
+  const box = el("section.streams", { "aria-labelledby": "streams-h" });
+  box.append(el("h3", { id: "streams-h", text: "Stream check, before the PDF is opened" }));
+  if (!s) {
+    box.append(el("p.notice", { text: "The stream check did not return a report, so this file is treated as refused." }));
+    return box;
+  }
+  const ok = s.verdict === "ok";
+  box.append(el("p", { class: `verdict ${ok ? "is-ok" : "is-bad"}` }, svgIcon(ok ? "ok" : "bad"),
+    el("span", { text: ok ? "Accepted: every stream is within its limit." : `Refused: ${STREAM_REASONS[s.reason] || s.reason}` })));
+  const table = el("table.pages.streamtable");
+  table.append(el("caption", { text: "Streams by kind (bytes)" }));
+  table.append(el("thead", null, el("tr", null,
+    el("th", { scope: "col", text: "Kind" }), el("th", { scope: "col", text: "Streams" }),
+    el("th", { scope: "col", text: "Stored" }), el("th", { scope: "col", text: "Decoded" }), el("th", { scope: "col", text: "Over its limit" }))));
+  const tbody = el("tbody");
+  for (const [k, label] of STREAM_KINDS) {
+    const c = (s.streams.by_kind || {})[k] || {};
+    tbody.append(el("tr", null,
+      el("td", { text: label }), el("td", { text: fmt.int(c.count || 0) }), el("td", { text: fmt.int(c.raw_bytes || 0) }),
+      el("td", { text: `${s.streams.decoded_capped && c.over_limit ? "at least " : ""}${fmt.int(c.decoded_bytes || 0)}` }),
+      el("td", { text: c.over_limit ? "Yes" : "No" })));
+  }
+  table.append(tbody);
+  box.append(table);
+  box.append(el("p.note", { text: `${fmt.int(s.streams.count)} stream${s.streams.count === 1 ? "" : "s"} found, ${fmt.int(s.streams.total_decoded_bytes)} bytes decoded in total, checked in ${fmt.int(r.streamsMs || 0)} ms on your device.${s.streams.early_stop ? " Decoding stopped at the first stream over a limit, so later streams were counted but not decoded." : ""} A stream is never held in memory: it is counted and forgotten.` }));
+  return box;
+}
+
+/** A PDF refused by the stream check: nothing was opened, so there is no page report. */
+function refusedSlip(r) {
+  const frag = document.createDocumentFragment();
+  frag.append(slipHead(r, null));
+  frag.append(el("div.alert", { role: "alert" },
+    el("h3", { text: "This PDF was refused before it was opened." }),
+    el("p", { text: "The stream check found a stream over its limit. A renderer is not started for such a file, and no pages were analysed." })));
+  frag.append(streamsBox(r));
+  return frag;
+}
+
 function pdfSlip(r) {
   const rep = r.report;
   const doc = rep.document || {}, st = rep.structure || {};
   const frag = document.createDocumentFragment();
   frag.append(slipHead(r, null));
+  if (r.streams !== undefined) frag.append(streamsBox(r));
 
   if (st.encrypted) {
     frag.append(el("div.alert", { role: "alert" },
@@ -788,7 +852,7 @@ function buildPicker(samples) {
     el("button", { type: "button", "aria-pressed": "false", "data-id": p.id, onclick: () => loadSample(p) },
       el("img", { src: p.thumb, alt: "", width: 56, height: 79, loading: "lazy" }),
       el("span", { text: p.title }))));
-  ui.pdfList.replaceChildren(...samples.pdfs.map((p) =>
+  ui.pdfList.replaceChildren(...[...samples.pdfs, ...(samples.seeds || [])].map((p) =>
     el("li", null, el("button", { type: "button", "aria-pressed": "false", "data-id": p.id, onclick: () => loadSamplePdf(p) },
       el("strong", { text: p.title }), el("span", { text: p.blurb })))));
 }

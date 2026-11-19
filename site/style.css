@@ -280,3 +280,16 @@ code, pre, kbd { font-family: var(--mono); font-size: 0.875em; }
 @media (prefers-reduced-motion: reduce) {
   .sheet.is-scanning .sweep { animation: none; opacity: 0; }
 }
+
+/* the stream check (Sprint 6): a table of counts and one verdict line */
+.streams { margin: 14px 0 18px; }
+.streams h3 { font: 650 1.0625rem var(--sans); letter-spacing: 0; margin: 0 0 8px; }
+.streams table { margin-top: 8px; }
+.streams .verdict { margin: 6px 0 0; font-weight: 650; font-size: 0.9375rem; display: flex; gap: 8px; align-items: center; }
+.streams .verdict svg { width: 20px; height: 20px; flex: none; }
+.streams .verdict.is-ok { color: var(--ok); }
+.streams .verdict.is-bad { color: var(--bad); }
+/* all five columns stay on a phone (the page table hides its fourth there), numbers may wrap at the space of "at least" only */
+.pages.streamtable th, .pages.streamtable td { padding-right: 6px; font-size: 0.8125rem; }
+.pages.streamtable th:nth-child(4), .pages.streamtable td:nth-child(4) { display: table-cell; }
+.pages.streamtable td { font-variant-numeric: tabular-nums; }
