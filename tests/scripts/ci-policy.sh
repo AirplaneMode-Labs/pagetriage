@@ -5,13 +5,14 @@
 #
 #  A. every `uses:` in .github/workflows/*.yml is owner/repo@<40-hex SHA> # <tag>, and the (action, SHA, tag) triple is a row of
 #     the conventions table below (no new action);
-#  B. S1-117, the determinism job: setup-python pins an exact python-version (x.y.z); numpy and Pillow come from the hashed
+#  B. S1-117, the determinism job: setup-python takes an exact CPython 3.12.z per OS from the matrix (macOS and Windows 3.12.10,
+#     the last 3.12 with binaries there; Linux 3.12.13 or newer, the only 3.12 on the ubuntu-26.04 image); numpy and Pillow come from the hashed
 #     tools/ci/requirements-determinism.txt through `pip install --require-hashes --no-deps --only-binary=:all:` on every OS;
 #     bench/requirements.txt (loose lower bounds) is no longer installed by CI; the hashed file pins both with == and
 #     carries at least one hash per platform wheel;
 #  C. the wheels job (TD-09, S1-079; D2-05): matrix ubuntu, windows and macos; contents: read at job level and no id-token or
 #     attestations anywhere; no cache action and no Swatinem/rust-cache in it; tools from tools/ci/requirements.txt with
-#     --require-hashes --no-deps --only-binary=:all: and an exact python-version; every cargo and maturin build line says
+#     --require-hashes --no-deps --only-binary=:all: and the same exact per-OS Python as job B; every cargo and maturin build line says
 #     --locked; manylinux_2_17 through zig on ubuntu; an sdist; an install with --no-index and a real call; SHA256SUMS written
 #     and printed; one upload-artifact step with retention-days: 14 and if-no-files-found: error; no publish, release, registry
 #     or Pages step and no secret;
@@ -30,6 +31,26 @@ jobs_of() { awk '/^jobs:/{inj=1; next} inj && /^  [A-Za-z0-9_-]+:[[:space:]]*$/{
 nocomments() { grep -vE '^[[:space:]]*#'; }
 # pyver: the python-version of the first setup-python step on stdin
 pyver() { awk '/actions\/setup-python@/{on=1} on && /python-version:/{gsub(/.*python-version:[ ]*"?/,""); gsub(/"?[ ]*$/,""); print; exit}'; }
+# py_pins: "<os> <python>" for every matrix.include entry on stdin (comments already stripped)
+py_pins() { awk '/^[[:space:]]*- os:/{os=$3} /^[[:space:]]*python:/{v=$2; gsub(/"/,"",v); print os, v}'; }
+# check_pins <label> <python-version as written in the setup-python step> <pins>: one exact CPython 3.12.z per OS, the hashed
+# files being compiled for cp312. actions/python-versions (versions-manifest.json, read 19 Nov 2026): 3.12.10 is the last 3.12 with
+# a darwin or win32 build; 3.12.11 and 3.12.12 exist for Ubuntu 22.04 and 24.04 only; ubuntu-26.04 has 3.12.13 and newer only. No
+# single patch release exists on all three runner images, so the pin is per OS (run 44580200515).
+check_pins() {
+  local label=$1 pv=$2 pins=$3 os v n re why
+  expect_eq "$label: setup-python reads python-version from the matrix" '${{ matrix.python }}' "$pv"
+  for os in ubuntu-latest macos-latest windows-latest; do
+    n=$(printf '%s\n' "$pins" | awk -v o="$os" '$1==o' | wc -l | tr -d ' ')
+    v=$(printf '%s\n' "$pins" | awk -v o="$os" '$1==o{print $2; exit}')
+    expect_eq "$label: exactly one Python pin for $os" 1 "$n"
+    case "$os" in
+      ubuntu-latest) re='^3\.12\.(1[3-9]|[2-9][0-9])$'; why='the ubuntu-26.04 image has only 3.12.13 and newer in actions/python-versions' ;;
+      *) re='^3\.12\.10$'; why='3.12.10 is the last CPython 3.12 with a macOS and a Windows build in actions/python-versions' ;;
+    esac
+    if [[ "$v" =~ $re ]]; then ok "$label: $os pins CPython $v"; else fail "$label: $os must pin $re because $why (got '${v:-none}')"; fi
+  done
+}
 
 # ---- A. pins ---------------------------------------------------------------------------------------
 TABLE=$(cat <<'T'
@@ -69,8 +90,8 @@ echo "== B. determinism job: exact Python, hashed numpy and Pillow"
 D=$(job_text "$CI" determinism)
 if [ -z "$D" ]; then fail "job 'determinism' not found in ci.yml"; else
   DC=$(printf '%s\n' "$D" | nocomments)
-  PYV=$(printf '%s\n' "$DC" | pyver)
-  if [[ "$PYV" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then ok "setup-python pins an exact python-version ($PYV)"; else fail "setup-python pins an exact python-version x.y.z (got '${PYV:-none}')"; fi
+  DPINS=$(printf '%s\n' "$DC" | py_pins)
+  check_pins "determinism" "$(printf '%s\n' "$DC" | pyver)" "$DPINS"
   HASHED=$(printf '%s\n' "$DC" | grep -E 'pip install' | grep -F -- '--require-hashes' | grep -F -- '--no-deps' | grep -F -- '--only-binary=:all:' | grep -cF 'tools/ci/requirements-determinism.txt')
   expect_eq "the determinism job runs pip install --require-hashes --no-deps --only-binary=:all: -r tools/ci/requirements-determinism.txt" 1 "$HASHED"
   expect_eq "that install uses the interpreter of the bench venv (\$BENCH_VENV_BIN), the same on Linux, macOS and Windows" 1 "$(printf '%s\n' "$DC" | grep -E 'requirements-determinism.txt' | grep -cF 'BENCH_VENV_BIN')"
@@ -78,6 +99,9 @@ if [ -z "$D" ]; then fail "job 'determinism' not found in ci.yml"; else
   expect_eq "every pip install in the determinism job says --require-hashes" 0 "$(printf '%s\n' "$DC" | grep -E 'pip install' | grep -vcF -- '--require-hashes')"
   expect_eq "the determinism job runs on ubuntu, macos and windows" 1 "$(printf '%s\n' "$D" | grep -cE 'os: \[ubuntu-latest, macos-latest, windows-latest\]')"
 fi
+for f in requirements.txt requirements-determinism.txt; do
+  expect_eq "tools/ci/$f is compiled for CPython 3.12 (--python-version 3.12), the minor the Python pins name" 1 "$(grep -cE -- '^#[[:space:]]+uv pip compile .*--python-version 3\.12 ' "$TOOLS/$f" 2>/dev/null)"
+done
 REQ=$TOOLS/requirements-determinism.txt
 if [ ! -f "$REQ" ]; then fail "tools/ci/requirements-determinism.txt exists"; else
   ok "tools/ci/requirements-determinism.txt exists"
@@ -99,8 +123,9 @@ if [ -z "$W" ]; then fail "job 'wheels' not found in ci.yml"; else
   expect_eq "wheels: no other permission (no id-token, attestations, packages, pages, write)" 0 "$(printf '%s\n' "$WC" | awk '/^    permissions:/{p=1; next} p && /^      /{print; next} p{exit}' | grep -vcE '^      contents: read$')"
   expect_eq "wheels: no actions/cache and no Swatinem/rust-cache" 0 "$(printf '%s\n' "$WC" | grep -cE 'actions/cache@|Swatinem/rust-cache@')"
   expect_eq "wheels: no id-token or attestations anywhere" 0 "$(printf '%s\n' "$WC" | grep -cE 'id-token|attestations')"
-  WPYV=$(printf '%s\n' "$WC" | pyver)
-  if [[ "$WPYV" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then ok "wheels: setup-python pins an exact python-version ($WPYV)"; else fail "wheels: setup-python pins an exact python-version x.y.z (got '${WPYV:-none}')"; fi
+  WPINS=$(printf '%s\n' "$WC" | py_pins)
+  check_pins "wheels" "$(printf '%s\n' "$WC" | pyver)" "$WPINS"
+  expect_eq "wheels and determinism pin the same Python on every OS" "$(printf '%s\n' "${DPINS:-}" | sort)" "$(printf '%s\n' "$WPINS" | sort)"
   expect_eq "wheels: tools come from tools/ci/requirements.txt with --require-hashes --no-deps --only-binary=:all:" 1 "$(printf '%s\n' "$WC" | grep -E 'pip install' | grep -F -- '--require-hashes' | grep -F -- '--no-deps' | grep -F -- '--only-binary=:all:' | grep -cF 'tools/ci/requirements.txt')"
   expect_eq "wheels: no pip install of anything else (only the hashed tools and the --no-index smoke install)" 0 "$(printf '%s\n' "$WC" | grep -E 'pip install' | grep -vE 'tools/ci/requirements.txt|--no-index' | wc -l | tr -d ' ')"
   expect_eq "wheels: no uvx, no pip install uv==, no npm install" 0 "$(printf '%s\n' "$WC" | grep -cE '(^|[^A-Za-z-])uvx |pip install uv==|npm (i|install|init)( |$)')"
