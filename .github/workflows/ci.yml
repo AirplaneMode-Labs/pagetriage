@@ -77,9 +77,11 @@ jobs:
         with:
           persist-credentials: false
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      # An exact Python (S1-117): the hashed requirements below name the wheels of numpy and Pillow for CPython 3.12 on the
+      # three runners, and setup-python's "3.12" would follow whatever patch release it finds.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.12"
+          python-version: "3.12.10"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
@@ -90,10 +92,102 @@ jobs:
       # The same command the pages workflow runs, so a demo that fails to build fails CI.
       - name: Demo site build and sample fingerprint check
         run: scripts/build-site.sh
-      - name: Bench harness tests (offline; includes run.py against the golden reports)
+      # numpy and Pillow from the hashed file, binary wheels only, no dependency resolution (S1-117, S1-079). Known gap:
+      # the maturin that scripts/determinism.sh installs into .venv (the step above) is pinned by version only; this job
+      # builds no shipped artefact and uses no secrets.
+      - name: Bench harness tests (offline; includes run.py against the golden reports), numpy and Pillow installed by hash
         run: |
-          "$BENCH_VENV_BIN/pip" install --quiet -r bench/requirements.txt
+          "$BENCH_VENV_BIN/python" -m pip install --require-hashes --no-deps --only-binary=:all: -r tools/ci/requirements-determinism.txt
           "$BENCH_VENV_BIN/python" -I -m unittest discover -s bench/tests -v
+
+  # Wheels and the sdist (TD-09), one build per platform, published nowhere: a workflow artefact is not a release. Every
+  # tool is installed by hash (S1-079): uv, maturin and ziglang from tools/ci/requirements.txt with
+  # `pip install --require-hashes --no-deps --only-binary=:all:`, on an exact Python. cargo and maturin run with --locked.
+  # The job has contents: read and nothing else (no id-token, no attestations), uses no cache action and no secret, and has
+  # no registry, release or Pages step. Linux builds the manylinux_2_17 wheel through zig and the sdist (scripts/package-sdist.sh
+  # prunes the sdist's Cargo.lock to its own workspace and builds it --locked); each wheel gets the builder-path gate, the
+  # tests/python/check_wheel.py checks (tags compared as expanded sets), a fresh-venv install with --no-index and a real call
+  # (analyse), and its sha256 in SHA256SUMS, uploaded with the files for 14 days.
+  # First run: after the owner's push (the Linux and Windows legs cannot run on the Mac that develops this repository).
+  wheels:
+    name: wheels (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    env:
+      TOOLS_BIN: ${{ matrix.os == 'windows-latest' && 'tools-venv/Scripts' || 'tools-venv/bin' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: "1.98"
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12.10"
+      - name: Hashed tool install (uv, maturin, ziglang) into a venv
+        run: |
+          python -m venv tools-venv
+          "$TOOLS_BIN/python" -m pip install --require-hashes --no-deps --only-binary=:all: -r tools/ci/requirements.txt
+          "$TOOLS_BIN/maturin" --version
+      - name: Empty the wheel output folder
+        run: rm -rf target/wheels
+      - name: Build the manylinux_2_17 wheel through zig (ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          export PATH="$PWD/$TOOLS_BIN:$PATH"
+          . scripts/remap-flags.sh
+          maturin build --release --locked --zig --compatibility manylinux_2_17 -m crates/pagetriage-py/Cargo.toml -o target/wheels
+      - name: Build the sdist (ubuntu), build it --locked from its own Cargo.lock, and check that the repository's Cargo.lock did not change
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          export PATH="$PWD/$TOOLS_BIN:$PATH"
+          SDIST_OUT=target/wheels scripts/package-sdist.sh
+          git diff --exit-code -- Cargo.lock
+      - name: Build the wheel (windows, macos)
+        if: matrix.os != 'ubuntu-latest'
+        run: |
+          export PATH="$PWD/$TOOLS_BIN:$PATH"
+          . scripts/remap-flags.sh
+          maturin build --release --locked -m crates/pagetriage-py/Cargo.toml -o target/wheels
+      - name: Builder-path gate on the wheel and the sdist (no home, checkout or temp path inside)
+        run: |
+          shopt -s nullglob
+          bash scripts/check-no-builder-paths.sh target/wheels/*.whl target/wheels/*.tar.gz
+      - name: Wheel contents check (extension, licences, NOTICE, sizes, no scripts) with the tags compared as expanded sets
+        run: |
+          VERSION=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+          python -I tests/python/check_wheel.py target/wheels/pagetriage-"$VERSION"-*.whl "$VERSION"
+      - name: Install the wheel into a fresh venv with no index and make a real call (analyse, structure, streams)
+        run: |
+          ls -l target/wheels
+          python -m venv smoke-venv
+          if [ -d smoke-venv/Scripts ]; then SMOKE=smoke-venv/Scripts; else SMOKE=smoke-venv/bin; fi
+          "$SMOKE/python" -m pip install --no-index --no-deps target/wheels/pagetriage-*.whl
+          "$SMOKE/python" -I tests/python/smoke_wheel.py
+      - name: sha256 of every file, written to SHA256SUMS and printed
+        run: |
+          python -I - <<'PY'
+          import hashlib, pathlib
+          d = pathlib.Path("target/wheels")
+          lines = [f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}" for p in sorted(d.iterdir()) if p.suffix in (".whl", ".gz")]
+          (d / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
+          PY
+          cat target/wheels/SHA256SUMS
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: pagetriage-wheels-${{ matrix.os }}
+          path: |
+            target/wheels/*.whl
+            target/wheels/*.tar.gz
+            target/wheels/SHA256SUMS
+          retention-days: 14
+          if-no-files-found: error
 
   # Packaging dry runs: the npm tarball and the Python wheel are built, installed in a scratch project,
   # and run. Nothing is published from CI (docs/RELEASING.md).

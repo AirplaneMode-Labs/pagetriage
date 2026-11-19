@@ -1,0 +1,14 @@
+# Python packages the pagetriage determinism job installs for the bench harness tests (S1-117, S1-079). Exact
+# versions only; the hashed file next to this one is generated from it and is what CI installs, on Linux, macOS and
+# Windows, with Python 3.12:
+#
+#   uvx --from uv==0.13.1 uv pip compile --universal --python-version 3.12 --generate-hashes \
+#       tools/ci/requirements-determinism.in -o tools/ci/requirements-determinism.txt
+#
+# Install (CI, and locally in a fresh venv):
+#
+#   python -m pip install --require-hashes --no-deps --only-binary=:all: -r tools/ci/requirements-determinism.txt
+#
+# bench/requirements.txt keeps the loose lower bounds for people who run the harness by hand; CI no longer uses it.
+numpy==2.4.4
+Pillow==12.2.0
