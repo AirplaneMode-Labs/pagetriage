@@ -16,9 +16,11 @@ tool, as a Python module and in the browser, and gives the same bytes out on all
 Wolf-Jolion and Howe (static mode), and what pagetriage says about the page. An illustration, not a
 benchmark; the benchmark numbers are [below](#benchmarks).*
 
-Sprint 5 (18 Nov 2026): Working: the same page analysis as before, now with the PDF structure call that the dockit demo uses documented (analyse_pdf_structure: which pages of a PDF hold a readable text layer), with its WebAssembly size and its timings measured in Chrome on a 48 GB Apple M5 Pro (not measured on 8 GB). Not yet: OCR, 8 GB figures (not measured on 8 GB), a signed release, a tag, a published package, Linux and Windows wheels (Sprint 6).
+Sprint 6 (19 Nov 2026): Working: the same page analysis as before, plus a stream check that runs before a PDF is opened (account_pdf_streams: how many bytes each font, image and content stream decodes to, with a limit per kind and a reason when one is passed, so a font or image bomb is refused first); its WebAssembly memory and timings were measured in Chrome on a 48 GB Apple M5 Pro (not measured on 8 GB). Not yet: OCR, 8 GB figures (not measured on 8 GB), a signed release, a tag, a published package, Linux and Windows wheels (a CI job is written; nothing has run on those systems yet).
 
-**Status: early.** The PDF structure checks, the scan-quality readout, four binarisers and
+Version 0.1.0, unchanged and untagged (changes are under "Unreleased" in [CHANGELOG.md](CHANGELOG.md)). Nothing is published; the crate, wheel and npm names are not reserved.
+
+**Status: early.** The PDF stream accounting, the PDF structure checks, the scan-quality readout, four binarisers and
 near-duplicate detection are built and measured on public benchmarks. Every pixel detector (script,
 handwriting, stamps, signatures, thumb impressions, rulings, redaction, QR, embossed seals, pictures,
 extraction coverage), the page typing and the fusion rules are built and opt-in, and **checked on
@@ -87,6 +89,7 @@ text.
 |---|---|---|---|
 | M1 text layer | Per PDF page: real text, scan only, hidden OCR layer under a scan, mixed, drawn lines only, or blank. Reads the content stream, renders nothing | Built | [text_layer](docs/detectors/text_layer.md) |
 | M2 font script | Script of each page's text, and a flag for legacy non-Unicode Indian fonts (Kruti Dev and others) whose text extracts as gibberish | Built | [font_script](docs/detectors/font_script.md) |
+| Stream accounting | Before a renderer opens a PDF: how many bytes each font, image and content stream decodes to (bounded, never held in memory), a limit per kind, and a refusal reason (`font_over_limit`, `image_over_limit`, ... `unaccounted`) so a font or image bomb is refused first. Native, Python, WASM and the CLI (`pagetriage streams`) give identical reports | Built | [streams](docs/detectors/streams.md) |
 | M3 quality | Skew, blur, contrast, specks, bleed-through, fold lines, an overall grade, and which binariser to use. On a badly blurred page (grade D) the text-line detectors are skipped and a `degraded` finding says so | Built | [quality](docs/detectors/quality.md) |
 | Binarisers | Otsu, Sauvola, Wolf-Jolion, and the Howe graph-cut method with automatic parameter tuning | Built | [binarize](docs/detectors/binarize.md) |
 | Layout | Text lines, blocks and columns, with rulings and graphics set aside; groundwork for M4 and M5. Opt-in, checked on synthetic pages only | Built, opt-in | [layout](docs/detectors/layout.md) |
@@ -161,8 +164,10 @@ What was proven: wheel `pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl`, platf
 `macosx_11_0_arm64`, installed twice (`python3 -m venv` with `pip --no-index --no-deps`, and `uv venv`
 with `uv pip install --offline`), and the tarball `pagetriage-0.1.0.tgz` installed from an empty npm
 cache, each followed by an analysis of `tests/golden/inputs/blank_speckle.pgm` whose output is
-byte-equal to `tests/golden/expected/blank_speckle.json`. **Linux and Windows wheels are not built yet**
-(a wheel for PyPI needs manylinux, macOS and Windows builds in CI; cut to Sprint 6), and the wheel above only installs on macOS arm64. Evidence: `evidence/sprint-3/D2/`.
+byte-equal to `tests/golden/expected/blank_speckle.json`. **Linux and Windows wheels have not been built yet**:
+the `wheels` CI job (Sprint 6) builds them and an sdist from hashed tools as 14-day workflow artefacts, but it has not run on those
+systems (it needs the owner's push), so the wheel above is still the only one that exists and it only installs on macOS arm64. The sdist was
+built locally and builds `--locked` from its own `Cargo.lock` (`scripts/package-sdist.sh`). Evidence: `evidence/sprint-3/D2/`.
 
 ### After the owner publishes
 
@@ -330,6 +335,13 @@ flowchart TB
   script ~~~ img
 ```
 
+Before the structure pass, and before any renderer sees the file, the stream accounting
+(`account_pdf_streams`, [docs/detectors/streams.md](docs/detectors/streams.md)) counts what every stream object
+decodes to, in object-id order, through counting decoders that never keep the decoded bytes, and stops at the first stream over
+the limit of its kind (fonts 32 MiB, images 256 MiB, content and everything else 64 MiB, 512 MiB in total). It answers
+`ok` or `refuse` with a reason; a file it cannot vouch for (damaged, encrypted, a filter it cannot count) is a refusal with the
+reason `unaccounted`. Callers can lower the limits and never raise them.
+
 The structure pass never draws a page. Pixel analysis works on page images that you render yourself
 (poppler, pdfium, pdf.js): the core has no rasteriser. A page report can take that page's structural
 result as input, so both halves end up in one report.
@@ -344,8 +356,9 @@ measured on 8 GB" on every row. The accuracy rows were measured in earlier sprin
 Sprint 3; the Sprint 3 speed log and install proofs are under `evidence/sprint-3/D2/` (the architect
 copies them there at wrap-up).
 
-Full-page analysis time and thread-pool throughput are not measured by a repo script yet (cut to Sprint 6).
-Earlier speed and throughput figures for them had no script or log behind them and were removed.
+Full-page analysis time and the large-document figures now have scripts (`bench/speed_eval.py`,
+`bench/large_doc_eval.py`, Sprint 6) and committed CSV files; thread-pool throughput is still not measured. Earlier speed and
+throughput figures that had no script or log behind them were removed.
 
 | What was measured | Result (Apple-silicon development machine) | 8 GB Windows no-GPU laptop | How far to trust it |
 |---|---|---|---|
@@ -358,11 +371,22 @@ Earlier speed and throughput figures for them had no script or log behind them a
 | Bleed-through score against hand labels | AUC 0.86 on the pages it was tuned on, 0.71 on held-out pages | not measured on 8 GB | Weak out of sample; the labels were made by eye from thumbnails |
 | Quality pass on one synthetic A4 page at 150 dpi, native core through the Python binding (`python -I bench/quality_synth_eval.py --only time`) | median 62.7 ms (min 62.1, max 67.5), log `evidence/sprint-3/D2/bench-quality-time.log` | not measured on 8 GB | One page type, the quality pass only (not the full `analyse_page`). Release wheel built in Sprint 3 on one Apple-silicon machine; placeholder for the target hardware |
 | `analyse_pdf_structure` in the browser (WebAssembly, in a worker, Chrome 157.0.8103.79): median of 5 calls on synthetic text PDFs | 20 pages 7.40 ms; 100 pages 32.20 ms; 300 pages 88.40 ms; a 1.07 GiB decompression bomb 26.60 ms, capped and returned as a degraded report. The first call after load is slower (worst of 5: 24.70 ms at 20 pages). WASM file 2,335,481 bytes, 854,940 gzipped | not measured on 8 GB | Apple M5 Pro 48 GB; `node site/tools/bench-structure.mjs --wasm dist/wasm/web --out docs/benchmarks/wasm-structure.csv`; commit b290cc84c08d-dirty (Sprint 5 changes not yet committed); every row of the data is in `docs/benchmarks/wasm-structure.csv` and the method in [docs/wasm-api.md](docs/wasm-api.md). Synthetic PDFs we generated, no real document; one machine, one browser |
-| In-browser pixel analysis (`analyse_page`) speed | not measured | not measured on 8 GB | The demo page runs the same core; no timing has been recorded for the pixel path |
+| `analyse_page` on one synthetic A4 page, default detectors, native core through the Python binding, median of 5 (`python -I bench/speed_eval.py --csv docs/benchmarks/speed.csv`) | 100 dpi (0.97 MP) 33.6 ms; 150 dpi 67.4 ms; 200 dpi 108.7 ms; 300 dpi (8.70 MP) 232.2 ms; 29 to 37 megapixels per second | not measured on 8 GB | Apple M5 Pro 48 GB, commit eb28e490030b-dirty (Sprint 6 changes not yet committed); synthetic text-like pages from a seeded generator, not real scans; one machine |
+| `pagetriage structure` and `pagetriage streams` on synthetic text PDFs of 100, 1,000 and 5,000 pages (release CLI under `/usr/bin/time -l`; `python -I bench/large_doc_eval.py --csv docs/benchmarks/large-doc.csv`) | 5,000 pages (13.9 MB): structure 760 ms and 180 MB peak, streams 22 ms and 39 MB peak; 1,000 pages: 157 ms and 42 MB, 8 ms and 11 MB. The 100-page structure row (413 ms) was the first process of the run and includes cold-cache effects | not measured on 8 GB | Same machine and commit; text-only synthetic PDFs, one run per row; `docs/benchmarks/large-doc.csv` |
+| Stream accounting on 15 synthetic bombs (a 1 GiB font, image, object stream, `/Length 5` lie, ASCIIHex or Flate inside Flate, LZW, a JPEG header of 65000 x 65000, a declared 100000 x 100000 raster, 100,000 streams of 1 MiB each, 100,000 empty streams), native release CLI and the WASM build in Chrome 157.0.8103.79, 5 runs | Every file within peak memory of input size + 64 MiB: 4 to 9 MB native and 2 to 6 MB WASM for each 1 GiB bomb, 10 to 25 ms native; 100,000 x 1 MiB stops in the 512th stream (0.18 s native, 0.45 s in Chrome); the object table costs about 0.45 KB per object, so 100,000 tiny objects cost 53 MB native. WASM file 2,435,212 bytes, 889,888 gzipped (+99,731 and +34,948) | not measured on 8 GB | Apple M5 Pro 48 GB; `scripts/stream-bombs.sh`, `node bench/streams_wasm_chrome.mjs`; `docs/benchmarks/streams-native.csv`, `docs/benchmarks/wasm-streams.csv`, method and gallery in [docs/detectors/streams.md](docs/detectors/streams.md). Synthetic bombs, no real PDF; the false-refusal rate on real PDFs is not measured |
+| In-browser pixel analysis (`analyse_page`) speed | not measured in the browser (the native figure is above) | not measured on 8 GB | The demo page runs the same core; no timing has been recorded for the pixel path in a browser |
 
 ## Limitations
 
 What does not work yet, plainly:
+
+- **The stream accounting is not a full defence.** It bounds what each font, image and content stream decodes to
+  and refuses encrypted files, `BrotliDecode`, `/F` and `/DP` stream keys and a file the parser had to repair, rather than guess. It
+  does not bound inline images, Type 3 glyph procedures, shading and function streams beyond their cap, the CPU cost of a font
+  parser, or where another reader repairs a damaged file differently
+  ([docs/detectors/streams.md](docs/detectors/streams.md)). The parser's object table costs about 0.45 KB per object, so a file of
+  millions of tiny objects costs memory in proportion even though no stream is held. Every test input is synthetic and the
+  false-refusal rate on real PDFs is not measured; an owner-password-only PDF is refused.
 
 - **No real document has been tested.** Every detector from module M4 on, the page typing, the
   fusion rules and the page plan were checked on synthetic pages only, and no confidence is
@@ -370,18 +394,21 @@ What does not work yet, plainly:
   legacy fonts come from a corpus we wrote.
 - **Nothing is published or tagged.** There is no crates.io, PyPI or npm package, and the names are not
   reserved. The wheel and the npm tarball install from locally built files on macOS arm64 only
-  ([Install](#install)); **Linux and Windows wheels are not built yet and there is no sdist (cut to Sprint 6)**. No
+  ([Install](#install)); **Linux and Windows wheels have not been built yet (the CI job that builds them, with an sdist, has not run on those systems)**. No
   release artefact is signed: `scripts/release-manifest.mjs` writes an unsigned manifest, and signing
   with a real key is the owner's step ([docs/release.md](docs/release.md) row 4).
 - **The target hardware is unmeasured.** No speed figure exists for an 8 GB Windows laptop without
   a GPU. The only browser timings, for the PDF structure call in Chrome, come from a 48 GB Apple M5 Pro (not measured on 8 GB); the
-  pixel path in a browser has none. Full-page analysis time and thread-pool throughput
-  are not measured by a repo script yet (cut to Sprint 6); only the quality pass on one synthetic A4 page is. A large-document bench script (time and peak memory on big PDFs) is cut to Sprint 6. Not measured on 8 GB.
-- **The release-manifest tool's Windows path rules are proven only against a model of Windows.** `scripts/release-manifest.mjs`
-  refuses `--out` paths that leave `dist/` (symlinks, junctions, 8.3 names, drive-relative, UNC, stream and device names;
-  [docs/release.md](docs/release.md), "Output confinement"). Those rules were developed on a Mac with `path.win32` and an in-memory file
-  system; the first Windows CI run of the new tests had not happened when this was written, so the rules are unproven on a real Windows
-  volume until the owner has pushed and read that run. A small window between the last check and the write is documented and not closed.
+  pixel path in a browser has none. Full-page analysis time and the large-document time and peak memory now have scripts and CSV
+  files (`bench/speed_eval.py`, `bench/large_doc_eval.py`, Sprint 6), run on that Mac only; thread-pool throughput is
+  not measured. Not measured on 8 GB.
+- **Windows symlink and junction handling is proven on a real Windows runner; the Sprint 6 rules are not yet.**
+  `scripts/release-manifest.mjs` refuses `--out` paths that leave `dist/` (symlinks, junctions, 8.3 names, drive-relative, UNC, stream and
+  device names; [docs/release.md](docs/release.md), "Output confinement"). Symlink and junction handling ran on a real Windows
+  runner at eb28e49 (run 44335095947, job `fmt, clippy, test (windows-latest)`): every link was `[ -L ]`-asserted, the junction was made
+  and refused, and skipped was 0. The Sprint 6 rules (S1-106 case-sensitive directory, COM0/LPT0, the Windows builder-path needles and the
+  `SHA256SUMS` newline) are proven only on a model (`path.win32` and an in-memory file system) until the `windows-latest` legs of the next run
+  after the owner's push. A small window between the last check and the write is documented and not closed.
 - **The wheel carries no SBOM.** maturin's Rust CycloneDX SBOM records the builder's absolute checkout path, so it is switched off (`sbom = { rust = false }`) until a path-free one exists. Compiler path strings are remapped with `scripts/remap-flags.sh`, and `scripts/check-no-builder-paths.sh` fails if a wheel or tarball holds a home or temp path.
 - **CI runs on Linux, macOS and Windows, on hosted runners only.** The determinism gate (native,
   Python and WASM) first passed on Windows on 9 Nov 2026 ([run](https://github.com/AirplaneMode-Labs/pagetriage/actions/runs/42634433346)). That is a hosted GitHub
@@ -428,7 +455,9 @@ type from 6 to 24 pt: the lines drawn were found every time and the tilt was rea
 
 The structure pass reads PDF objects and content streams without rendering.
 
-Large-document time and memory were measured ad hoc in Sprint 1 with no repo script; the figures are removed until a script reproduces them (cut to Sprint 6).
+Large-document time and memory were measured ad hoc in Sprint 1 with no repo script and those figures were removed; since Sprint 6
+`bench/large_doc_eval.py` reproduces new ones on synthetic text PDFs (`docs/benchmarks/large-doc.csv`: 5,000 pages, 13.9 MB, `structure` 760 ms and
+180 MB peak, `streams` 22 ms and 39 MB peak, on an Apple M5 Pro; not measured on 8 GB). The 13,000-page figures below are still not reproduced by a script.
 
 **Limits.** The structure pass accepts files up to 1 GiB and analyses up to 100,000 pages per file.
 These are safety limits for untrusted input, not tuned numbers. Past the page cap a file is analysed up to the cap and marked
@@ -453,8 +482,8 @@ fixture peak memory was about 2.6 times the file size and on the 1.32 GB one abo
 because 13,000 pages of bookkeeping dominate when the pages themselves are small.
 
 **Pixel work is the expensive part.** The quality pass on one synthetic A4 page at 150 dpi takes about
-60 ms ([Benchmarks](#benchmarks)); full-page analysis time, rendering time and thread-pool throughput are
-not measured by a repo script yet (cut to Sprint 6), so no total for 13,000 pages is given here. Howe
+60 ms ([Benchmarks](#benchmarks)); full-page analysis time is now measured by `bench/speed_eval.py` (A4 at 300 dpi, 8.7 megapixels, 232 ms median on an Apple M5 Pro; not measured on 8 GB), but rendering time and thread-pool throughput
+are not measured by a repo script, so no total for 13,000 pages is given here. Howe
 binarisation is far slower, about 50 seconds per A4 page in `dual` mode (extrapolated from 23 s per
 megapixel), so run it only on the pages the quality readout flags. Near-duplicate search over 13,000
 page hashes takes under 0.1 s. A browser tab has far less memory than a workstation, and the demo

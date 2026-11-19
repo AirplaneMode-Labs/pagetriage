@@ -5,6 +5,65 @@
 To be released as 1.0.0 when every Blocker-for-tag row in [docs/release.md](docs/release.md) is Done.
 The workspace version stays 0.1.0 until then; the bump is the first step of the tag procedure.
 
+### Sprint 6 (19 Nov 2026, untagged)
+
+#### Added
+
+- `account_pdf_streams` (S1-107, TD-70): stream accounting that bounds the fonts, images, forms, content streams and everything
+  else of a PDF before a renderer opens it, with a limit per kind (`params/stream_limits.toml`: font 32 MiB, image and raster
+  256 MiB, content and other 64 MiB, total 512 MiB, 3,000,000 streams), the first stream over a limit ending the work, and a
+  report `pagetriage.streams/0.1` (`schema/pagetriage-streams-0.1.schema.json`) with the verdict `ok` or `refuse` and a reason.
+  Every stream object is counted, unreferenced ones, every revision and every object the parser lost included; no decoded
+  stream is ever held (counting decoders into one fixed buffer). Options can only lower the limits. Native, Python
+  (`pagetriage_py.account_pdf_streams`), WebAssembly (`account_pdf_streams`) and the CLI (`pagetriage streams`, exit 1 with the
+  report on stdout when refused) give byte-identical reports on 15 golden inputs (`scripts/determinism.sh`). The existing
+  analyse and structure goldens are unchanged. Docs, a gallery of 15 synthetic bombs with measured memory and timing, and what stays
+  reachable inside pdf.js: `docs/detectors/streams.md`, `docs/benchmarks/streams-native.csv`, `docs/benchmarks/wasm-streams.csv`
+  (measured on an Apple M5 Pro 48 GB, not measured on 8 GB).
+- `flate2 = "=1.1.10"` and `weezl = "=0.2.1"` as direct dependencies of `pagetriage-core` behind the `pdf` feature, at exactly
+  the versions already in `Cargo.lock` through lopdf (TD-86): the dependency tree has the same 75 and 79 packages before and after
+  (`cargo tree`), and `Cargo.lock` gains two dependency lines and no package.
+- `tests/scripts/ci-policy.sh`, `streams-doc.sh`, `notice-cli.sh`, `cargo-target-dir.sh`, `check-wheel-tags.sh` and
+  `tests/python/check_wheel.py`, run by `tests/scripts/run-all.sh`.
+- The `wheels` CI job (TD-09, S1-079): a manylinux_2_17 wheel through zig and the sdist on Linux, a wheel on Windows and on macOS,
+  from hashed tools (`tools/ci/requirements.txt`), exact Python, `--locked`, `contents: read`, no cache and no secret, the
+  builder-path gate, the wheel check with tags compared as expanded sets, a `--no-index` install and a real call, `SHA256SUMS`, kept
+  as a 14-day artefact; nothing is published. `scripts/package-sdist.sh` prunes the sdist's `Cargo.lock` to its own workspace
+  and builds it `--locked`. It has not run on Linux or Windows: that needs the owner's push.
+- `crates/pagetriage-cli/NOTICE` and its generator `scripts/notice-cli.mjs` (BUG-T3-S4-19, BUG-T3-S4-21): a block for every
+  MIT-only crate of the CLI tree under `--target all` (12, crunchy 0.2.4 among them), checked against `cargo metadata`.
+- `bench/speed_eval.py` and `bench/large_doc_eval.py` (TD-09) with `docs/benchmarks/speed.csv` and `large-doc.csv`;
+  `scripts/stream-bombs.sh`, `bench/streams_wasm_chrome.mjs` and `examples/gen_stream_bombs.rs`.
+- Demo: the stream check runs before a dropped PDF is analysed and shows its verdict and per-kind counts as text; three synthetic
+  "refused" samples; the status line and the not-yet box are Sprint 6's. No CSP change.
+
+#### Changed
+
+- `tools/ci/requirements-determinism.txt` (S1-117, S1-079): the determinism job installs numpy 2.4.4 and Pillow 12.2.0 with
+  `pip install --require-hashes --no-deps --only-binary=:all:` on an exact Python (3.12.10) on all three systems; CI no longer
+  installs `bench/requirements.txt`.
+- `scripts/lib/confine.mjs` (S1-106, T2-NOTE-COM0; `WINDOWS-OUT.md`): `--out` containment also requires an exact-case prefix
+  after `realpath.native`, so a directory called `DIST` next to `dist` is another directory; `COM0` and `LPT0` are reserved device
+  names. Tested on `path.win32` with a case-sensitive model volume; a real NTFS is proven only by `fmt, clippy, test (windows-latest)`.
+- `docs/wasm-api.md` lists the two new exports and the new WebAssembly size (2,435,212 bytes, 889,888 gzipped; the 1,000,000
+  byte budget is unchanged).
+
+#### Fixed
+
+- BUG-T2-S6-05: `scripts/check-no-builder-paths.sh` also refuses Windows builder paths (`C:\Users\`, `C:/Users/`, `D:\a\`, `D:/a/`, `runneradmin`, drive letter in either case), and `scripts/remap-flags.sh` adds the `cygpath -w` and `-m` forms of the repository root, cargo home and rustup home under Git Bash, so the `wheels (windows-latest)` builder-path step cannot pass vacuously. Tested on macOS with stubbed `uname` and `cygpath` (`tests/scripts/remap-flags.sh`, `path-leak-gate.sh`); the real proof is the CI job.
+
+- BUG-T2-S6-09: `scripts/check-no-builder-paths.sh` accepts one or two separator characters (JSON-escaped doubled backslashes), any drive letter A-Z before `Users` and the runner workspace `a`, and also scans a UTF-16LE reading of every member holding NUL bytes. Twelve missed cases are now pinned in `tests/scripts/path-leak-gate.sh` for wheel and tgz; the `uuid:/a/` and `xD:\a\` guards still pass.
+- BUG-T2-S6-10: the `wheels` job writes `SHA256SUMS` with `newline="\n"`, so the Windows artefact has LF line endings like the others (pinned in `tests/scripts/ci-policy.sh`).
+- BUG-T3-S6-R2-03: the README Limitations no longer say the first Windows CI run had not happened; symlink and junction handling is proven at eb28e49 (run 44335095947), the Sprint 6 rules only on a model.
+- BUG-T2-S5-14: `scripts/build-wasm.sh` reads the raw module from `${CARGO_TARGET_DIR:-target}`.
+- `crates/pagetriage-py/pyproject.toml` no longer holds a builder path in a comment (the sdist carried it).
+
+#### Security
+
+- S1-107: a font, image or content bomb is refused with a reason before pdf.js starts (dockit calls the check first). Peak memory
+  for every synthetic bomb stayed within input size + 64 MiB natively and in WebAssembly. Known residuals are listed in
+  `docs/detectors/streams.md`; the false-refusal rate on real PDFs is not measured.
+
 ### Added
 
 - Sprint 2: Windows arm of `scripts/install-wasm-tools.sh` (x86_64 wasm-bindgen and binaryen

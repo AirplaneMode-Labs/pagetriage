@@ -30,8 +30,11 @@ PDF build. In a checkout where those have run, build the dockit package with `WA
 pixel-only output; the files are the same bytes. On 18 Nov 2026 the SHA-256 of `pagetriage_bg.wasm` built into
 `dist/wasm` and into `dist/wasm-pdf` was identical (`30acd658b664...`).
 
-Size of `pagetriage_bg.wasm` (this build): 2,335,481 bytes raw, 854,940 bytes with `gzip -9` (the figure
-`scripts/check-wasm-size.sh` checks against its 1,000,000-byte budget). GitHub Pages serves it compressed.
+Size of `pagetriage_bg.wasm` (the Sprint 5 build, which the CSV and the timings below were measured on): 2,335,481 bytes raw,
+854,940 bytes with `gzip -9` (the figure `scripts/check-wasm-size.sh` checks against its 1,000,000-byte budget). GitHub Pages
+serves it compressed. **Sprint 6 added a second call to the same build, `account_pdf_streams`** (stream accounting, S1-107,
+documented in `docs/detectors/streams.md`): the module is now 2,435,212 bytes raw and 889,888 gzipped (+99,731 and +34,948), still
+inside the budget, and `analyse_pdf_structure` is unchanged (its goldens are byte-identical; its timings were not re-taken).
 
 ## Loading it
 
@@ -66,6 +69,8 @@ The exports of this build (only the first is needed by dockit):
 ```text
 analyse_pdf_structure   the call described here (needs the pdf feature)
 structure_schema_json   JSON Schema of the structure report, to validate it on the JS side
+account_pdf_streams     stream accounting: bound fonts, images and content streams before pdf.js runs (needs the pdf feature)
+streams_schema_json     JSON Schema of the stream-accounting report
 version                 crate version, to show which build was loaded
 analyse_page            pixel analysis of one rendered page (not used by dockit)
 finish_document         document-level pass over page reports (not used by dockit)
