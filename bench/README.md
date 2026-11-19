@@ -37,6 +37,9 @@ calls the Rust core through `pagetriage_py`, and scores the output.
 | `quality_stress.py` | Layout and the quality gate under blur, noise, speckle, bleed-through, photocopying, 25 degrees of skew and a blank page; lines found against the 41 drawn. Results in `docs/detectors/quality.md` |
 | `page_size_eval.py` | Layout, script and quality readouts over paper sizes, resolutions and type sizes. See README, "Page size and resolution" |
 | `qr_synth_eval.py` | QR finder-pattern detector (M11) against QR-like symbols (not decodable) on synthetic text pages (clean, rotated, noisy, blurred, 2 px per module) and five look-alikes; dev/test split. Results in `docs/detectors/qr.md` |
+| `speed_eval.py` | `analyse_page` time per A4 page at 100, 150, 200 and 300 dpi (synthetic text-like pages from a seeded generator): median and worst of N runs in ms and megapixels per second. `--csv docs/benchmarks/speed.csv`. Needs `pagetriage_py` (TD-09) |
+| `large_doc_eval.py` | `pagetriage structure` and `pagetriage streams` over synthetic text PDFs of 100, 1,000 and 5,000 pages under `/usr/bin/time`: wall time and peak memory. `--csv docs/benchmarks/large-doc.csv`. Needs the release CLI (TD-09) |
+| `streams_wasm_chrome.mjs` | Stream accounting in installed Chrome: WebAssembly memory before and after, and the time of 5 runs, for each synthetic bomb that `examples/gen_stream_bombs.rs` writes (`scripts/stream-bombs.sh` is the native side). `--csv docs/benchmarks/wasm-streams.csv`. Results in `docs/detectors/streams.md` |
 | `tests/` | Offline unit tests (`python -I -m unittest discover -s bench/tests`) |
 
 ## Setup

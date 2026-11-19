@@ -1,0 +1,7 @@
+machine,command,commit,pages,file_bytes,call,exit_code,wall_ms,peak_rss_bytes,eight_gb_laptop
+"Apple M5 Pro (Darwin 27.2.0 arm64, 18 cores)","python -I bench/large_doc_eval.py --pages 100,1000,5000 --csv docs/benchmarks/large-doc.csv",eb28e490030b-dirty,100,278327,structure,0,413,8568832,not measured on 8 GB
+"Apple M5 Pro (Darwin 27.2.0 arm64, 18 cores)","python -I bench/large_doc_eval.py --pages 100,1000,5000 --csv docs/benchmarks/large-doc.csv",eb28e490030b-dirty,100,278327,streams,0,6,4882432,not measured on 8 GB
+"Apple M5 Pro (Darwin 27.2.0 arm64, 18 cores)","python -I bench/large_doc_eval.py --pages 100,1000,5000 --csv docs/benchmarks/large-doc.csv",eb28e490030b-dirty,1000,2784451,structure,0,157,41893888,not measured on 8 GB
+"Apple M5 Pro (Darwin 27.2.0 arm64, 18 cores)","python -I bench/large_doc_eval.py --pages 100,1000,5000 --csv docs/benchmarks/large-doc.csv",eb28e490030b-dirty,1000,2784451,streams,0,8,11157504,not measured on 8 GB
+"Apple M5 Pro (Darwin 27.2.0 arm64, 18 cores)","python -I bench/large_doc_eval.py --pages 100,1000,5000 --csv docs/benchmarks/large-doc.csv",eb28e490030b-dirty,5000,13932513,structure,0,760,179732480,not measured on 8 GB
+"Apple M5 Pro (Darwin 27.2.0 arm64, 18 cores)","python -I bench/large_doc_eval.py --pages 100,1000,5000 --csv docs/benchmarks/large-doc.csv",eb28e490030b-dirty,5000,13932513,streams,0,22,38731776,not measured on 8 GB
