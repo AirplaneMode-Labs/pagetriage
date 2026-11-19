@@ -40,8 +40,8 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
 #### Changed
 
 - `tools/ci/requirements-determinism.txt` (S1-117, S1-079): the determinism job installs numpy 2.4.4 and Pillow 12.2.0 with
-  `pip install --require-hashes --no-deps --only-binary=:all:` on an exact Python (3.12.10) on all three systems; CI no longer
-  installs `bench/requirements.txt`.
+  `pip install --require-hashes --no-deps --only-binary=:all:` on an exact Python per OS (3.12.10 on macOS and Windows, 3.12.16 on
+  Linux; see Fixed below for why they differ); CI no longer installs `bench/requirements.txt`.
 - `scripts/lib/confine.mjs` (S1-106, T2-NOTE-COM0; `WINDOWS-OUT.md`): `--out` containment also requires an exact-case prefix
   after `realpath.native`, so a directory called `DIST` next to `dist` is another directory; `COM0` and `LPT0` are reserved device
   names. Tested on `path.win32` with a case-sensitive model volume; a real NTFS is proven only by `fmt, clippy, test (windows-latest)`.
@@ -50,6 +50,17 @@ The workspace version stays 0.1.0 until then; the bump is the first step of the 
 
 #### Fixed
 
+- CI run 44580200515 (the first push of Sprint 6): `determinism + bench tests (ubuntu-latest)` and `wheels (ubuntu-latest)` failed in
+  `actions/setup-python` with "The version '3.12.10' with architecture 'x64' was not found for Ubuntu 26.04", because `ubuntu-latest`
+  is now the ubuntu-26.04 image and `actions/python-versions` has no 3.12.10 for it. No single exact CPython 3.12 patch release
+  exists on all three runner images (`versions-manifest.json`, read 19 Nov 2026): 3.12.10 is the last 3.12 with a macOS or a
+  Windows build, and ubuntu-26.04 has 3.12.13 to 3.12.16 only. The `determinism` and `wheels` jobs now pin an exact Python per OS
+  through the matrix (`include:`; Linux 3.12.16, macOS and Windows 3.12.10), still installed from the hashed files with
+  `--require-hashes --no-deps --only-binary=:all:`; the job names are unchanged. The hashed files are unchanged: the wheels are
+  tagged cp312 and do not depend on the patch release (checked with pip against PyPI for Linux glibc 2.39 and 2.43, macOS arm64
+  and Windows amd64). `tests/scripts/ci-policy.sh` checks the per-OS pins of both jobs, that they match, and that the hashed files
+  are compiled for 3.12. The Windows legs of that run were green; the Linux legs had not reached any step after `setup-python`, so
+  the Linux determinism gate and the Linux wheel and sdist build with these pins are proven only by the next CI run.
 - BUG-T2-S6-05: `scripts/check-no-builder-paths.sh` also refuses Windows builder paths (`C:\Users\`, `C:/Users/`, `D:\a\`, `D:/a/`, `runneradmin`, drive letter in either case), and `scripts/remap-flags.sh` adds the `cygpath -w` and `-m` forms of the repository root, cargo home and rustup home under Git Bash, so the `wheels (windows-latest)` builder-path step cannot pass vacuously. Tested on macOS with stubbed `uname` and `cygpath` (`tests/scripts/remap-flags.sh`, `path-leak-gate.sh`); the real proof is the CI job.
 
 - BUG-T2-S6-09: `scripts/check-no-builder-paths.sh` accepts one or two separator characters (JSON-escaped doubled backslashes), any drive letter A-Z before `Users` and the runner workspace `a`, and also scans a UTF-16LE reading of every member holding NUL bytes. Twelve missed cases are now pinned in `tests/scripts/path-leak-gate.sh` for wheel and tgz; the `uuid:/a/` and `xD:\a\` guards still pass.

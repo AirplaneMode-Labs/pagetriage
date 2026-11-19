@@ -42,6 +42,13 @@ Since Sprint 6 the artefact-building CI job does not use either: the `wheels` jo
 job installs numpy and Pillow from `tools/ci/requirements-determinism.txt` the same way (S1-117, S1-079). `tests/scripts/ci-policy.sh`
 keeps those rules, the action pins and the `wheels` job's permissions from drifting.
 
+The exact Python is one CPython 3.12 patch release per OS, set in the `matrix.include` of the `determinism` and `wheels` jobs: 3.12.10 on
+`macos-latest` and `windows-latest`, 3.12.16 on `ubuntu-latest`. No single patch release exists on all three images in
+`actions/python-versions` (`versions-manifest.json`, read 19 Nov 2026): 3.12.10 is the last 3.12 with a macOS or Windows build, and the
+ubuntu-26.04 image behind `ubuntu-latest` has only 3.12.13 and newer. The hashed files are for the cp312 wheels, which the patch release
+does not change. When `ubuntu-latest` moves to a newer image, `setup-python` fails with "was not found for Ubuntu"; read the manifest,
+choose an exact release for the new image (or the next Python, with newly compiled hashes) and change both jobs together.
+
 The pip that `actions/setup-python` ships is not pinned either, and the digest-pinned `wasm-bindgen`, `wasm-opt` and
 `cargo-deny` release binaries are pinned by SHA-256, not by a lockfile.
 

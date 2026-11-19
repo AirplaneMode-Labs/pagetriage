@@ -69,6 +69,15 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
+        # One exact CPython 3.12 per OS (run 44580200515), the same three pins as the wheels job; why they differ is at the
+        # setup-python step below.
+        include:
+          - os: ubuntu-latest
+            python: "3.12.16"
+          - os: macos-latest
+            python: "3.12.10"
+          - os: windows-latest
+            python: "3.12.10"
     env:
       PYTHON: ${{ matrix.os == 'windows-latest' && 'python' || 'python3' }}
       BENCH_VENV_BIN: ${{ matrix.os == 'windows-latest' && '.venv/Scripts' || '.venv/bin' }}
@@ -77,11 +86,17 @@ jobs:
         with:
           persist-credentials: false
       - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
-      # An exact Python (S1-117): the hashed requirements below name the wheels of numpy and Pillow for CPython 3.12 on the
-      # three runners, and setup-python's "3.12" would follow whatever patch release it finds.
+      # An exact Python per OS (S1-117): the hashed requirements below name the wheels of numpy and Pillow for CPython 3.12 on the
+      # three runners, and setup-python's "3.12" would follow whatever patch release it finds. The patch release differs by OS
+      # because no single one exists on all three images (run 44580200515; actions/python-versions versions-manifest.json, read
+      # 19 Nov 2026): 3.12.10 is the last CPython 3.12 with a macOS or Windows build, and the ubuntu-26.04 image behind
+      # ubuntu-latest has 3.12.13 and newer only. The cp312 wheel tags, and so the hashes, do not depend on the patch release.
+      # When ubuntu-latest moves to a newer image, this step fails with "was not found for Ubuntu": read the manifest again, pick
+      # an exact 3.12.z (or the next Python, with new hashes) and change the pins in the determinism and wheels jobs together;
+      # tests/scripts/ci-policy.sh checks both.
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.12.10"
+          python-version: ${{ matrix.python }}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
@@ -102,7 +117,7 @@ jobs:
 
   # Wheels and the sdist (TD-09), one build per platform, published nowhere: a workflow artefact is not a release. Every
   # tool is installed by hash (S1-079): uv, maturin and ziglang from tools/ci/requirements.txt with
-  # `pip install --require-hashes --no-deps --only-binary=:all:`, on an exact Python. cargo and maturin run with --locked.
+  # `pip install --require-hashes --no-deps --only-binary=:all:`, on an exact Python per OS. cargo and maturin run with --locked.
   # The job has contents: read and nothing else (no id-token, no attestations), uses no cache action and no secret, and has
   # no registry, release or Pages step. Linux builds the manylinux_2_17 wheel through zig and the sdist (scripts/package-sdist.sh
   # prunes the sdist's Cargo.lock to its own workspace and builds it --locked); each wheel gets the builder-path gate, the
@@ -118,6 +133,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
+        # The same per-OS pins as the determinism job (run 44580200515); the reason is at its setup-python step.
+        include:
+          - os: ubuntu-latest
+            python: "3.12.16"
+          - os: macos-latest
+            python: "3.12.10"
+          - os: windows-latest
+            python: "3.12.10"
     env:
       TOOLS_BIN: ${{ matrix.os == 'windows-latest' && 'tools-venv/Scripts' || 'tools-venv/bin' }}
     steps:
@@ -129,7 +152,7 @@ jobs:
           toolchain: "1.98"
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
-          python-version: "3.12.10"
+          python-version: ${{ matrix.python }}
       - name: Hashed tool install (uv, maturin, ziglang) into a venv
         run: |
           python -m venv tools-venv
