@@ -864,6 +864,7 @@ dependencies = [
 name = "pagetriage-core"
 version = "0.1.0"
 dependencies = [
+ "flate2",
  "jsonschema",
  "libm",
  "lopdf",
@@ -872,6 +873,7 @@ dependencies = [
  "serde_json",
  "sha2",
  "toml",
+ "weezl 0.2.1",
 ]
 
 [[package]]

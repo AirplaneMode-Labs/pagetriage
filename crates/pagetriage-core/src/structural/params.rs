@@ -13,6 +13,7 @@ const TEXT_LAYER_TOML: &str = include_str!("../../params/text_layer.toml");
 const FONT_SCRIPT_TOML: &str = include_str!("../../params/font_script.toml");
 const PROVENANCE_TOML: &str = include_str!("../../params/provenance.toml");
 const LIMITS_TOML: &str = include_str!("../../params/structural_limits.toml");
+const STREAM_LIMITS_TOML: &str = include_str!("../../params/stream_limits.toml");
 
 /// Evidence weights of the text-layer rules (see `params/text_layer.toml`).
 #[derive(Debug, Clone, PartialEq, Deserialize)]
@@ -440,6 +441,122 @@ fn merge(base: &mut toml::Table, over: toml::Table) {
     }
 }
 
+/// Limits of the stream accounting (`account_pdf_streams`; see `params/stream_limits.toml`).
+///
+/// Kept out of [`StructuralParams`] on purpose: only that call reads them, and the structure report
+/// and any digest of the structural parameters keep exactly the inputs they had.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct StreamLimits {
+    pub font_decoded_max: u64,
+    pub image_decoded_max: u64,
+    pub image_raster_max: u64,
+    pub content_decoded_max: u64,
+    pub other_decoded_max: u64,
+    pub total_decoded_max: u64,
+    pub streams_max: u64,
+    pub input_max_bytes: u64,
+    pub load_decoded_max: u64,
+    pub filters_max: usize,
+    pub dict_bytes_max: usize,
+    pub dict_depth_max: usize,
+    pub dict_nodes_max: usize,
+    pub header_scan_bytes: usize,
+    pub jpeg_segments_max: usize,
+    pub scratch_bytes: usize,
+    pub raster_bytes_per_pixel: u64,
+}
+
+/// The keys a caller may lower through the options of `account_pdf_streams`.
+pub const STREAM_LIMIT_OPTIONS: [&str; 7] = [
+    "font_decoded_max",
+    "image_decoded_max",
+    "image_raster_max",
+    "content_decoded_max",
+    "other_decoded_max",
+    "total_decoded_max",
+    "streams_max",
+];
+
+impl StreamLimits {
+    /// The embedded defaults.
+    pub fn defaults() -> Result<Self> {
+        let table: toml::Table = toml::from_str(STREAM_LIMITS_TOML).map_err(|e| {
+            Error::InvalidParams(format!("embedded params/stream_limits.toml: {e}"))
+        })?;
+        let limits: StreamLimits = toml::Value::Table(table).try_into().map_err(|e| {
+            Error::InvalidParams(format!("embedded params/stream_limits.toml: {e}"))
+        })?;
+        limits.validate()?;
+        Ok(limits)
+    }
+
+    /// The embedded defaults with `overrides_toml` applied as `min(override, default)`: an option
+    /// can make a limit stricter and never looser. Only the seven keys of
+    /// [`STREAM_LIMIT_OPTIONS`] are accepted, each a positive integer.
+    pub fn with_lower_only(overrides_toml: &str) -> Result<Self> {
+        let mut limits = Self::defaults()?;
+        let table: toml::Table = toml::from_str(overrides_toml)
+            .map_err(|e| Error::InvalidParams(format!("stream limit options: {e}")))?;
+        for (key, value) in table {
+            if !STREAM_LIMIT_OPTIONS.contains(&key.as_str()) {
+                return Err(Error::InvalidParams(format!(
+                    "stream limit options: unknown key `{key}` (allowed: {})",
+                    STREAM_LIMIT_OPTIONS.join(", ")
+                )));
+            }
+            let n = match value {
+                toml::Value::Integer(n) if n >= 1 => n as u64,
+                _ => {
+                    return Err(Error::InvalidParams(format!(
+                        "stream limit options: `{key}` must be a positive integer"
+                    )));
+                }
+            };
+            let slot = match key.as_str() {
+                "font_decoded_max" => &mut limits.font_decoded_max,
+                "image_decoded_max" => &mut limits.image_decoded_max,
+                "image_raster_max" => &mut limits.image_raster_max,
+                "content_decoded_max" => &mut limits.content_decoded_max,
+                "other_decoded_max" => &mut limits.other_decoded_max,
+                "total_decoded_max" => &mut limits.total_decoded_max,
+                _ => &mut limits.streams_max,
+            };
+            *slot = (*slot).min(n);
+        }
+        Ok(limits)
+    }
+
+    fn validate(&self) -> Result<()> {
+        let bad = |m: &str| Err(Error::InvalidParams(format!("stream_limits: {m}")));
+        let all = [
+            self.font_decoded_max,
+            self.image_decoded_max,
+            self.image_raster_max,
+            self.content_decoded_max,
+            self.other_decoded_max,
+            self.total_decoded_max,
+            self.streams_max,
+            self.input_max_bytes,
+            self.load_decoded_max,
+            self.filters_max as u64,
+            self.dict_bytes_max as u64,
+            self.dict_depth_max as u64,
+            self.dict_nodes_max as u64,
+            self.header_scan_bytes as u64,
+            self.jpeg_segments_max as u64,
+            self.raster_bytes_per_pixel,
+        ];
+        if all.contains(&0) {
+            return bad("every limit must be at least 1");
+        }
+        if !(4096..=1 << 20).contains(&self.scratch_bytes) {
+            return bad("scratch_bytes must be between 4 KiB and 1 MiB");
+        }
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -497,5 +614,31 @@ mod tests {
         assert_eq!(p.apply(5.0), -2.0);
         assert_eq!(p.apply(0.5), 0.0);
         assert_eq!(p.apply(0.25), 1.0);
+    }
+
+    #[test]
+    fn stream_limit_defaults_parse_and_match_the_structural_limits() {
+        let l = StreamLimits::defaults().unwrap();
+        let s = StructuralParams::defaults().unwrap();
+        assert_eq!(l.streams_max, s.limits.max_objects as u64);
+        assert_eq!(
+            l.content_decoded_max,
+            s.limits.max_decompressed_bytes as u64
+        );
+        assert_eq!(l.input_max_bytes, s.limits.max_input_bytes as u64);
+        assert_eq!(l.other_decoded_max, l.content_decoded_max);
+    }
+
+    #[test]
+    fn stream_limit_options_only_lower() {
+        let d = StreamLimits::defaults().unwrap();
+        let low = StreamLimits::with_lower_only("font_decoded_max = 10\nstreams_max = 5").unwrap();
+        assert_eq!((low.font_decoded_max, low.streams_max), (10, 5));
+        assert_eq!(low.image_decoded_max, d.image_decoded_max);
+        let high = StreamLimits::with_lower_only("font_decoded_max = 99999999999999").unwrap();
+        assert_eq!(high, d);
+        assert!(StreamLimits::with_lower_only("scratch_bytes = 1").is_err());
+        assert!(StreamLimits::with_lower_only("font_decoded_max = 0").is_err());
+        assert!(StreamLimits::with_lower_only("font_decoded_max = 1.5").is_err());
     }
 }

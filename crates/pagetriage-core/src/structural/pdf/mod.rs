@@ -1,11 +1,13 @@
 //! Reading a PDF with `lopdf` and producing a [`StructureReport`]. Compiled only with the `pdf`
 //! feature.
 
+mod decode_count;
 mod fonts;
 mod interp;
 mod meta;
 mod pages;
 mod revisions;
+pub(super) mod streams;
 
 use std::collections::BTreeMap;
 

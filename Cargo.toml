@@ -39,3 +39,13 @@ lto = "fat"
 panic = "abort"
 codegen-units = 1
 strip = true
+
+# The stream-accounting tests inflate and deflate hundreds of MiB of synthetic bombs. Build the two
+# codec crates optimised even in the dev and test profiles so `cargo test` stays fast; nothing else
+# changes (no new package, no feature, release and wasm profiles untouched).
+[profile.dev.package."miniz_oxide@0.9.1"]
+opt-level = 3
+[profile.dev.package.flate2]
+opt-level = 3
+[profile.dev.package."weezl@0.2.1"]
+opt-level = 3

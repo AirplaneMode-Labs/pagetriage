@@ -107,6 +107,31 @@ pub fn analyse_pdf_structure(bytes: &[u8], opts_json: Option<String>) -> Result<
         .map_err(|e| JsError::new(&e.to_string()))
 }
 
+/// Stream accounting (S1-107): how many bytes each font, image and content stream of a PDF decodes
+/// to, bounded, so a font or image bomb is refused before pdf.js opens the file. Returns the
+/// canonical JSON of a `pagetriage.streams/0.1` report, identical bytes to the native and Python
+/// builds. Only present when built with the `pdf` feature.
+///
+/// A document that cannot be vouched for (not a PDF, damaged, encrypted) is a report with the
+/// verdict `refuse` and the reason `unaccounted`, not an exception. Throws an `Error` only for bad
+/// `opts_json` (`None`, `{}` or `{"params": "<TOML>"}`; the TOML can only lower the limits). A
+/// caller treats a thrown error, a trap and an `unaccounted` report alike: the PDF is refused.
+/// The decoded bytes are never held, so the module's memory does not grow with what a stream
+/// decodes to.
+#[cfg(feature = "pdf")]
+#[wasm_bindgen]
+pub fn account_pdf_streams(bytes: &[u8], opts_json: Option<String>) -> Result<String, JsError> {
+    pagetriage_core::structural::account_pdf_streams(bytes, opts_json.as_deref())
+        .map_err(|e| JsError::new(&e.to_string()))
+}
+
+/// JSON Schema of the stream-accounting report, for validation on the JS side.
+#[cfg(feature = "pdf")]
+#[wasm_bindgen]
+pub fn streams_schema_json() -> String {
+    pagetriage_core::schema::streams_schema_json()
+}
+
 /// JSON Schema of the structure report, for validation on the JS side.
 #[cfg(feature = "pdf")]
 #[wasm_bindgen]

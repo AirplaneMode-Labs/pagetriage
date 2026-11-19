@@ -173,6 +173,26 @@ fn analyse_pdf_structure(py: Python<'_>, data: &[u8], opts_json: &str) -> PyResu
         .map_err(|e| PyValueError::new_err(e.to_string()))
 }
 
+/// Stream accounting (S1-107): how many bytes each font, image and content stream of a PDF decodes
+/// to, bounded, so a font or image bomb is refused before a renderer opens the file. Returns the
+/// canonical JSON of a `pagetriage.streams/0.1` report: `verdict` is `ok` or `refuse`, and `reason`
+/// says why. A document that cannot be vouched for (not a PDF, damaged, encrypted) is a refusal with
+/// the reason `unaccounted`, not an exception. `opts` is `None`, `""`, `"{}"` or
+/// `{"params": "<TOML>"}`; the TOML can only lower the limits. Raises `ValueError` for bad options.
+/// Releases the GIL.
+#[pyfunction]
+#[pyo3(signature = (data, opts = None))]
+fn account_pdf_streams(py: Python<'_>, data: &[u8], opts: Option<&str>) -> PyResult<String> {
+    py.detach(|| pagetriage_core::structural::account_pdf_streams(data, opts))
+        .map_err(|e| PyValueError::new_err(e.to_string()))
+}
+
+/// JSON Schema of the stream-accounting report, as a string.
+#[pyfunction]
+fn streams_schema_json() -> String {
+    pagetriage_core::schema::streams_schema_json()
+}
+
 /// JSON Schema of the structure report, as a string.
 #[pyfunction]
 fn structure_schema_json() -> String {
@@ -202,6 +222,8 @@ fn pagetriage_py(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(schema_json, m)?)?;
     m.add_function(wrap_pyfunction!(analyse_pdf_structure, m)?)?;
     m.add_function(wrap_pyfunction!(structure_schema_json, m)?)?;
+    m.add_function(wrap_pyfunction!(account_pdf_streams, m)?)?;
+    m.add_function(wrap_pyfunction!(streams_schema_json, m)?)?;
     m.add_function(wrap_pyfunction!(params_toml, m)?)?;
     m.add_function(wrap_pyfunction!(rgb_to_gray, m)?)?;
     m.add_function(wrap_pyfunction!(binarize, m)?)?;

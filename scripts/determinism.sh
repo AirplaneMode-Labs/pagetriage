@@ -13,6 +13,7 @@ echo "== native"
 cargo test --locked -p pagetriage-core --test golden --quiet
 cargo test --locked -p pagetriage-core --test binarize_golden --quiet
 cargo test --locked -p pagetriage-core --features pdf --test golden_pdf --quiet
+cargo test --locked -p pagetriage-core --features pdf --test streams_golden --quiet
 
 echo "== python"
 # Python virtual environments put their executables in Scripts/ on Windows and bin/ elsewhere.
@@ -31,6 +32,7 @@ maturin develop --locked --release --quiet --manifest-path crates/pagetriage-py/
 python -I tests/determinism/run_python.py
 python -I tests/determinism/run_python_binarize.py
 python -I tests/determinism/run_python_pdf.py
+python -I tests/determinism/run_python_streams.py
 
 echo "== wasm"
 scripts/build-wasm.sh
@@ -42,5 +44,6 @@ echo "== wasm with the pdf feature (PDF structural layer)"
 PAGETRIAGE_WASM_FEATURES=pdf WASM_OUT=dist/wasm-pdf scripts/build-wasm.sh
 scripts/check-wasm-size.sh dist/wasm-pdf/web/pagetriage_bg.wasm
 node tests/determinism/run_wasm_pdf.mjs
+node tests/determinism/run_wasm_streams.mjs
 
 echo "determinism: native, python and wasm all match the golden reports"

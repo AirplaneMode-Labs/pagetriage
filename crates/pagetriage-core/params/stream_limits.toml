@@ -1,0 +1,78 @@
+# Limits of the stream accounting (`account_pdf_streams`, S1-107, TD-70): how many bytes each kind of
+# PDF stream may decode to before the document is refused, so that a font or image bomb is stopped
+# before a renderer (pdf.js) opens the file. Read only by that call; nothing else uses this file, and
+# the analyse reports and their params digest do not include it.
+#
+# Every value is an engineering limit chosen by the architect on 2026-11-19 (not tuned on data), with
+# the source given on each line. A caller can LOWER the first seven (the ones the report echoes under
+# "limits") through the options of the call; a larger value is ignored. The rest are not options.
+# All sizes are bytes.
+
+# --- the seven limits the report echoes ---------------------------------------------------------
+
+# Embedded font programs (FontFile, FontFile2, FontFile3), decoded, per stream: 32 MiB. The largest
+# CJK font files that browsers embed are 10 to 20 MiB; pdf.js parses a font in the worker on the main
+# thread's schedule, so a bigger one is a hang risk before it is a memory risk.
+font_decoded_max = 33554432
+
+# Image XObjects, decoded, per stream: 256 MiB. DCT, JPX, JBIG2 and CCITT data is counted as stored,
+# because it is not decoded here. 256 MiB is a 16-megapixel RGB raster 5 times over.
+image_decoded_max = 268435456
+
+# Image raster pdf.js allocates, per image: width x height x 4 bytes (it decodes to RGBA), the larger
+# of the dictionary's declared size and the size the DCT or JPX header states. 256 MiB is about 67
+# megapixels (an A4 page at 600 dpi is 35 megapixels).
+image_raster_max = 268435456
+
+# Page content streams, decoded, per stream: 64 MiB. Equal to `max_decompressed_bytes` of
+# structural_limits.toml, the cap the structural layer already applies to one content stream.
+content_decoded_max = 67108864
+
+# Every other stream (forms, colour profiles, CMaps, object streams, shading and function streams,
+# unreferenced objects), decoded, per stream: 64 MiB, the same cap as content.
+other_decoded_max = 67108864
+
+# All streams together, decoded: 512 MiB. Decoding stops as soon as the running total passes it, so
+# the work is bounded by this plus one per-stream cap whatever the number of streams.
+total_decoded_max = 536870912
+
+# Stream objects counted in one file. Equal to `max_objects` of structural_limits.toml (3,000,000):
+# a stream is an object, so a file with more streams than that is refused there as well.
+streams_max = 3000000
+
+# --- limits of the accounting itself (not options, not echoed) -----------------------------------
+
+# Largest PDF the call reads, 1 GiB, as `max_input_bytes` of structural_limits.toml. A bigger input
+# is reported as "unaccounted".
+input_max_bytes = 1073741824
+
+# Largest object stream or cross-reference stream the parser (lopdf) decodes while loading the
+# document: 16 MiB. Producers write object streams of 100 to a few thousand small objects (kilobytes);
+# 16 MiB keeps the parser's peak far below the 64 MiB per-stream cap. A larger object stream is still
+# counted by the accounting, under `other_decoded_max`.
+load_decoded_max = 16777216
+
+# Filters in one stream's /Filter array. Real files use 1 to 3 (ASCII85 + Flate, Flate + DCT).
+filters_max = 8
+
+# Largest stream dictionary the scan will parse, in bytes. Real dictionaries are tens to hundreds of
+# bytes; the largest legitimate ones (a Type 3 font's CharProcs table is not a stream dictionary)
+# stay under a few kilobytes.
+dict_bytes_max = 1048576
+
+# Nesting depth and number of values in one stream dictionary that the scan will parse.
+dict_depth_max = 32
+dict_nodes_max = 100000
+
+# Bytes of a JPEG 2000 file searched for the SIZ marker and the ihdr box, and the most marker segments
+# walked in a JPEG before the start-of-scan marker. Headers are a few hundred bytes; ICC profiles can
+# make the JPEG header some hundred kilobytes.
+header_scan_bytes = 1048576
+jpeg_segments_max = 10000
+
+# Size of the fixed buffer decoded bytes are counted through. A decoded stream is never held in
+# memory: it passes through this buffer and is forgotten.
+scratch_bytes = 65536
+
+# Bytes per pixel of the raster pdf.js decodes an image to (RGBA): 4.
+raster_bytes_per_pixel = 4

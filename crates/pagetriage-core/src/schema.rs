@@ -389,6 +389,18 @@ pub fn structure_schema_json() -> String {
     s
 }
 
+/// JSON Schema (draft 2020-12) for the stream-accounting report (`account_pdf_streams`),
+/// pretty-printed with a trailing newline. Checked in as `schema/pagetriage-streams-0.1.schema.json`.
+pub fn streams_schema_json() -> String {
+    let schema = SchemaSettings::draft2020_12()
+        .with_transform(RequireAllProperties)
+        .into_generator()
+        .into_root_schema_for::<crate::structural::types::StreamsReport>();
+    let mut s = serde_json::to_string_pretty(&schema).expect("a schema always serialises");
+    s.push('\n');
+    s
+}
+
 /// The canonical byte form of any report value: object keys sorted, every float rounded to
 /// [`math::OUTPUT_DECIMALS`] decimals, `-0.0` normalised, compact. This is what the determinism
 /// test compares across native, Python and WASM.

@@ -31,5 +31,6 @@ Documentation = "https://github.com/AirplaneMode-Labs/pagetriage/tree/main/docs"
 module-name = "pagetriage_py"
 features = ["pyo3/extension-module"]
 # The Rust CycloneDX SBOM that maturin embeds records the builder's absolute checkout path
-# ("path+file:///Users/..."), which must not ship in a published wheel. Off until a path-free SBOM exists.
+# (a "path+file://" URL under the builder's home directory), which must not ship in a published wheel.
+# Off until a path-free SBOM exists. (This comment is in the sdist, so it must not hold a path itself.)
 sbom = { rust = false }

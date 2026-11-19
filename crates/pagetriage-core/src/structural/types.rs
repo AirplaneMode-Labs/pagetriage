@@ -242,3 +242,96 @@ pub struct StructureReport {
     pub degraded: bool,
     pub warnings: Vec<String>,
 }
+
+// ---------------------------------------------------------------------------------------------
+// Stream accounting (S1-107, TD-70): the output of `account_pdf_streams`
+// ---------------------------------------------------------------------------------------------
+
+/// Schema id of [`StreamsReport`].
+pub const STREAMS_SCHEMA_ID: &str = "pagetriage.streams/0.1";
+
+/// Whether the document may go on to a renderer.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum StreamsVerdict {
+    Ok,
+    Refuse,
+}
+
+/// Why a document is refused. `None` is the empty string and goes with the verdict `ok`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+pub enum StreamsReason {
+    #[serde(rename = "")]
+    None,
+    /// The structure could not be vouched for: the parser could not load it, it needed repair, it is
+    /// encrypted, a stream could not be classified or decoded under the bound, or the scan and the
+    /// parser disagree about which streams exist.
+    #[serde(rename = "unaccounted")]
+    Unaccounted,
+    #[serde(rename = "font_over_limit")]
+    FontOverLimit,
+    #[serde(rename = "image_over_limit")]
+    ImageOverLimit,
+    #[serde(rename = "content_over_limit")]
+    ContentOverLimit,
+    #[serde(rename = "other_over_limit")]
+    OtherOverLimit,
+    #[serde(rename = "total_over_limit")]
+    TotalOverLimit,
+    #[serde(rename = "too_many_streams")]
+    TooManyStreams,
+}
+
+/// The limits in force (the defaults, lowered by the caller's options).
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StreamsLimits {
+    pub font_decoded_max: u64,
+    pub image_decoded_max: u64,
+    pub image_raster_max: u64,
+    pub content_decoded_max: u64,
+    pub other_decoded_max: u64,
+    pub total_decoded_max: u64,
+    pub streams_max: u64,
+}
+
+/// Counts for one kind of stream (`font`, `image`, `content`, `form`, `other`).
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StreamsKind {
+    pub count: u64,
+    /// Bytes as stored in the file.
+    pub raw_bytes: u64,
+    /// Bytes after decoding; a lower bound for a stream that hit its cap.
+    pub decoded_bytes: u64,
+    pub max_decoded_bytes: u64,
+    /// A stream of this kind passed its limit (or, for an image, its raster limit).
+    pub over_limit: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StreamsSummary {
+    /// Stream objects found. When more than `limits.streams_max` exist the count is `streams_max + 1`
+    /// and the rest are not read.
+    pub count: u64,
+    pub by_kind: BTreeMap<String, StreamsKind>,
+    pub total_decoded_bytes: u64,
+    /// Some decoded count stopped at its cap, so the decoded figures are lower bounds.
+    pub decoded_capped: bool,
+    /// Decoding stopped at the first violation; later streams are counted but not decoded.
+    pub early_stop: bool,
+}
+
+/// The result of `account_pdf_streams`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, JsonSchema)]
+#[serde(deny_unknown_fields)]
+pub struct StreamsReport {
+    pub schema: String,
+    pub verdict: StreamsVerdict,
+    pub reason: StreamsReason,
+    pub limits: StreamsLimits,
+    pub streams: StreamsSummary,
+    /// Fixed sentences holding only numbers and kind names, never bytes taken from the document.
+    pub notes: Vec<String>,
+}

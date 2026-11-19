@@ -1,7 +1,8 @@
 //! `pagetriage` command line: analyse a page image, print the schema, print default params.
 //!
 //! `analyse` takes raster images (PNG, JPEG, TIFF, PNM, BMP). `structure` takes a PDF and reports
-//! the per-page text-layer state, script and provenance without rendering anything.
+//! the per-page text-layer state, script and provenance without rendering anything. `streams`
+//! takes a PDF and bounds what its fonts, images and content streams decode to (S1-107).
 
 use std::fs;
 use std::path::PathBuf;
@@ -33,6 +34,9 @@ enum Command {
     Analyse(AnalyseArgs),
     /// Read a PDF and print its per-page text-layer state, script and provenance as JSON
     Structure(StructureArgs),
+    /// Count what the streams of a PDF decode to (fonts, images, content), bounded, and print the
+    /// verdict as JSON. Exit 1, with the report still on stdout, when the document is refused.
+    Streams(StreamsArgs),
     /// Hash page images and report near-duplicates among them (pages in the order given)
     Duplicates(DuplicatesArgs),
     /// Analyse the page images of one document and print one report with the document-level pass
@@ -122,6 +126,20 @@ struct StructureArgs {
 }
 
 #[derive(Args)]
+struct StreamsArgs {
+    /// PDF file
+    file: PathBuf,
+    /// Indent the output. The default compact form is the canonical, byte-reproducible one.
+    #[arg(long)]
+    pretty: bool,
+    /// TOML file that lowers limits (`font_decoded_max`, `image_decoded_max`, `image_raster_max`,
+    /// `content_decoded_max`, `other_decoded_max`, `total_decoded_max`, `streams_max`). A value
+    /// larger than the built-in limit is ignored.
+    #[arg(long, value_name = "FILE")]
+    params: Option<PathBuf>,
+}
+
+#[derive(Args)]
 struct DocumentArgs {
     /// Page images, in page order
     #[arg(required = true)]
@@ -167,6 +185,7 @@ fn run(cli: Cli) -> Result<(), String> {
     match cli.command {
         Command::Analyse(args) => analyse(&args),
         Command::Structure(args) => structure(&args),
+        Command::Streams(args) => streams(&args),
         Command::Duplicates(args) => duplicates(&args),
         Command::Document(args) => document(&args),
         Command::Prepare(args) => prepare(&args),
@@ -206,6 +225,43 @@ fn structure(args: &StructureArgs) -> Result<(), String> {
         println!("{canonical}");
     }
     Ok(())
+}
+
+fn streams(args: &StreamsArgs) -> Result<(), String> {
+    let bytes =
+        fs::read(&args.file).map_err(|e| format!("cannot read {}: {e}", args.file.display()))?;
+    let params_toml = match &args.params {
+        Some(path) => Some(
+            fs::read_to_string(path).map_err(|e| format!("cannot read {}: {e}", path.display()))?,
+        ),
+        None => None,
+    };
+    let opts = serde_json::json!({ "params": params_toml }).to_string();
+    let report = pagetriage_core::structural::account_pdf_streams_report(&bytes, Some(&opts))
+        .map_err(|e| e.to_string())?;
+    let canonical = to_canonical_json(&report).map_err(|e| e.to_string())?;
+    if args.pretty {
+        let value: serde_json::Value =
+            serde_json::from_str(&canonical).map_err(|e| e.to_string())?;
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&value).map_err(|e| e.to_string())?
+        );
+    } else {
+        println!("{canonical}");
+    }
+    // The report is printed either way, so a script can read the reason; the exit status says
+    // whether the document may go on.
+    match report.verdict {
+        pagetriage_core::structural::StreamsVerdict::Ok => Ok(()),
+        pagetriage_core::structural::StreamsVerdict::Refuse => {
+            let reason = serde_json::to_value(report.reason)
+                .ok()
+                .and_then(|v| v.as_str().map(str::to_owned))
+                .unwrap_or_default();
+            Err(format!("{} refused: {reason}", args.file.display()))
+        }
+    }
 }
 
 fn analyse(args: &AnalyseArgs) -> Result<(), String> {
