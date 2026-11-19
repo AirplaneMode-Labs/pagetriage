@@ -45,7 +45,7 @@ lopdf = { version = "0.46.0", default-features = false, optional = true }
 lopdf = { version = "0.46.0", default-features = false, features = ["wasm_js"], optional = true }
 
 [dev-dependencies]
-jsonschema = { version = "0.60.1", default-features = false }
+jsonschema = { version = "0.61.2", default-features = false }
 
 # Writes the synthetic stream bombs of tests/streams.rs for scripts/stream-bombs.sh (never committed).
 [[example]]
