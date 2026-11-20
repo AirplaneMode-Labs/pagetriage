@@ -65,6 +65,8 @@ medians), `p_headline`, `p_cursive`, `p_discrete`, `lines`, `lines_headline`, `l
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-script-synth.json` (`python -I bench/script_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below summarise that output. The history of the first thresholds, the probes of 3 seeds and the cost line are raw data not kept.
+
 `bench/script_synth_eval.py`: A4 pages at 150 dpi, 6 paragraphs, nine scripts (Latin from Pillow's
 font; the others pseudo-glyphs, with a headline for the first three Indic ones and a joined-letter
 generator with dots for Arabic), seven conditions (clean 11 pt, 9 pt, 14 pt, skew 3 degrees, sensor
@@ -92,7 +94,7 @@ Other probes, 3 seeds each: all-capitals Latin and Latin lines underlined at the
 `discrete` (`top_peak` 0.53 to 0.55, against the 0.7 threshold).
 
 Cost: on a 1240 x 1754 page, release build, median of 5, quality alone 186 ms, plus layout 233 ms,
-plus script 253 ms (about 20 ms for M4 on top of the layout it shares).
+plus script 253 ms (about 20 ms for M4 on top of the layout it shares). Raw data not kept.
 
 ## Determinism
 

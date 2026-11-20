@@ -59,6 +59,8 @@ The confidences are sigmoids of hand-set sums. **They are not calibrated.**
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-rulings-synth.json` (`python -I bench/rulings_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The table below sums its per-condition rows. The path to those numbers (each step's result), the rerun of the layout and script benchmarks and the cost line are raw data not kept.
+
 `bench/rulings_synth_eval.py`: A4 pages at 150 dpi (and 100 dpi), Pillow font, 5 dev seeds (the
 checkbox and run-length settings were looked at on them) and 5 test seeds.
 
@@ -98,7 +100,7 @@ version, found by this benchmark and not by the unit tests:
 6. Short vertical rules (3-row tables) needed the cut to start at 6 x-heights, not 12.
 
 Cost: on a 1240 x 1754 mixed page, release build, median of 5: quality alone 127 ms, with layout
-209 ms, with layout and rulings 261 ms (about 50 ms for M9, most of it the contrast and the box tests).
+209 ms, with layout and rulings 261 ms (about 50 ms for M9, most of it the contrast and the box tests). Raw data not kept.
 
 The first four findings above also changed the layout, so the layout and script benchmarks were
 rerun: layout 45 / 45 exact (9 rows x 5 seeds), script 315 / 315 on both splits, unchanged.

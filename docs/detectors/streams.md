@@ -156,6 +156,8 @@ fresh page (a fresh WebAssembly memory) per file. The budget for both is **peak 
 | `xref-broken-with-bomb.pdf` | a font bomb in a file that needs repair | `unaccounted` (outranks the bomb) |
 | `clean.pdf` | one page, one font | `ok` |
 
+**Raw results:** `docs/benchmarks/streams-native.csv` (`STREAMS_CSV=docs/benchmarks/streams-native.csv scripts/stream-bombs.sh`) and `docs/benchmarks/wasm-streams.csv` (`node bench/streams_wasm_chrome.mjs BOMBS_DIR 5 --csv docs/benchmarks/wasm-streams.csv`), rows dated 2026-11-19, and `docs/benchmarks/eval-sizes.json` for the WebAssembly sizes; each row carries its date, commit, machine and command, and every row says "not measured on 8 GB" (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The native file names the processor model but not the RAM.
+
 Peak memory, native (release CLI, `/usr/bin/time -l`, `docs/benchmarks/streams-native.csv`) and WASM (`memory.buffer.byteLength`
 after 5 runs in Chrome 157.0.8103.79, `docs/benchmarks/wasm-streams.csv`), in bytes, on Apple M5 Pro 48 GB, 18 cores. Every row is
 within its budget. **Not measured on 8 GB.** The block is checked against the two CSV files by `tests/scripts/streams-doc.sh`:
@@ -183,8 +185,8 @@ xref-broken-with-bomb.pdf unaccounted 4079616 1900544
 
 Reading the numbers:
 
-- **Every 1 GiB bomb ends with 4 to 9 MB of native memory and 2 to 6 MB of WebAssembly memory**, against a budget of input +
-  64 MiB, and in 10 to 25 ms native (median 11 to 90 ms in Chrome; the image bomb takes longest because its cap is 256 MiB).
+- **Every 1 GiB bomb except the object stream one ends with 4 to 8 MB of native memory and 2 to 6 MB of WebAssembly memory**,
+  against a budget of input + 64 MiB, and in 10 to 23 ms native (median 11.5 to 90 ms in Chrome; the image bomb takes longest because its cap is 256 MiB).
   The WebAssembly module's initial memory is 1.6 MB (`wasm_memory_before_bytes`).
 - **The object stream bomb is the largest single-stream figure** (23 MB native, 36 MB WASM): the parser decodes object streams
   itself while loading, capped at 16 MiB (`load_decoded_max`), so up to 16 MiB plus the allocator's growth is held for a moment.
@@ -233,9 +235,10 @@ are built with `opt-level = 3` (a profile setting, no package) so that the test 
 
 ## WebAssembly size and the call's memory
 
-`pagetriage_bg.wasm` with the `pdf` feature: 2,335,481 bytes raw and 854,940 with `gzip -9` before, 2,435,212 and 889,888 after
-(+99,731 raw, +34,948 gzip). The budget of `scripts/check-wasm-size.sh` is 1,000,000 bytes gzip and is not raised (110,112 bytes
-spare). Calling it in a Web Worker is the same advice as for `analyse_pdf_structure`: it is synchronous.
+`pagetriage_bg.wasm` with the `pdf` feature: 2,335,481 bytes raw and 854,940 with `gzip -9` before (`docs/benchmarks/wasm-structure.csv`), 2,435,212 and 889,888 after
+(+99,731 raw, +34,948 gzip; raw data not kept, read from a log that was not committed). The current build (20 Nov 2026) is 2,433,537 bytes raw and 889,502 gzipped
+(`docs/benchmarks/eval-sizes.json`). The budget of `scripts/check-wasm-size.sh` is 1,000,000 bytes gzip and is not raised (110,498 bytes
+spare on the current build). Calling it in a Web Worker is the same advice as for `analyse_pdf_structure`: it is synchronous.
 
 ## Limitations
 

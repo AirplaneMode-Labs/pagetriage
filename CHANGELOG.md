@@ -10,6 +10,16 @@ commit, which is the only change to 1.0.0 (TD-107). Nothing is published or tagg
 
 #### Added
 
+- Benchmark rule (owner decision, 20 Nov 2026: every benchmark we run is published in the repo it measures). `docs/benchmarks/` now holds the raw output of every benchmark behind a figure that the README, `docs/` and the demo quote,
+  each with its date, commit, machine (model and RAM only) and command: the five CSV files of Sprints 5 and 6, and 45 `eval-*.json` records written by the new `bench/record.py` (the command's output line for line, its exit code, its wall time, the
+  tool versions; no builder path). `bench/record_all.sh synthetic|structure|dibco|sizes` holds every command, `bench/sizes_report.py` measures the WebAssembly builds and the release artefacts (`eval-sizes.json`), and
+  [docs/benchmarks/README.md](docs/benchmarks/README.md) is the index (what each file is, date, commit, machine, the exact command, where it is quoted; the standing line that nothing is measured on an 8 GB laptop unless a file says so; the figures
+  that have no raw file). `docs/benchmarks/claims.json` lists 79 quoted figures with the committed row (or derived value) that backs each, or the words "raw data not kept" next to the figure. Every detector page has a `Raw results:` line, and
+  the README Benchmarks section and the demo link the folder. The five CSV files gained a `date` column (the rows keep every other value; the date is the day each file was written and first committed: 2026-11-18 for `wasm-structure.csv`,
+  2026-11-19 for the other four) and `speed_eval.py`, `large_doc_eval.py`, `scripts/stream-bombs.sh`, `streams_wasm_chrome.mjs` and `site/tools/bench-structure.mjs` write it from now on.
+- `tests/scripts/benchmarks.sh` (in `run-all.sh`) with `tests/scripts/benchmarks-check.mjs`: 1,809 assertions, of which 22 are planted breaks of a scratch copy that must each be refused (a README, demo or write-up figure changed, a CSV row changed or deleted, a figure or a timing
+  line added with no claim, a raw file deleted or left out of the index, a missing date, a failed or path-leaking record, an 8 GB claim on a 48 GiB machine, a missing link to the folder, a detector page with no `Raw results:` line). `tests/scripts/wasm-api-doc.sh` and
+  `tests/scripts/streams-doc.sh` also require a date on every CSV row. `bench/tests/test_record.py` (5 tests). A record made on the 8 GB target laptop needs `bench/record.py --eight-gb "measured on 8 GB: ..."`; the checker then requires an 8 GB machine in it ([docs/release.md](docs/release.md), row 2).
 - D2-02, TD-103, TD-104, TD-106: the release rehearsal. `scripts/release/rehearse.sh` (build, install, sign, gate), `build-artefacts.sh`, `install-crate-offline.sh`, `check-installed.py` and `check-installed.cjs`, and the CI job
   `release-rehearsal (<os>)` on Linux, macOS and Windows, which replaced and contains the `wheels` job. It builds the npm tarball, the wheel (manylinux_2_17 through zig on Linux), the sdist (Linux), the command-line binary and the
   two crates (`cargo package --locked -p pagetriage-core -p pagetriage-cli`, run twice: the `.crate` bytes must be identical, S1-126 and TD-123); installs each built file into an empty project or a fresh venv, offline, and makes one
@@ -39,6 +49,10 @@ commit, which is the only change to 1.0.0 (TD-107). Nothing is published or tagg
 
 #### Changed
 
+- Figures re-measured on 20 Nov 2026 because their raw file was missing (README, demo, write-up, `docs/`): the quality pass on one synthetic A4 page 62.7 ms to 68.3 ms (the demo said about 63 ms and now says about 68 ms; the write-up row of 136 DIBCO pages is 29.9 ms median and 328.0 ms largest, from 29 and 319); the gzipped
+  WebAssembly package 478,303 / 889,491 bytes to 478,315 / 889,502 and the badge 479 KB to 478 KB (the 14 Nov figures 479 KB and 855 KB, and the Sprint 3 write-up sizes, are dropped: no log was committed); the release artefact sizes in the write-up
+  (npm tarball 1,834,660, wheel 1,777,841, sdist 466,586, crates 380,680 and 47,907 bytes; every artefact carries the README, so any README edit moves them); the page-hashing time in `phash.md` (3.0 ms per page to 32.8 ms: the harness call also runs the quality pass,
+  and the earlier figure no longer reproduces). Everything else the accuracy rows quote (structure, skew, Howe and the other binarisers, bleed-through AUC, the synthetic detector tables) reproduced exactly and now points at its record.
 - TD-107: the version is the release candidate 1.0.0-rc.1 (`Cargo.toml`, `Cargo.lock`, the npm package; the wheel and sdist are 1.0.0rc1). TD-108: the npm package is `@airplanemode/pagetriage` (tarball `airplanemode-pagetriage-<version>.tgz`).
 - The npm tarball and the rehearsal ship the PDF-enabled WebAssembly build (`PAGETRIAGE_WASM_FEATURES=pdf`: 889,491 bytes by `gzip -9`, against 478,303 without the PDF parser, both inside the 1,000,000-byte budget, measured on the Sprint 7 build) so that `analyse_pdf_structure` is in the package the README quick start calls;
   before, the tarball held the pixel-only build. `scripts/package-npm.sh`, `package-python.sh` and `prove-install.sh` follow.
@@ -53,6 +67,12 @@ commit, which is the only change to 1.0.0 (TD-107). Nothing is published or tagg
 
 #### Fixed
 
+- Found by re-running the benchmarks for the rule above: the README said a poster sheet (A1 at 300 dpi, 70 megapixels) took 14 s and 1.3 GB with only the layout on, and A4 at 150, 300 and 600 dpi about 0.4, 2 and 10 s; the repository's own `bench/page_size_eval.py` gives 1.7 s and a
+  process peak of 4139 MB for the sheet (2109 MB for A1 at 200 dpi), and 128, 439 and 1686 ms for A4 with six detectors on. The README now quotes the script's figures, with the warning that such a sheet does not leave much of an 8 GB laptop. `page_size_eval.py` printed
+  its peak memory in the wrong unit on macOS (`ru_maxrss` is bytes there, KiB on Linux) and now prints megabytes of 1,000,000 bytes on both.
+- Found by the same re-run: `bench/page_type_synth_eval.py` crashed (`TypeError: 'NoneType' object is not subscriptable`) on the smooth dark picture pages under noise 8 or blur 1 px, which the quality gate stops and gives no page type. The script now counts them as not typed, and the page-typing table of
+  `docs/detectors/page_type.md` changed: 41 / 48 and 42 / 48 under noise 8 and 42 / 48 and 42 / 48 under blur 1 px, where the page quoted 47 / 48, 48 / 48 and 48 / 48 (the clean row, 47 / 48 and 48 / 48, is unchanged). Whether such a page should be typed is open.
+- The README and `docs/detectors/streams.md` said every 1 GiB bomb ends with 4 to 9 MB of native memory and 10 to 25 ms; the raw rows say 4 to 8 MB and 10 to 23 ms, and the object stream bomb (23 MB native, 36 MB WebAssembly) is one of the 1 GiB bombs and was left out of the range without saying so.
 - Found by the publish dry run: `npm publish verified/<file>.tgz` reads the path as a GitHub `owner/repo` shorthand and runs `git ls-remote`; the workflow and the dry run use `./verified/<file>.tgz`.
 - BUG-T3-S7-02, S1-132a, TD-125: the publish job's `if:` read `vars.RELEASE_PUBLISH_ARMED`, which a job-level `if` cannot see for an environment variable, so the job would have been skipped when the variable is an environment variable (or, as a repository
   variable, would have armed without the environment). The check is now the first step after the checkout, from the step env; no `if:` in `publish.yml` reads `vars.` (policy rules and 6 mutations).

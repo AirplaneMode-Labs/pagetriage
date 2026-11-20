@@ -46,6 +46,8 @@ black stamp (below).
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-signature-synth.json` (`python -I bench/signature_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below summarise that output. Figures about how earlier versions of the detector scored ("how it got there"), probes outside the script's default run and the cost line are raw data not kept.
+
 `bench/signature_synth_eval.py`: A4 pages at 150 dpi, a Latin text page with 1 or 2 signatures (flourishes
 of 0.9 to 2.6 in from `bench/synth/signgen.py`) below the text, 60% over a signature rule with a
 caption. Found means a finding with IoU of at least 0.5 against the drawn box. 6 dev seeds (thresholds
@@ -78,7 +80,7 @@ was 45 px, because it was area-weighted and a flourish and a ring hold most of t
 was a layout bug (see its change log), not a detector one.
 
 Cost: single runs in this container varied by more than the detector's cost (a layout pass took 209
-to 354 ms on the same page), so no number is given; it measures a few hundred components at most.
+to 354 ms on the same page), so no number is given; it measures a few hundred components at most. The 209 to 354 ms are raw data not kept.
 
 ## Determinism
 

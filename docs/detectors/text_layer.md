@@ -87,7 +87,7 @@ The original project rule was to depend on `pdf-inspector` upstream instead of f
 names `lopdf`, decided 2026-10-24 on the evidence below), and the module plan
 called for building M1 on it. After trying it, `pagetriage-core` does **not** depend on it. It is
 not forked either: it is simply not used, and nothing was copied from it. What was measured
-(2026-10-24, `pdf-inspector` 1.25.2, `lopdf` 0.45/0.46, Apple-silicon macOS, Rust 1.98):
+(2026-10-24, `pdf-inspector` 1.25.2, `lopdf` 0.45/0.46, Apple-silicon macOS, Rust 1.98; the build times and the WebAssembly sizes in the table are raw data not kept, they were read from build output that was not committed):
 
 | | `pdf-inspector` 1.25.2 | `lopdf` alone (what we use) |
 |---|---|---|
@@ -111,7 +111,7 @@ everything the module specifies, with `pdf-inspector` as a second opinion at 4.7
 How it fares on the synthetic corpus, as a comparison (not a benchmark of `pdf-inspector`, which is
 built for a different question: "does this need OCR?"). Coarse classes, `native_text` and `mixed`
 folded into `text`; 300 pages; `bench/compare_pdf_inspector.py` with
-`bench/tools/pdf_inspector_compare` (a standalone crate that is not a workspace member):
+`bench/tools/pdf_inspector_compare` (a standalone crate that is not a workspace member; re-run on 20 Nov 2026, output in `docs/benchmarks/eval-compare-pdf-inspector.json`):
 
 | | pages agreeing with the label |
 |---|---|
@@ -150,11 +150,12 @@ warning, with counts that are lower bounds, never a hang. Checked by:
 * tests that truncate small PDFs at every byte and flip bytes in them (`tests/structure.rs`);
 * 60,000 mutated copies of the corpus PDFs (byte flips, truncation, deleted, duplicated and zeroed
   chunks) through the Python binding: 0 panics, 0 parser-panic errors, slowest call 25 ms; about
-  21% are refused as unparseable (mostly "failed parsing cross reference table"), the rest analyse;
+  21% are refused as unparseable (mostly "failed parsing cross reference table"), the rest analyse (raw data not kept: this was run once, ad hoc; `bench/pdf_mutation_check.py` is the
+  repeatable version, on the golden PDFs);
 * a page tree whose kid is its own parent, a `/Contents` array that contains itself, a form that
   draws itself, 300 nested `/Pages` nodes with `/Count 4000000000`: all terminate;
 * a page content stream larger than `max_decompressed_bytes` is refused and the page marked truncated;
-* size: a 41 MB single page with 400,000 text operators takes 0.23 s; a 62 MB, 2,000-page file 1.4 s.
+* size: a 41 MB single page with 400,000 text operators takes 0.23 s; a 62 MB, 2,000-page file 1.4 s (raw data not kept: ad hoc, on files that are not in the repository).
 
 On WASM the build uses `panic = "abort"`, so the panic guard cannot catch a parser panic there; none
 was seen in the fuzzing above, which ran natively.
@@ -178,6 +179,8 @@ are in `tests/golden/pdf/`). These are wrong or doubtful answers, kept visible.
 | Damaged cross-reference table | Error, or `degraded` with a repair note | `lopdf` repairs some damage; the rest is refused. |
 
 ## Measured results
+
+**Raw results:** `docs/benchmarks/eval-structure-all.json` (`python -I bench/structure_eval.py --corpus bench/data/synth_pdf --split all`), `docs/benchmarks/eval-structure-dev.json` and `docs/benchmarks/eval-structure-heldout.json` (the same with `--split dev` and `--split heldout`), run 2026-11-20 on the corpus that `python -I bench/synth/make_pdf_corpus.py` writes (seed 0); each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below summarise those files. The score before the two parameters were tuned (96.5%), the `qpdf` rewrites (180 files), the byte-identical reports of the 60 corpus PDFs on native, Python and WebAssembly, and everything else in this section that those three files do not show are raw data not kept.
 
 Corpus: `bench/synth/make_pdf_corpus.py` (60 documents, 300 pages, written by us; seed 0);
 scored by `bench/structure_eval.py`. **A synthetic corpus written by the same team is weak evidence
@@ -220,6 +223,9 @@ Further checks that do not use the labels:
   analyser, is what they check).
 
 ## WASM size and the `pdf` feature
+
+The sizes in this section are from the Phase 0 builds of 2026-10-24 and were read from build output that was not committed: raw data not kept. The sizes of the current builds
+are in `docs/benchmarks/eval-sizes.json`.
 
 `lopdf` is behind the off-by-default `pdf` feature of `pagetriage-core` (and of `pagetriage-wasm`), so
 the pixel-only build does not carry a PDF parser. `cargo build -p pagetriage-core --features pdf

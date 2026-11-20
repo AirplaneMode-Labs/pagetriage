@@ -33,8 +33,9 @@ pixel-only output; the files are the same bytes. On 18 Nov 2026 the SHA-256 of `
 Size of `pagetriage_bg.wasm` (the Sprint 5 build, which the CSV and the timings below were measured on): 2,335,481 bytes raw,
 854,940 bytes with `gzip -9` (the figure `scripts/check-wasm-size.sh` checks against its 1,000,000-byte budget). GitHub Pages
 serves it compressed. **Sprint 6 added a second call to the same build, `account_pdf_streams`** (stream accounting, S1-107,
-documented in `docs/detectors/streams.md`): the module is now 2,435,212 bytes raw and 889,888 gzipped (+99,731 and +34,948), still
-inside the budget, and `analyse_pdf_structure` is unchanged (its goldens are byte-identical; its timings were not re-taken).
+documented in `docs/detectors/streams.md`): the module grew to 2,435,212 bytes raw and 889,888 gzipped (+99,731 and +34,948; raw data not kept, the sizes of
+that build were read from a log that was not committed), still inside the budget, and `analyse_pdf_structure` is unchanged (its goldens are byte-identical; its
+timings were not re-taken). The current build (20 Nov 2026) is 2,433,537 bytes raw and 889,502 gzipped, in [docs/benchmarks/eval-sizes.json](benchmarks/eval-sizes.json).
 
 ## Loading it
 

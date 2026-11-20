@@ -36,17 +36,24 @@ calibrated**. With `{"debug": true}` the features appear under `debug.page_type`
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-page-type-synth.json` (`python -I bench/page_type_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The table below summarises that output. The first coefficients' results ("how it got there") and the typing of the golden fixtures are raw data not kept.
+
 `bench/page_type_synth_eval.py`: A4 at 150 dpi, eight types (text; text with handwritten lines and a
 signature; a printed form with handwriting; a ruled table; a smooth dark picture; blank paper; a
 stamp-paper-like cover with a large heading and a QR-like symbol; text above a picture). 6 dev seeds
 (1 to 6) and 6 test seeds (11 to 16) per type and condition (clean, noise 8, blur 1 px). Detectors on:
-layout, handwriting, rulings, signature, thumb, redaction, qr.
+layout, handwriting, rulings, signature, thumb, redaction, qr, photo (as the script's `OPTS` has them).
 
 | Condition | Correct, dev | Correct, test | Misses |
 |---|---|---|---|
 | clean | 47 / 48 | 48 / 48 | one cover typed as text |
-| sensor noise 8 | 47 / 48 | 48 / 48 | the same cover |
-| blur 1 px | 48 / 48 | 48 / 48 | |
+| sensor noise 8 | 41 / 48 | 42 / 48 | the photo pages (6 of 6 on each split) are not typed; the same cover |
+| blur 1 px | 42 / 48 | 42 / 48 | the photo pages (6 of 6 on each split) are not typed |
+
+**This table changed on 20 Nov 2026.** The earlier version of it read 47 / 48 and 48 / 48 for noise 8 and 48 / 48 and 48 / 48 for blur 1 px; those figures are raw data
+not kept, and they no longer reproduce: the quality gate (see [quality](quality.md)) stops a page graded D with a high blur severity, and a smooth dark picture under noise 8 or
+blur 1 px is such a page, so it comes back with no page type and `bench/page_type_synth_eval.py` counts it as not typed (before this change the script crashed on those pages, with
+`TypeError: 'NoneType' object is not subscriptable`). Whether a photograph should be typed on a page the gate stops is a decision that has not been made.
 
 How it got there: the first coefficients typed **form 0 / 6** (all as text with annotations), **photo
 2 of 6, table 4 of 6, mixed 0 of 6**. The causes were not the weights alone: handwriting was counted

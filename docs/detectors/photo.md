@@ -29,6 +29,8 @@ been looked at.
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-photo-synth.json` (`python -I bench/photo_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below summarise that output. Figures about how earlier versions of the detector scored ("how it got there"), probes outside the script's default run and the cost line are raw data not kept.
+
 `bench/photo_synth_eval.py`: A4 at 150 dpi, text page with a picture of 0.9 to 4 square inches
 (`passport`: 1.4 x 1.8 in) pasted in. A picture is found at IoU 0.5; 6 dev and 6 test seeds each.
 

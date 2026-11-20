@@ -92,6 +92,8 @@ and `ijg_fit_mean_abs_error` are placeholders ("tuned on <none>").
 
 ## Measured results
 
+**Raw results:** `docs/benchmarks/eval-structure-all.json` (`python -I bench/structure_eval.py --corpus bench/data/synth_pdf --split all`), run 2026-11-20; each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The `qpdf` rewrite check (180 files) is raw data not kept.
+
 Synthetic corpus (`bench/structure_eval.py`; see `text_layer.md` for what is weak about it and for
 the dev / held-out protocol). All 60 documents:
 

@@ -66,6 +66,8 @@ test of the tool; **no labelled real findings exist, so no map ships**.
 
 ## Evaluation
 
+**Raw results:** the cover-page typing below is the `cover` row of `docs/benchmarks/eval-page-type-synth.json` (`python -I bench/page_type_synth_eval.py`, run 2026-11-20; each file carries its date, commit, machine and command; the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The counts of `estamp_qr` and `stamp_paper_header` findings (12 of 12, 11 of 12, 2 on the form pages) come from an ad hoc run of the same pages that printed findings, not page types, and are raw data not kept. The unit tests are `cargo test`, not measurements.
+
 Unit tests for each rule (the weaker mark loses and the stronger one is untouched; a weak mark under a
 strong one is dropped; marks of one kind or far apart are left alone; a blank page with a table is
 not blank and on its own it is; the QR at the top, below the top and too small; a heading with a QR,

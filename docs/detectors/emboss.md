@@ -41,6 +41,8 @@ golden page scored 0.49).
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-emboss-synth.json` (`python -I bench/emboss_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below summarise that output. Figures about how earlier versions of the detector scored ("how it got there"), probes outside the script's default run and the cost line are raw data not kept.
+
 `bench/emboss_synth_eval.py`: A4 at 150 dpi, a Latin text page with one embossed seal of 30 to 50 mm
 (diameter 177 to 295 px) over or beside the text, lit from a random side. A is the amplitude of the
 shading in gray levels around the paper (about 240). A seal is found at IoU 0.5; seeds 1 to 6 dev,
@@ -86,4 +88,4 @@ WASM runners.
 | **Faint relief (A 5)** | 3 / 6. | Measured (synthetic) |
 | **Not round** | Oval, rectangular and multi-lobed embossings are not looked for. | By construction |
 | **Pages with a large print or crease** | A crease is a straight antisymmetric shading, not a circle; a coffee ring that is lit unevenly could score. Not tested. | Open |
-| **Cost** | About 0.06 s for the detector on one A4 page at 150 dpi, release build, one run, including reading the file. | Measured once |
+| **Cost** | About 0.06 s for the detector on one A4 page at 150 dpi, release build, one run, including reading the file (raw data not kept). | Measured once |

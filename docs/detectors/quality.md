@@ -120,19 +120,21 @@ so.
 
 ## Cost
 
-Measured on an Apple M-series laptop, native release build.
+**Raw results:** `docs/benchmarks/eval-quality-time.json` (`python -I bench/quality_synth_eval.py --only time`, the synthetic page) and `docs/benchmarks/eval-quality-dibco.json` (`python -I bench/quality_eval.py --data bench/data --table`, the DIBCO pages), run 2026-11-20 on an Apple M5 Pro (48 GiB RAM), release wheel; each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The figures marked raw data not kept below (the Rust-core time, the WebAssembly time, the split between steps, the 90th percentile and the time per megapixel) were measured earlier with no committed script or log.
 
 | Page | Time |
 |---|---|
-| Synthetic A4 at 150 dpi (1240 x 1754, 2.2 MP, dense text), quality pass only | 54 ms in the Rust core; 60 ms through the Python call (JSON included) |
-| Same page, WASM build (size-optimised profile), Node 22 | about 360 ms |
-| 136 DIBCO pages (0.05 to 9 MP), Python call | median 29 ms, 90th percentile 79 ms, largest (8.9 MP) 319 ms; about 30 ms per megapixel |
+| Synthetic A4 at 150 dpi (1240 x 1754, 2.2 MP, dense text), quality pass only | 54 ms in the Rust core (raw data not kept); 68.3 ms median through the Python call (JSON included) |
+| Same page, WASM build (size-optimised profile), Node 22 | about 360 ms (raw data not kept) |
+| 136 DIBCO pages (0.05 to 9 MP), Python call | median 29.9 ms, largest 328.0 ms; the 90th percentile (79 ms) and about 30 ms per megapixel are raw data not kept |
 
-Rough split for the A4 page (native): Sauvola 11 ms, labelling 3, distance transform and ridges 5,
+Rough split for the A4 page (native; raw data not kept): Sauvola 11 ms, labelling 3, distance transform and ridges 5,
 skew 10, paper grid, dilations, blur and bleed-through 20, folds 1. The target was well under
-100 ms natively for A4 at 150 dpi; it is met. The WASM size profile is about 6 times slower.
+100 ms natively for A4 at 150 dpi; it is met (68.3 ms). The WASM size profile is about 6 times slower (raw data not kept).
 
 ## Results
+
+**Raw results:** `docs/benchmarks/eval-skew-white.json`, `docs/benchmarks/eval-skew-paper.json` and `docs/benchmarks/eval-skew-augraphy.json` (`python -I bench/skew_eval.py --data bench/data --sets all [--fill paper | --augraphy]`: the skew tables), `docs/benchmarks/eval-quality-synth.json` (`python -I bench/quality_synth_eval.py`: the synthetic skew, blur, speckle, show-through, fold and photocopy rows), `docs/benchmarks/eval-quality-dibco.json` (`python -I bench/quality_eval.py --data bench/data --table`: the AUC tables, the folds, grades and binariser counts on DIBCO) and `docs/benchmarks/eval-quality-stress.json` (`python -I bench/quality_stress.py`: the quality gate table), all run 2026-11-20; each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). Not in those files, and raw data not kept: the skew-peak-ratio breakdown ("1.3% off by more than a degree at a ratio of 1.8 or more"), the 16 single creases (the script runs four fold cases), the first version of the gate, the tuning history under "What was tuned on what", and the numbers in the failure gallery that name no table here.
 
 Honesty notes first. DIBCO is **not Indian-deed material**: it is Latin (and some Greek) ink on aged
 paper, mostly handwriting, cropped to a few lines. It has no ground truth for degradation, so most

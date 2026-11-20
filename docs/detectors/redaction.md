@@ -67,6 +67,8 @@ The confidence is a hand-set sigmoid and is **not calibrated**.
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-redaction-synth.json` (`python -I bench/redaction_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below summarise that output. Figures about how earlier versions of the detector scored ("how it got there"), probes outside the script's default run and the cost line are raw data not kept.
+
 `bench/redaction_synth_eval.py`: A4 pages at 150 dpi, Latin text, 1 to 4 words blacked out (a rectangle a
 little bigger than the word) and, half the time, a block of 2 to 4 lines. Words under 2.2 x-heights are
 not blacked out in the test (the detector does not search for them). A box is found at IoU 0.5. 6 dev

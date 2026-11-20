@@ -33,6 +33,8 @@ diff.
 
 ### Seen on real data
 
+**Raw results:** none. These observations were made with `bench/run.py --debug` on 24 Oct 2026 and no script summarises that output, so the figures below (coverage range, the two pages and their confidences, the 49% to 77% ink shares) are raw data not kept; the DIBCO pages themselves are not redistributed.
+
 Run over the DIBCO benchmark pages (`bench/run.py --debug`, 2026-10-24). The Phase 0 detector is a
 placeholder, so these are recorded as observations, not as a score.
 

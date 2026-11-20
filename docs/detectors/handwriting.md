@@ -57,6 +57,8 @@ is recall: about three to five points on forms.
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-handwriting-synth.json` (`python -I bench/handwriting_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below summarise that output. Figures about how earlier versions of the detector scored ("how it got there"), probes outside the script's default run and the cost line are raw data not kept.
+
 `bench/handwriting_synth_eval.py`: A4 pages at 150 dpi, 5 dev seeds (1 to 5; the thresholds were
 looked at on seeds 1 to 3 and the two parameters above swept on all five) and 5 test seeds (11 to
 15). "Pages with a region" counts pages with at least one finding; recall is the share of truth
@@ -90,7 +92,7 @@ feature; every pseudo-Arabic page gets regions.
 
 Cost: on a form page at A4 and 150 dpi (release build, median of 5, one container), the layout pass
 alone took 261 ms and layout plus handwriting 268 ms. The quality pass (186 ms there) comes first
-because the layout needs its skew.
+because the layout needs its skew. These timings were taken in one container and are raw data not kept; the quality pass is timed by `docs/benchmarks/eval-quality-time.json`.
 
 Tried and removed: a per-word profile feature (the share of columns whose lowest or highest ink row
 strays from the word's median), meant to catch joined words where the glyph-based measures are

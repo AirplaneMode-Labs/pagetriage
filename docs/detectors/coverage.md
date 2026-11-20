@@ -35,6 +35,8 @@ Parameters: `params/coverage.toml`, hand set.
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-coverage-synth.json` (`python -I bench/coverage_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The table below is that output. The result of the first version of the detector (a prior of -1) is raw data not kept.
+
 `bench/coverage_synth_eval.py`: A4 at 150 dpi, 24 to 30 lines of Latin text; the boxes are the true
 word boxes of a chosen share of the lines. 6 dev and 6 test seeds.
 

@@ -35,6 +35,8 @@ on synthetic page reports; no real deed has been looked at.
 
 ## Evaluation
 
+**Raw results:** none, because nothing here is measured: the evaluation is a unit test and one golden file made to have these answers, so there is no raw data to keep (raw data not kept: not applicable).
+
 Unit tests and one golden: a five-page synthetic deed (`tests/golden/document_inputs/deed_pages.json`)
 with a stamp in the same corner of four pages (found, confidence 0.85), a seal on one page and a
 signature on two (not found), and two pages with equal hashes (page 4 marked a near-duplicate of

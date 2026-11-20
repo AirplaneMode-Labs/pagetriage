@@ -10,7 +10,7 @@ Live demo: https://airplanemode-labs.github.io/pagetriage/
 [![Licence: MIT OR Apache-2.0](https://img.shields.io/badge/licence-MIT%20OR%20Apache--2.0-blue)](#licence)
 [![Rust 1.98](https://img.shields.io/badge/rust-1.98-orange)](rust-toolchain.toml)
 [![Model files: none](https://img.shields.io/badge/model%20files-none-brightgreen)](#what-makes-it-different)
-[![WebAssembly: 479 KB gzipped](https://img.shields.io/badge/WebAssembly-479%20KB%20gzipped-654ff0)](#quick-start)
+[![WebAssembly: 478 KB gzipped](https://img.shields.io/badge/WebAssembly-478%20KB%20gzipped-654ff0)](#quick-start)
 
 ![One synthetic page with show-through from the reverse side, the same crop under four binarisers, and the quality readout](docs/img/hero.png)
 
@@ -209,7 +209,7 @@ text.
   measurement, its value, the threshold, its contribution to the confidence, and where the threshold
   came from.
 - **One core, three runtimes.** The same Rust crate builds the CLI, a Python wheel and a
-  WebAssembly package (478,303 bytes gzipped without the PDF parser, 889,491 with it, `gzip -9`, measured on the Sprint 7 build, 20 Nov 2026, `scripts/check-wasm-size.sh`; 479 KB and 855 KB on 14 Nov 2026, before the stream accounting, `evidence/sprint-3/D2/wasm-size.log`)). The core does no file
+  WebAssembly package (478,315 bytes gzipped without the PDF parser, 889,502 with it, `gzip -9` as `scripts/check-wasm-size.sh` measures it, built and measured on 20 Nov 2026, [docs/benchmarks/eval-sizes.json](docs/benchmarks/eval-sizes.json); 854,940 bytes with it before the stream accounting, [docs/benchmarks/wasm-structure.csv](docs/benchmarks/wasm-structure.csv); the count moves by a few bytes with the toolchain)). The core does no file
   or network I/O and never reads the clock.
 - **The failures are written down.** Each detector has a docs page with measured results, a failure
   gallery, what it was tuned on, and the targets it missed.
@@ -482,12 +482,16 @@ result as input, so both halves end up in one report.
 ## Benchmarks
 
 Every number below comes from scripts in `bench/` ([commands](#reproduce-the-numbers)) and is
-written up, with its protocol, in `docs/detectors/`. The last column says how far to trust it. The
-speed row was measured on an Apple-silicon development machine and is a placeholder for the target
-hardware: the 8 GB Windows laptop without a GPU has not been measured, so that column reads "not
-measured on 8 GB" on every row. The accuracy rows were measured in earlier sprints and were not re-measured in
-Sprint 3; the Sprint 3 speed log and install proofs are under `evidence/sprint-3/D2/` (the architect
-copies them there at wrap-up).
+written up, with its protocol, in `docs/detectors/`. **Every figure has its raw output committed in [docs/benchmarks/](docs/benchmarks/)**,
+as CSV rows or JSON records that each carry the date, the commit, the machine (model and RAM only) and the command, with
+[an index](docs/benchmarks/README.md) that says what each file is and how to reproduce it. `tests/scripts/benchmarks.sh` fails when a figure
+quoted here, in the demo or in `docs/` has no matching committed row; a figure whose raw data was not kept says so next to it.
+The last column says how far to trust it. Everything was measured on one Apple M5 Pro Mac (48 GiB RAM, not an 8 GB laptop) and is a
+placeholder for the target hardware: the 8 GB Windows laptop without a GPU has not been measured, so that column reads "not
+measured on 8 GB" on every row, and no file in `docs/benchmarks/` says otherwise. The accuracy rows were re-run on 20 Nov 2026 with
+the committed scripts and reproduced the figures of the earlier sprints, with three exceptions that are corrected here: the page-typing
+table of [page_type](docs/detectors/page_type.md), the cost and memory figures of [Page size and resolution](#page-size-and-resolution)
+(the earlier ones had no script behind them), and two ranges of the stream-accounting row below (the object stream bomb had been left out of them).
 
 Full-page analysis time and the large-document figures now have scripts (`bench/speed_eval.py`,
 `bench/large_doc_eval.py`, Sprint 6) and committed CSV files; thread-pool throughput is still not measured. Earlier speed and
@@ -502,11 +506,11 @@ throughput figures that had no script or log behind them were removed.
 | Howe binarisation, DIBCO 2011, 16 images held out | F-measure 89.6; the paper reports 91.9 | not measured on 8 GB | **Misses our target** of being within 1.5 points of the paper. The gap comes from three pages with large dark regions; on the other 13 pages we score 92.9 against the paper's 92.5 |
 | Other methods on DIBCO 2011 | Otsu 82.1, Sauvola 81.6, Wolf 84.7 | not measured on 8 GB | Same images, same scoring |
 | Bleed-through score against hand labels | AUC 0.86 on the pages it was tuned on, 0.71 on held-out pages | not measured on 8 GB | Weak out of sample; the labels were made by eye from thumbnails |
-| Quality pass on one synthetic A4 page at 150 dpi, native core through the Python binding (`python -I bench/quality_synth_eval.py --only time`) | median 62.7 ms (min 62.1, max 67.5), log `evidence/sprint-3/D2/bench-quality-time.log` | not measured on 8 GB | One page type, the quality pass only (not the full `analyse_page`). Release wheel built in Sprint 3 on one Apple-silicon machine; placeholder for the target hardware |
+| Quality pass on one synthetic A4 page at 150 dpi, native core through the Python binding (`python -I bench/quality_synth_eval.py --only time`) | median 68.3 ms (min 67.7, max 71.1), `docs/benchmarks/eval-quality-time.json` | not measured on 8 GB | One page type, the quality pass only (not the full `analyse_page`). Release wheel built on 20 Nov 2026 on one Apple M5 Pro (48 GiB RAM); placeholder for the target hardware |
 | `analyse_pdf_structure` in the browser (WebAssembly, in a worker, Chrome 157.0.8103.79): median of 5 calls on synthetic text PDFs | 20 pages 7.40 ms; 100 pages 32.20 ms; 300 pages 88.40 ms; a 1.07 GiB decompression bomb 26.60 ms, capped and returned as a degraded report. The first call after load is slower (worst of 5: 24.70 ms at 20 pages). WASM file 2,335,481 bytes, 854,940 gzipped | not measured on 8 GB | Apple M5 Pro 48 GB; `node site/tools/bench-structure.mjs --wasm dist/wasm/web --out docs/benchmarks/wasm-structure.csv`; commit b290cc84c08d-dirty (Sprint 5 changes not yet committed); every row of the data is in `docs/benchmarks/wasm-structure.csv` and the method in [docs/wasm-api.md](docs/wasm-api.md). Synthetic PDFs we generated, no real document; one machine, one browser |
-| `analyse_page` on one synthetic A4 page, default detectors, native core through the Python binding, median of 5 (`python -I bench/speed_eval.py --csv docs/benchmarks/speed.csv`) | 100 dpi (0.97 MP) 33.6 ms; 150 dpi 67.4 ms; 200 dpi 108.7 ms; 300 dpi (8.70 MP) 232.2 ms; 29 to 37 megapixels per second | not measured on 8 GB | Apple M5 Pro 48 GB, commit eb28e490030b-dirty (Sprint 6 changes not yet committed); synthetic text-like pages from a seeded generator, not real scans; one machine |
+| `analyse_page` on one synthetic A4 page, default detectors, native core through the Python binding, median of 5 (`python -I bench/speed_eval.py --csv docs/benchmarks/speed.csv`) | 100 dpi (0.97 MP) 33.6 ms; 150 dpi 67.4 ms; 200 dpi 108.7 ms; 300 dpi (8.70 MP) 232.2 ms; 29 to 37 megapixels per second | not measured on 8 GB | Apple M5 Pro (the file names the model, not the RAM), commit eb28e490030b-dirty (Sprint 6 changes not yet committed); synthetic text-like pages from a seeded generator, not real scans; one machine; `docs/benchmarks/speed.csv` |
 | `pagetriage structure` and `pagetriage streams` on synthetic text PDFs of 100, 1,000 and 5,000 pages (release CLI under `/usr/bin/time -l`; `python -I bench/large_doc_eval.py --csv docs/benchmarks/large-doc.csv`) | 5,000 pages (13.9 MB): structure 760 ms and 180 MB peak, streams 22 ms and 39 MB peak; 1,000 pages: 157 ms and 42 MB, 8 ms and 11 MB. The 100-page structure row (413 ms) was the first process of the run and includes cold-cache effects | not measured on 8 GB | Same machine and commit; text-only synthetic PDFs, one run per row; `docs/benchmarks/large-doc.csv` |
-| Stream accounting on 15 synthetic bombs (a 1 GiB font, image, object stream, `/Length 5` lie, ASCIIHex or Flate inside Flate, LZW, a JPEG header of 65000 x 65000, a declared 100000 x 100000 raster, 100,000 streams of 1 MiB each, 100,000 empty streams), native release CLI and the WASM build in Chrome 157.0.8103.79, 5 runs | Every file within peak memory of input size + 64 MiB: 4 to 9 MB native and 2 to 6 MB WASM for each 1 GiB bomb, 10 to 25 ms native; 100,000 x 1 MiB stops in the 512th stream (0.18 s native, 0.45 s in Chrome); the object table costs about 0.45 KB per object, so 100,000 tiny objects cost 53 MB native. WASM file 2,435,212 bytes, 889,888 gzipped (+99,731 and +34,948) | not measured on 8 GB | Apple M5 Pro 48 GB; `scripts/stream-bombs.sh`, `node bench/streams_wasm_chrome.mjs`; `docs/benchmarks/streams-native.csv`, `docs/benchmarks/wasm-streams.csv`, method and gallery in [docs/detectors/streams.md](docs/detectors/streams.md). Synthetic bombs, no real PDF; the false-refusal rate on real PDFs is not measured |
+| Stream accounting on 15 synthetic bombs (a 1 GiB font, image, object stream, `/Length 5` lie, ASCIIHex or Flate inside Flate, LZW, a JPEG header of 65000 x 65000, a declared 100000 x 100000 raster, 100,000 streams of 1 MiB each, 100,000 empty streams), native release CLI and the WASM build in Chrome 157.0.8103.79, 5 runs | Every file within peak memory of input size + 64 MiB: 4 to 8 MB native and 2 to 6 MB WASM for each 1 GiB bomb except the object stream one (23 MB native, 36 MB WASM), 10 to 23 ms native; 100,000 x 1 MiB stops in the 512th stream (0.18 s native, 0.45 s in Chrome); the object table costs about 0.45 KB per object, so 100,000 tiny objects cost 53 MB native. WASM file 2,435,212 bytes, 889,888 gzipped (+99,731 and +34,948; raw data not kept) | not measured on 8 GB | Apple M5 Pro, 48 GiB (the native file names the model only); `scripts/stream-bombs.sh`, `node bench/streams_wasm_chrome.mjs`; `docs/benchmarks/streams-native.csv`, `docs/benchmarks/wasm-streams.csv`, method and gallery in [docs/detectors/streams.md](docs/detectors/streams.md). Synthetic bombs, no real PDF; the false-refusal rate on real PDFs is not measured |
 | In-browser pixel analysis (`analyse_page`) speed | not measured in the browser (the native figure is above) | not measured on 8 GB | The demo page runs the same core; no timing has been recorded for the pixel path in a browser |
 
 ## Limitations
@@ -555,7 +559,7 @@ Known limits of the detectors that are built:
   synthetic page with strong bleed-through (the figure at the top), a plain global threshold, Otsu,
   scored higher than Howe in static mode (F 92.5 against 86.6). On the real DIBCO 2011 pages the
   order is the other way round: Otsu 82.1, Howe 89.6.
-- **Fold detection** found all 16 synthetic creases but raises false alarms on real DIBCO pages, and
+- **Fold detection** found all 16 synthetic creases (a sweep run once; raw data not kept) but raises false alarms on real DIBCO pages, and
   misses a crease dark enough to binarise as ink.
 - **The photocopy-generation estimate** is experimental and not validated on real copies; its
   confidence is capped at 0.6.
@@ -578,9 +582,11 @@ type from 6 to 24 pt: the lines drawn were found every time and the tilt was rea
   BMP headers, which scanners often fill with a placeholder), and otherwise assumes 150 with a note and a
   paper-size hint ([scale](docs/detectors/scale.md)). A wrong dpi leaves the layout alone but changes the page
   size in the report and every inch- or millimetre-based setting (picture and coverage tiles, seal radius).
-- **Cost grows with the pixel count.** A4 at 150 dpi takes about 0.4 s; at 300 dpi 2 s; at 600 dpi 10 s.
-  A poster sheet (A1 at 300 dpi, 70 megapixels) took 14 s and 1.3 GB in one run with only the layout
-  on. There is no tiling in the core (the page plan suggests tiles) and the pixel cap is opt-in (`--max-pixels`); the browser demo refuses images over 36 megapixels.
+- **Cost grows with the pixel count.** With the layout, script, QR, photo, rulings and redaction detectors on, one synthetic
+  text page took 128 ms at A4 and 150 dpi, 439 ms at 300 dpi and 1686 ms at 600 dpi; a poster sheet (A1 at 300 dpi, 69.7 megapixels)
+  took 1.7 s with only the layout on, and the process peaked at 4139 MB (A1 at 200 dpi, 31.0 megapixels: 0.8 s and 2109 MB), which
+  is about half the memory of an 8 GB laptop (the peak is that of the whole script process, on a Mac with 48 GiB RAM; nothing was run on 8 GB). One Apple M5 Pro, one run
+  per row, not measured on 8 GB (`python -I bench/page_size_eval.py`, [docs/benchmarks/eval-page-size.json](docs/benchmarks/eval-page-size.json)). There is no tiling in the core (the page plan suggests tiles) and the pixel cap is opt-in (`--max-pixels`); the browser demo refuses images over 36 megapixels.
 - **Only the layout, script and quality readouts were swept over sizes.** The other detectors were tuned
   and measured on A4 at 150 dpi and have not been checked at other sizes or resolutions.
 - **Engineering sheets (A1/A0 drawings) are not what this was built for**: it does not recognise symbols or
@@ -592,7 +598,7 @@ The structure pass reads PDF objects and content streams without rendering.
 
 Large-document time and memory were measured ad hoc in Sprint 1 with no repo script and those figures were removed; since Sprint 6
 `bench/large_doc_eval.py` reproduces new ones on synthetic text PDFs (`docs/benchmarks/large-doc.csv`: 5,000 pages, 13.9 MB, `structure` 760 ms and
-180 MB peak, `streams` 22 ms and 39 MB peak, on an Apple M5 Pro; not measured on 8 GB). The 13,000-page figures below are still not reproduced by a script.
+180 MB peak, `streams` 22 ms and 39 MB peak, on an Apple M5 Pro; not measured on 8 GB). The ratios below, from a 13,000-page file, are not reproduced by a script (raw data not kept).
 
 **Limits.** The structure pass accepts files up to 1 GiB and analyses up to 100,000 pages per file.
 These are safety limits for untrusted input, not tuned numbers. Past the page cap a file is analysed up to the cap and marked
@@ -614,14 +620,15 @@ qpdf --split-pages=1000 big.pdf chunk.pdf          # or split first, to keep mem
 Memory is the practical bound, and the ratio to file size depends on the file. On the 655 MB scan
 fixture peak memory was about 2.6 times the file size and on the 1.32 GB one about 2.3 times, so a
 1 GiB scan of that kind needs roughly 3 GB; the 22 MB born-digital fixture used far more per byte,
-because 13,000 pages of bookkeeping dominate when the pages themselves are small.
+because 13,000 pages of bookkeeping dominate when the pages themselves are small. These ratios were measured ad hoc in Sprint 1 on fixtures
+that are not in the repository: raw data not kept.
 
 **Pixel work is the expensive part.** The quality pass on one synthetic A4 page at 150 dpi takes about
-60 ms ([Benchmarks](#benchmarks)); full-page analysis time is now measured by `bench/speed_eval.py` (A4 at 300 dpi, 8.7 megapixels, 232 ms median on an Apple M5 Pro; not measured on 8 GB), but rendering time and thread-pool throughput
+68 ms ([Benchmarks](#benchmarks)); full-page analysis time is now measured by `bench/speed_eval.py` (A4 at 300 dpi, 8.7 megapixels, 232 ms median on an Apple M5 Pro; not measured on 8 GB), but rendering time and thread-pool throughput
 are not measured by a repo script, so no total for 13,000 pages is given here. Howe
 binarisation is far slower, about 50 seconds per A4 page in `dual` mode (extrapolated from 23 s per
-megapixel), so run it only on the pages the quality readout flags. Near-duplicate search over 13,000
-page hashes takes under 0.1 s. A browser tab has far less memory than a workstation, and the demo
+megapixel; raw data not kept), so run it only on the pages the quality readout flags. Near-duplicate search over 13,000
+page hashes takes under 0.1 s (raw data not kept). A browser tab has far less memory than a workstation, and the demo
 page applies its own smaller caps: use the CLI or Python for large files.
 
 ## Reproduce the numbers
@@ -641,6 +648,11 @@ python -I bench/phash_eval.py --data bench/data --synthetic 100
 
 The datasets are not redistributed from this repository. Each protocol, including which images the
 settings were tuned on, is in `docs/detectors/`.
+
+Every command above prints its table; to keep the output in `docs/benchmarks/` with the date, commit, machine and command that made it, run it through
+`python -I bench/record.py --out docs/benchmarks/eval-NAME.json -- COMMAND`. `bench/record_all.sh synthetic|structure|dibco|sizes` runs every command behind
+the committed records, and [docs/benchmarks/README.md](docs/benchmarks/README.md) lists each file with its exact command. Two of the evaluations need packages that are not in
+`bench/requirements.txt` (`qrcode` for the `real qr` rows, `augraphy` for `skew_eval.py --augraphy`).
 
 ## Roadmap
 

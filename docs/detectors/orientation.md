@@ -28,6 +28,8 @@ from this detector is a suggestion to be checked by the OCR run that follows, no
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-orientation-synth.json` (`python -I bench/orientation_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The table below is that output. Figures about earlier versions of the detector are raw data not kept.
+
 `bench/orientation_synth_eval.py`: A4 at 150 dpi, 10 scripts, each page turned 0/90/180/270, four conditions;
 12 turned pages per cell (3 seeds x 4 turns), dev seeds and test seeds. The result is what you get by **acting
 on the finding** (no finding = left as is). Wrong ones have their mean confidence in brackets.

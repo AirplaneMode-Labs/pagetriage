@@ -11,7 +11,10 @@ respect; the short version:
 3. **Determinism.** Use `pagetriage_core::math`, never the platform libm; `BTreeMap`, never
    `HashMap`; no clock, environment or filesystem access in the core.
 4. **Docs with every detector.** A page under `docs/detectors/` with a failure gallery, a golden test
-   and a benchmark line before it merges.
+   and a benchmark line before it merges. Every figure it quotes has its raw output committed under
+   `docs/benchmarks/` with its date, commit, machine and command (`bench/record.py`; the index and the rules are in
+   [docs/benchmarks/README.md](docs/benchmarks/README.md)), or says "raw data not kept" next to the figure;
+   `tests/scripts/benchmarks.sh` fails otherwise.
 5. **Run the gate locally** before opening a pull request:
 
    ```sh

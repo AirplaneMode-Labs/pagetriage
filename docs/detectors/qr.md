@@ -54,6 +54,8 @@ sigmoid and is **not calibrated**.
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-qr-synth.json` (`python -I bench/qr_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below summarise that output (the `real qr` rows need the `qrcode` package). The pooled probes "beyond the table", the `tests/golden/qr_vectors.json` counts (a Rust test, `cargo test`) and "how it got there" are raw data not kept.
+
 `bench/qr_synth_eval.py`: A4 at 150 dpi, one 25 to 57 module symbol of 3 to 5 px per module per page, 6
 dev and 6 test seeds. A symbol is found at IoU 0.5.
 

@@ -60,6 +60,8 @@ separates them.
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-stamp-synth.json` (`python -I bench/stamp_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below are that output. Figures about how earlier versions of the detector scored ("how it got there"), probes outside the script's default run and the cost line are raw data not kept.
+
 `bench/stamp_synth_eval.py`: A4 pages at 150 dpi, Latin text on cream paper with one stamp multiplied
 on (blue, violet, red or green ink; a circle, a double-ringed seal or a rectangle; 1.0 to 2.4 in;
 tilted up to 20 degrees; ink dropout; opacity 0.55 to 0.95), 6 seeds x 3 kinds per split. Found means a
@@ -87,7 +89,7 @@ then 11 of 18 on test (the interior threshold, above); a four-colour block of so
 false rectangle stamp until `max_fill` was added.
 
 Cost on a 1240 x 1754 page, release build, median of 5: quality alone 171 ms, with stamp 204 ms
-(33 ms for M6).
+(33 ms for M6). Raw data not kept.
 
 ## Determinism
 

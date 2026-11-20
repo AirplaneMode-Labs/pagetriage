@@ -30,6 +30,8 @@ The routes are only as good as the detectors behind them (handwriting is weak, s
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-plan-synth.json` (`python -I bench/plan_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The table below is that output.
+
 `bench/plan_synth_eval.py`: A4 at 150 dpi synthetic forms with printed labels and handwritten fill-ins whose
 boxes are known; 6 dev and 6 test seeds, four conditions. A word counts as routed when 60% of its box is in a
 region with the right route.

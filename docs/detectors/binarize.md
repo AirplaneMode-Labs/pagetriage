@@ -13,10 +13,10 @@ ink, c, t_hi = pt.binarize_howe(gray, width, height)                          # 
 
 | Method | What | Source | Cost |
 |---|---|---|---|
-| `otsu` | One global threshold maximising between-class variance | Otsu 1979 | under 0.01 s/MP |
-| `sauvola` | Local threshold `m (1 + k (s/R - 1))`, 75 px window, `k = 0.2` | Sauvola & Pietikäinen 2000 | under 0.01 s/MP |
-| `wolf` | Local threshold mixing local mean, page minimum and relative local contrast | Wolf & Jolion 2004 (formula recalled, unverified) | under 0.01 s/MP |
-| `howe` | Graph cut over Laplacian label costs and Canny-aware neighbour penalties, with per-image tuning of `c` and the high Canny threshold | Howe 2013 | 0.5 s/MP static, 8.5 s/MP tuned c, 23 s/MP dual |
+| `otsu` | One global threshold maximising between-class variance | Otsu 1979 | under 0.01 s/MP (raw data not kept) |
+| `sauvola` | Local threshold `m (1 + k (s/R - 1))`, 75 px window, `k = 0.2` | Sauvola & Pietikäinen 2000 | under 0.01 s/MP (raw data not kept) |
+| `wolf` | Local threshold mixing local mean, page minimum and relative local contrast | Wolf & Jolion 2004 (formula recalled, unverified) | under 0.01 s/MP (raw data not kept) |
+| `howe` | Graph cut over Laplacian label costs and Canny-aware neighbour penalties, with per-image tuning of `c` and the high Canny threshold | Howe 2013 | 0.5 s/MP static, 8.5 s/MP tuned c, 23 s/MP dual (raw data not kept: the eval prints seconds per image, not per megapixel) |
 
 Costs are one thread, native release build, Apple silicon. Howe's tuning solves 29 graph cuts per
 tuned value, so it is a deliberate choice for pages that need it (bleed-through, low contrast, stains),
@@ -59,6 +59,8 @@ the output stops changing and the instability curve has a second deep valley. Wi
 is sane on all 20.
 
 ## Results
+
+**Raw results:** the F-measure of every image and the means below are in `docs/benchmarks/eval-binarize-otsu-train.json`, `docs/benchmarks/eval-binarize-sauvola-train.json`, `docs/benchmarks/eval-binarize-wolf-train.json`, `docs/benchmarks/eval-binarize-howe-static-train.json`, `docs/benchmarks/eval-binarize-howe-tune-c-train.json`, `docs/benchmarks/eval-binarize-howe-dual-train.json` (the 20 training images: `python -I bench/eval_binarize.py --method M [--howe-mode MODE] --sets dibco2009 dibco2010`) and `docs/benchmarks/eval-binarize-otsu-2011.json`, `docs/benchmarks/eval-binarize-sauvola-2011.json`, `docs/benchmarks/eval-binarize-wolf-2011.json`, `docs/benchmarks/eval-binarize-howe-static-2011.json`, `docs/benchmarks/eval-binarize-howe-tune-c-2011.json`, `docs/benchmarks/eval-binarize-howe-dual-2011.json` (the 16 held-out images: `--sets dibco2011`), run 2026-11-20 on the datasets that `python -I bench/fetch.py` downloads; each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). Everything about earlier versions of the code (the first 2011 run at 89.42, the `t_lo` experiment, the static, tune-`c` and dual means before the Canny gradient changed, the `del2` convention) and the speeds in seconds per megapixel are raw data not kept.
 
 Scored with the DIBCO F-measure (`bench/metrics.py`), pages and ground truth from `bench/fetch.py`.
 Reproduce with `python -I bench/eval_binarize.py --method howe --howe-mode dual --sets dibco2011`.
@@ -137,7 +139,7 @@ have preferred it.
 | Strokes come out about a pixel fatter at edges | Edge pixels are put on the ink side by design; recall is near-perfect, precision pays | `howe::tests::static_mode_recovers_strokes_on_a_clean_page` |
 | Wrong Laplacian scale | Tuning picks a `c` in the regime where nothing changes and returns an almost uniform page | Training-set run with `cost_scale = 4.0`, recorded in `params/howe.toml` |
 | Perfectly flat page | Relative Canny thresholds would turn rounding residue into edges everywhere; guarded (`FLAT_GRADIENT`) | `canny::tests::flat_image_has_no_edges` |
-| Speed | 23 s/MP for the dual mode; a 150-dpi A4 page is about 2 MP | Not run in `analyse_page` |
+| Speed | 23 s/MP for the dual mode; a 150-dpi A4 page is about 2 MP (raw data not kept) | Not run in `analyse_page` |
 
 ## Determinism
 
@@ -147,7 +149,7 @@ dual modes); every golden page is binarised with each and the SHA-256 of the mas
 `ghosted` page (lighting ramp, soft strokes, a bleed-through ghost) separates all six variants, so the
 check is not vacuous. A one-hex-digit corruption of the expected file fails all three runners. Adding
 Howe took the WASM build to 173 KB gzipped; with the other Phase 1 additions merged it is 183 KB
-(budget 1 MB).
+(budget 1 MB; raw data not kept: these are the sizes of October 2026 builds, the current ones are in `docs/benchmarks/eval-sizes.json`).
 
 ## Benchmark line
 

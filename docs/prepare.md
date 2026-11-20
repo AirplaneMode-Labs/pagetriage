@@ -56,6 +56,8 @@ add the box corner, then `to_source`. A unit test checks the mapping against the
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-prepare-synth.json` (`python -I bench/prepare_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](benchmarks/README.md)). The table below is that output.
+
 `bench/prepare_synth_eval.py`: A4 at 150 dpi forms with printed labels and handwritten fill-ins, seeds 1 to 3
 (dev) and 11 to 13 (test); each tilted by 0, 3, 6 or 10 degrees (Pillow) and turned 0, 90, 180 or 270, then
 prepared by the release CLI. "Turn right" is the quarter turn that restores the page (or none, for pages not

@@ -81,6 +81,8 @@ the Sauvola constants M3 already uses. None is tuned on real data.
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-layout-synth.json` (`python -I bench/layout_synth_eval.py --seeds 5`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The table below is that output. The extra probes (1 seed each, "not in the script's default run"), the first version's result on skew and the cost line are raw data not kept.
+
 `bench/layout_synth_eval.py`: A4 pages at 150 dpi from `bench/synth` (Pillow text in Latin;
 procedural pseudo-glyphs with a headline for Devanagari and Bengali), 6 paragraphs, truth taken from
 what was drawn. 5 seeds per row; "lines" = exact line count, "blocks" = exact paragraph count,
@@ -109,7 +111,7 @@ on lines because a slanted line's box is taller than `line_max_height_xh`.
 
 Cost on a 1240 x 1754 page (A4 at 150 dpi), one run in a cloud container, release build, median of
 5: the quality pass alone 212 ms, quality plus layout 310 ms, so layout adds about 100 ms. The
-layout pass labels the page twice (ink, then smoothed lines).
+layout pass labels the page twice (ink, then smoothed lines). These timings are raw data not kept (a cloud container, not the machine of `docs/benchmarks/`); the per-row `ms (med)` column of `docs/benchmarks/eval-layout-synth.json` is the committed timing of the whole call.
 
 ## Determinism
 

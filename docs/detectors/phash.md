@@ -94,6 +94,8 @@ near_duplicates`; `UPDATE_GOLDEN=1` regenerates it).
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-phash.json` (`python -I bench/phash_eval.py --data bench/data --synthetic 100`, 287 s, run 2026-11-20 with Pillow 12.2.0 and numpy 2.4.4); the file carries its date, commit, machine and command, holds the whole output (every table below, split by tuning and held-out pages) and says "not measured on 8 GB" (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). Every table below reproduced exactly with those versions; the timing line did not (see "Benchmark line"). The `--out` JSON of the harness is not committed (the record holds the printed tables); the figures of the failure gallery that name no table here are raw data not kept.
+
 Everything below comes from `bench/phash_eval.py` (run it with
 `python -I bench/phash_eval.py --data bench/data --synthetic 100 --out bench/results/phash_eval.json`;
 about a minute; two runs give identical numbers apart from timing). It needs the Python binding,
@@ -228,10 +230,12 @@ pages and real rescans, which this repository does not have yet.
 
 ### Benchmark line
 
-Hashing (both hashes, one call through the Python binding, release build, Apple silicon laptop):
-median **3.0 ms per page** and **3.4 ms per megapixel** over the 136 DIBCO pages, slowest page
-30 ms (an 8.9 MP scan, the largest in the set). Measured by the host; the core never reads the clock. WASM was not
-timed. The WASM binary stays within the size budget (427 KB raw, 173 KB gzipped).
+Hashing through the Python binding (one `analyse_page` call with only the `phash` detector, both hashes, release build, Apple M5 Pro):
+median **32.8 ms per page** and **34.30 ms per megapixel** over the 136 DIBCO pages, slowest page
+356 ms (the 8.9 MP scan, the largest in the set), from the last line of `docs/benchmarks/eval-phash.json`. The call also runs the quality pass, so this is not the cost of the hashes alone: a default `analyse_page` on the same pages takes a median of 29.9 ms
+(`docs/benchmarks/eval-quality-dibco.json`). An earlier version of this page gave 3.0 ms per page, 3.4 ms per
+megapixel and 30 ms for the slowest page; the harness no longer reproduces those, which are raw data not kept. Measured by the host; the core never reads the clock. WASM was not
+timed. The WASM binary stays within the size budget (427 KB raw, 173 KB gzipped; sizes of an early build, raw data not kept).
 
 ## What breaks, and what it means for rescanned deeds
 

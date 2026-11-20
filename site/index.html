@@ -116,7 +116,7 @@
 
     <section class="section" id="results" aria-labelledby="results-h">
       <h2 id="results-h">How well it works</h2>
-      <p class="sub">Every number comes from this repository's own benchmark scripts. Where the evidence is weaker than the number looks, the last column says so.</p>
+      <p class="sub">Every number comes from this repository's own benchmark scripts, and its raw output is committed: <a href="https://github.com/AirplaneMode-Labs/pagetriage/tree/main/docs/benchmarks">docs/benchmarks/</a> on GitHub lists each file with its date, commit, machine and the command that reproduces it. Where the evidence is weaker than the number looks, the last column says so.</p>
       <table class="grid-table">
         <thead>
           <tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">How far to trust it</th></tr>
@@ -149,8 +149,8 @@
           </tr>
           <tr>
             <td data-label="Check"><a href="https://github.com/AirplaneMode-Labs/pagetriage/blob/main/docs/detectors/quality.md#cost">Speed</a></td>
-            <td data-label="Result">quality pass about 63 ms on one synthetic A4 page at 150 dpi</td>
-            <td data-label="How far to trust it" class="trust">Measured on an Apple-silicon laptop, native, one page type; full-page time and throughput are not measured yet (cut to Sprint 6); the 8 GB Windows laptop is not measured.</td>
+            <td data-label="Result">quality pass about 68 ms on one synthetic A4 page at 150 dpi</td>
+            <td data-label="How far to trust it" class="trust">Measured on one Apple M5 Pro Mac, native, one page type; the 8 GB Windows laptop is not measured. Full-page time at four resolutions, the large-document figures and every raw file are in the folder linked above.</td>
           </tr>
         </tbody>
       </table>

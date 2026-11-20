@@ -29,18 +29,17 @@ artifacts: a real analysis of `tests/golden/inputs/blank_speckle.pgm` through th
 
 ## What was measured
 
-All of these come from [docs/detectors/](detectors/) and were measured before Sprint 3; none was re-measured
-for this draft. The corpora are synthetic or public benchmark sets, not real deeds.
+Every figure below was measured on 20 Nov 2026 on one Apple M5 Pro Mac (48 GiB RAM) and has its raw file under [docs/benchmarks/](benchmarks/) (owner decision, 20 Nov 2026; the
+[index](benchmarks/README.md) gives the command that reproduces each). The corpora are synthetic or public benchmark sets, not real deeds. The test counts are not here: they are in the CI logs.
 
 | What | Result | Where | Caveat |
 |---|---|---|---|
-| PDF text-layer state, 300 synthetic pages | 300 of 300 correct | `docs/detectors/text_layer.md` | We wrote the corpus; weak evidence for real PDFs |
-| Howe binarisation, DIBCO 2011, held out | F-measure 89.59, paper 91.90 | `docs/detectors/binarize.md` | Misses our own target by 2.1 points |
-| Howe binarisation, training sets (20 images) | F-measure 94.01, paper 93.84 | `docs/detectors/binarize.md` | Conventions were chosen on these images |
-| Quality-pass time per page, 136 DIBCO pages (0.05 to 9 MP), Python call | median 29 ms, 90th percentile 79 ms | `docs/detectors/quality.md` | Apple-silicon development machine |
-| Quality pass on one synthetic A4 page at 150 dpi, Python call (`bench/quality_synth_eval.py --only time`) | median 62.7 ms | `evidence/sprint-3/D2/bench-quality-time.log` | Apple-silicon development machine; one page, quality pass only. Full-page analysis time and thread-pool throughput are not measured by a repo script yet (Sprint 4) |
-| WebAssembly size, gzip -9, without / with the PDF parser | 478,548 / 855,021 bytes | `evidence/sprint-3/D2/wasm-size.log` | Budget 1,000,000 bytes |
-| Rust tests | 419 passed | `evidence/sprint-3/D2/gates-s3.log` | macOS arm64 |
+| PDF text-layer state, 300 synthetic pages | 300 of 300 correct | `docs/benchmarks/eval-structure-all.json` | We wrote the corpus; weak evidence for real PDFs |
+| Howe binarisation, DIBCO 2011, held out | F-measure 89.59, paper 91.90 | `docs/benchmarks/eval-binarize-howe-dual-2011.json` | Misses our own target (within 1.5 points of 91.7) by 2.1 points |
+| Howe binarisation, training sets (20 images) | F-measure 94.01, paper 93.84 | `docs/benchmarks/eval-binarize-howe-dual-train.json` | Conventions were chosen on these images |
+| `analyse_page` time per page, 136 DIBCO pages (0.05 to 9 MP), Python call | median 29.9 ms, largest 328.0 ms | `docs/benchmarks/eval-quality-dibco.json` | One Mac, one run per page; not measured on 8 GB |
+| Quality pass on one synthetic A4 page at 150 dpi, Python call (`bench/quality_synth_eval.py --only time`) | median 68.3 ms | `docs/benchmarks/eval-quality-time.json` | One page, quality pass only; full-page time at four resolutions is in `docs/benchmarks/speed.csv`; thread-pool throughput is not measured |
+| WebAssembly size, gzip -9, without / with the PDF parser | 478,315 / 889,502 bytes | `docs/benchmarks/eval-sizes.json` | Budget 1,000,000 bytes |
 
 ## On the 8 GB Windows laptop without a GPU
 
@@ -63,7 +62,7 @@ The wheel, the npm tarball and the command-line tool were built and installed of
 What a reader needs to trust a release is that the files that would be published were built the way a release builds them, install on a machine that has nothing else, and are signed by a key that is not a test key.
 Sprint 7 built the first two and the tooling for the third; the key is the owner's.
 
-- **Built as a release builds them, installed from the built files.** `scripts/release/rehearse.sh` builds the npm tarball (1,833,534 bytes), the wheel (1,776,831 bytes), the sdist (458,602 bytes) and the two crates (376,319 and 46,883 bytes),
+- **Built as a release builds them, installed from the built files.** `scripts/release/rehearse.sh` builds the npm tarball (1,834,660 bytes), the wheel (1,777,841 bytes), the sdist (466,586 bytes) and the two crates (380,680 and 47,907 bytes; `docs/benchmarks/eval-sizes.json`, built on 20 Nov 2026, and every one of them carries the README, so any edit of it moves these counts),
   installs the tarball into an empty project and the wheel into a fresh venv with the network off, and calls each once on a synthetic golden page and a synthetic golden PDF: the output was byte-equal to the golden report each time. A wheel built
   from the sdist alone passed the same check, and the command-line tool was built from the two packaged `.crate` files with every other crate from a vendored directory and no registry
   (`evidence/sprint-7/D2/green/D2-02-rehearse-all-nosiblings-final.log`, run in a copy of the repository with no sibling repository). One Mac ran it; the CI job that runs it on Linux, macOS and Windows has not run on a runner.
@@ -79,7 +78,7 @@ Sprint 7 built the first two and the tooling for the third; the key is the owner
 - **The README example is run by a test.** "Try it in two minutes" builds the three artefacts, installs them into an empty directory and prints `native_text` for a 586-byte synthetic PDF through Node, Python and the command line; breaking any block turns the
   test red (`evidence/sprint-7/D2/green/D2-05-quickstart-broken-blocks-1.log`).
 - **Dependencies.** toml 1.2.1 and jsonschema 0.61.2 were applied with the golden reports unchanged on native, Python and WebAssembly; lopdf 0.47.0 was not, because one stream test gets a different refusal reason for a 100 MiB object-stream bomb
-  (`evidence/sprint-7/D2/dependabot.md`). The gzipped WebAssembly package is 889,491 bytes with the PDF parser and 478,303 without it (`scripts/check-wasm-size.sh`, budget 1,000,000).
+  (`evidence/sprint-7/D2/dependabot.md`). The gzipped WebAssembly package is 889,502 bytes with the PDF parser and 478,315 without it (`docs/benchmarks/eval-sizes.json`, measured as `scripts/check-wasm-size.sh` does, budget 1,000,000).
 
 ## What it does not do
 

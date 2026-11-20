@@ -46,6 +46,8 @@ pages. Only the period range has a physical basis (ridge spacing of about half a
 
 ## Evaluation
 
+**Raw results:** `docs/benchmarks/eval-thumb-synth.json` (`python -I bench/thumb_synth_eval.py`), run 2026-11-20. Each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The tables below summarise that output. Figures about how earlier versions of the detector scored ("how it got there"), probes outside the script's default run and the cost line are raw data not kept.
+
 `bench/thumb_synth_eval.py`: A4 pages at 150 dpi, a Latin text page with one print (0.7 to 1.1 in wide,
 0.85 to 1.3 in tall, ridge period 3 to 5 px, `bench/synth/printgen.py`) in the lower half; a print is
 found when a finding overlaps the drawn box with IoU of at least 0.5. 6 dev seeds (thresholds set
@@ -75,7 +77,7 @@ whose ridges have fused into an ink blob has none of the features, and "an inked
 thumb goes" is probably what many real ones look like.
 
 Cost: on a 1240 x 1754 page, release build, medians of 7 runs: quality alone 168 and 179 ms, with `thumb`
-191 and 185 ms (so roughly 10 to 25 ms).
+191 and 185 ms (so roughly 10 to 25 ms). Raw data not kept.
 
 ## Determinism
 

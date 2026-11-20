@@ -82,6 +82,8 @@ Devanagari (legacy-encoded), reliable=false
 
 ## Measured results
 
+**Raw results:** `docs/benchmarks/eval-structure-all.json` (`python -I bench/structure_eval.py --corpus bench/data/synth_pdf --split all`, which also gives the legacy-font counts below), `docs/benchmarks/eval-legacy-probe-1.json` (`python -I bench/tools/legacy_probe.py 1`) and `docs/benchmarks/eval-legacy-probe-3.json` (`python -I bench/tools/legacy_probe.py 3`), run 2026-11-20; each file carries its date, commit, machine and command, and none was measured on an 8 GB laptop (the index is [docs/benchmarks/README.md](../benchmarks/README.md)). The label counts per script (latin 119, none 77, ...) come from the corpus's `labels.json`, not from the evaluation output, and are raw data not kept.
+
 **Corpus** (`bench/structure_eval.py`, synthetic, written by us; weak evidence of real-world accuracy):
 
 | Check | Result |
