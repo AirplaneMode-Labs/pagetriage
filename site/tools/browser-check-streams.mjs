@@ -1,4 +1,4 @@
-// The demo at its Pages sub-path, in installed Chrome (Sprint 6): serves site/ under /<repo>/ with a server that 404s every
+// The demo at its Pages sub-path, in installed Chrome (Sprint 6, status line from Sprint 7): serves site/ under /<repo>/ with a server that 404s every
 // other path, opens the page, and for each PDF sample reads what the page shows. Checks, for the PDF samples and the three
 // refused seeds: the stream check shows a verdict and a table of counts as text; a seed over a limit is refused with the
 // plain sentence and no page report (the structure analysis was not run); the others show the page report as before; the
@@ -49,8 +49,13 @@ page.on("request", (r) => { if (!r.url().startsWith(origin) && !r.url().startsWi
 try {
   await page.goto(`${origin}${base}`);
   await page.waitForSelector("#picker button");
-  check(/^Sprint 6 \(19 Nov 2026\): Working: /.test(await page.textContent("#sprint-status")) && (await page.textContent("#sprint-status")).includes(" Not yet: "), "the status line starts 'Sprint 6 (19 Nov 2026): Working: ... Not yet: ...'");
+  check(/^Sprint 7 \(20 Nov 2026\): Working: /.test(await page.textContent("#sprint-status")) && (await page.textContent("#sprint-status")).includes(" Not yet: "), "the status line starts 'Sprint 7 (20 Nov 2026): Working: ... Not yet: ...'");
   if (statusLineFile) check((await page.textContent("#sprint-status")).trim() === readFileSync(statusLineFile, "utf8").trim(), `the status line equals ${statusLineFile}`);
+  // Sprint 7 (TD-107): the demo shows the release candidate and never the release version before the tag (the label, the status line, the not-yet box, anywhere in the page text)
+  const label = (await page.locator("[data-version]").first().textContent())?.trim();
+  check(/^1\.0\.0-rc\.\d+$/.test(label ?? ""), `the analyser version label reads a release candidate (${label})`);
+  const pageText = await page.evaluate(() => document.body.innerText);
+  check(!/(^|[^0-9A-Za-z.])v?1\.0\.0($|[^0-9A-Za-z.-]|-(?!rc\.))/.test(pageText), "the page text never reads the release version (only the release candidate)");
   check((await page.locator("#not-yet li").count()) >= 6, "the 'does not do yet' box is there with its list");
   const notYet = await page.textContent("#not-yet");
   check(/OCR/.test(notYet) && /not measured on 8 GB/.test(notYet) && /signed release/i.test(notYet) && /No published package, and no tag/.test(notYet), "the not-yet box names OCR, the 8 GB gap, a signed release, a tag and a published package");
