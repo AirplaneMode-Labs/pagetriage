@@ -31,6 +31,8 @@
 #     pypa/gh-action-pypi-publish with attestations: true and packages-dir, the crates re-packaged (`cargo package --locked --no-verify`),
 #     compared, published (`cargo publish --locked --no-verify`) and read back from the crates.io sparse index as four consecutive steps
 #     BEFORE the PyPI step (S1-126, S1-131), no test-key string, no cache, 1-day candidate upload;
+#  H. every dtolnay/rust-toolchain step installs the channel, components and targets that rust-toolchain.toml lists, so no `cargo` call
+#     starts a rustup implicit install (run 44651022212: 'detected conflict: bin/cargo-clippy' on Linux and macOS);
 #  E. all workflows (Sprint 7): no pull_request_target and no workflow_run anywhere; `secrets.` only as NPM_TOKEN or
 #     CARGO_REGISTRY_TOKEN in publish.yml; id-token: write and attestations: write only in publish.yml; no `inputs.` and no
 #     `github.event.` in a workflow other than the pre-Sprint-7 ones; no version or matrix value interpolated into a run: line.
@@ -340,6 +342,44 @@ if [ ! -f "$DRY" ]; then fail "scripts/release/publish-dry-run.sh exists"; else
   expect_eq "dry run: the wheel check (tests/python/check_wheel.py) runs on every wheel, and the dist-tag comes from publish-guard.sh" 1 "$([ "$(printf '%s\n' "$DC" | grep -cF 'tests/python/check_wheel.py')" -ge 1 ] && [ "$(printf '%s\n' "$DC" | grep -cF 'publish-guard.sh dist-tag')" -ge 1 ] && echo 1 || echo 0)"
   expect_eq "dry run: no token, no provenance flag (needs OIDC), no secret and no registry credential is set" 0 "$(printf '%s\n' "$DC" | grep -vE '^[[:space:]]*(log|echo|die) |die "|log "|echo "' | grep -cE 'NODE_AUTH_TOKEN=|NPM_TOKEN=|CARGO_REGISTRY_TOKEN=|secrets\.|--provenance|npm login|cargo login|twine')"
   expect_eq "dry run: the credentials that could exist in a runner's environment are removed before each publish command runs" 1 "$([ "$(printf '%s\n' "$DC" | grep -E '(npm|cargo) publish' | grep -cE 'env -u NODE_AUTH_TOKEN -u NPM_TOKEN -u CARGO_REGISTRY_TOKEN')" -ge 2 ] && echo 1 || echo 0)"
+fi
+# ---- H. the toolchain steps install everything rust-toolchain.toml lists (run 44651022212) ------------------------
+# rust-toolchain.toml makes every `cargo` call in a checkout ensure its channel, components and targets. A dtolnay/rust-toolchain
+# step that installs less leaves the first `cargo` call to top the toolchain up through rustup's IMPLICIT install, and that path is not
+# process-safe (rust-lang/rustup#988): it died with "failed to install component: 'clippy-preview-...', detected conflict:
+# 'bin/cargo-clippy'" on ubuntu-latest and macos-latest in release-rehearsal, at the first cargo call of the build step, while the
+# same step passed on Windows. A toolchain that is complete before the first cargo call has nothing left to install.
+echo "== H. every dtolnay/rust-toolchain step installs the channel, components and targets of rust-toolchain.toml (no implicit rustup install at the first cargo call)"
+TCF=${TOOLCHAIN_FILE:-$REPO/rust-toolchain.toml}
+if [ ! -f "$TCF" ]; then fail "rust-toolchain.toml exists"; else
+  # tc_norm: a TOML scalar or array, or a workflow `with:` value, as a sorted space-separated set without quotes or brackets
+  tc_norm() { tr -d '"[]' | tr ', ' '\n\n' | grep -v '^$' | sort | tr '\n' ' ' | sed 's/ $//'; }
+  tc_key() { sed -n "s/^$1[[:space:]]*=[[:space:]]*//p" "$TCF" | head -1 | tc_norm; }
+  WANT_CH=$(tc_key channel); WANT_CO=$(tc_key components); WANT_TA=$(tc_key targets)
+  [ -n "$WANT_CH" ] && ok "rust-toolchain.toml names channel '$WANT_CH', components '$WANT_CO', targets '$WANT_TA'" || fail "rust-toolchain.toml has a channel"
+  # one line per dtolnay step of the workflow file $1: <file>|<toolchain>|<components>|<targets>, '-' where the step does not set the input
+  # (END, not gawk's ENDFILE: the awk of macOS has none)
+  rt_steps() { awk '
+    function flush() { if (on) { n = split(FILENAME, a, "/"); printf "%s|%s|%s|%s\n", a[n], tc, co, ta }; on = 0 }
+    /^[[:space:]]*#/ { next }
+    { match($0, /^ */); ind = RLENGTH }
+    /uses:[[:space:]]*dtolnay\/rust-toolchain@/ { flush(); on = 1; tc = "-"; co = "-"; ta = "-"; next }
+    on && NF && ind <= 6 { flush() }
+    on && /^ +toolchain:/ { v = $0; sub(/^ +toolchain:[[:space:]]*/, "", v); tc = v; next }
+    on && /^ +components:/ { v = $0; sub(/^ +components:[[:space:]]*/, "", v); co = v; next }
+    on && /^ +targets:/ { v = $0; sub(/^ +targets:[[:space:]]*/, "", v); ta = v; next }
+    END { flush() }
+  ' "$1"; }
+  NSTEPS=0; BADTC=0
+  while IFS='|' read -r f tc co ta; do
+    NSTEPS=$((NSTEPS+1))
+    [ "$co" = - ] && co=""; [ "$ta" = - ] && ta=""; [ "$tc" = - ] && tc=""
+    gc=$(printf '%s' "$tc" | tc_norm); go=$(printf '%s' "$co" | tc_norm); gt=$(printf '%s' "$ta" | tc_norm)
+    if [ "$gc" != "$WANT_CH" ] || [ "$go" != "$WANT_CO" ] || [ "$gt" != "$WANT_TA" ]; then
+      echo "  $f, dtolnay step $NSTEPS: toolchain '$gc', components '$go', targets '$gt' (rust-toolchain.toml: '$WANT_CH', '$WANT_CO', '$WANT_TA')"; BADTC=$((BADTC+1)); fi
+  done < <(for wf in "$WF"/*.yml; do rt_steps "$wf"; done)
+  if [ "$NSTEPS" -ge 1 ]; then ok "found $NSTEPS dtolnay/rust-toolchain steps"; else fail "at least one dtolnay/rust-toolchain step is found in the workflows"; fi
+  expect_eq "every dtolnay/rust-toolchain step sets toolchain, components and targets to what rust-toolchain.toml lists (an incomplete toolchain starts a rustup implicit install at the first cargo call)" 0 "$BADTC"
 fi
 
 finish
