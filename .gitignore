@@ -7,6 +7,11 @@
 /dist/
 /pkg/
 
+# the release rehearsal (scripts/release/rehearse.sh): artefacts, report, and the venv of hashed tools. Never committed.
+/dist-release/
+/dist-release-report/
+/tools-venv/
+
 # local scratch (installer logs etc.)
 /.scratch/
 

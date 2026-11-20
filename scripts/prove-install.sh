@@ -9,7 +9,7 @@
 #
 # <scratch-dir> must not exist yet (it is created, never deleted). Build the artifacts first:
 #   RUSTFLAGS="$(. scripts/remap-flags.sh; echo $RUSTFLAGS)" uvx maturin build --release -m crates/pagetriage-py/Cargo.toml -o <wheels-dir>
-#   scripts/build-wasm.sh && scripts/package-npm.sh        # -> dist/npm/pagetriage-x.y.z.tgz
+#   PAGETRIAGE_WASM_FEATURES=pdf WASM_OUT=dist/wasm-pdf scripts/build-wasm.sh && WASM_OUT=dist/wasm-pdf scripts/package-npm.sh   # -> dist/npm/airplanemode-pagetriage-x.y.z.tgz
 set -euo pipefail
 [ "$#" -eq 3 ] || { echo "usage: $0 <wheel.whl> <tarball.tgz> <scratch-dir>" >&2; exit 2; }
 REPO=$(cd "$(dirname "$0")/.." && pwd)
@@ -60,10 +60,10 @@ mkdir -p "$S/npm-fresh" "$S/npm-cache-empty"
 ( cd "$S/npm-fresh" && npm init -y >/dev/null \
   && npm i "$TGZ" --ignore-scripts --offline --no-audit --no-fund --cache "$S/npm-cache-empty" 2>&1 | tail -3 \
   && echo "-- npm ls --all" && npm ls --all \
-  && test "$(ls node_modules | tr '\n' ' ')" = "pagetriage " && echo "node_modules holds exactly: pagetriage" \
+  && test "$(ls node_modules | tr '\n' ' ')" = "@airplanemode " && test "$(ls node_modules/@airplanemode | tr '\n' ' ')" = "pagetriage " && echo "node_modules holds exactly: @airplanemode/pagetriage" \
   && node -e '
 const fs = require("fs"), crypto = require("crypto");
-const wasm = require("pagetriage");
+const wasm = require("@airplanemode/pagetriage");
 const data = fs.readFileSync(process.env.GOLDEN_IN);
 let pos = 0; const tok = [];
 const sp = (b) => b === 0x20 || (b >= 0x09 && b <= 0x0d);
@@ -77,7 +77,7 @@ console.log("real call byte-equal to golden: sha256=" + crypto.createHash("sha25
 
 echo "== archive contents check"
 python3 - "$WHEEL" "$TGZ" <<'PY'
-import sys, tarfile, zipfile
+import json, sys, tarfile, zipfile
 wheel, tgz = sys.argv[1], sys.argv[2]
 with zipfile.ZipFile(wheel) as z:
     wheel_files = [(i.filename, i.file_size) for i in z.infolist()]
@@ -86,8 +86,8 @@ with zipfile.ZipFile(wheel) as z:
 with tarfile.open(tgz) as t:
     tgz_files = [(m.name, m.size) for m in t.getmembers() if m.isfile()]
     pkg = t.extractfile("package/package.json").read().decode()
+    assert json.loads(pkg)["name"] == "@airplanemode/pagetriage", "npm package name"
     readme_txt = t.extractfile("package/README.md").read().decode()
-import json
 SENT = "Not published yet: the npm scope @airplanemode and the PyPI and crates.io names are not reserved. The commands below were proven from locally built artifacts on macOS arm64 (an npm pack tarball installed offline into a fresh empty directory, a wheel installed into a fresh venv); publishing to the registries is the owner's step."
 def bad(files):
     return [n for n, s in files if s > 5_000_000 or any(x in n for x in ("tests/", "golden", ".map", ".onnx", "node_modules"))]

@@ -11,7 +11,7 @@ members = [
 default-members = ["crates/pagetriage-core", "crates/pagetriage-cli"]
 
 [workspace.package]
-version = "0.1.0"
+version = "1.0.0-rc.1"
 edition = "2024"
 license = "MIT OR Apache-2.0"
 repository = "https://github.com/AirplaneMode-Labs/pagetriage"
@@ -22,7 +22,7 @@ categories = ["computer-vision", "text-processing"]
 rust-version = "1.98"
 
 [workspace.dependencies]
-pagetriage-core = { path = "crates/pagetriage-core", version = "0.1.0" }
+pagetriage-core = { path = "crates/pagetriage-core", version = "1.0.0-rc.1" }
 
 # Native release: speed matters, and PyO3 needs unwinding to turn a Rust panic into a Python
 # exception, so no `panic = "abort"` here.

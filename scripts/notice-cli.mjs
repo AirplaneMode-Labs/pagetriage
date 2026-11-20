@@ -1,14 +1,19 @@
-// Writes the NOTICE of the pagetriage command-line tool: the hand-written part of the repository NOTICE followed by one
-// block per crate in the CLI's dependency tree whose `cargo metadata` licence field is exactly "MIT". A CLI binary is a
+// Writes the NOTICE of a published pagetriage crate: the hand-written part of the repository NOTICE followed by one
+// block per crate in that crate's dependency tree whose `cargo metadata` licence field is exactly "MIT". A CLI binary is a
 // copy of every crate linked into it and MIT requires its notice in every copy (BUG-T3-S4-19). The tree is the one for
 // ALL targets (`cargo tree --locked -p pagetriage-cli --target all -e normal`), because a binary built on Linux or Windows
 // links crates that a macOS build does not: crunchy 0.2.4 is MIT-only and is in the tree only with `--target all`
 // (BUG-T3-S4-21). The crate list comes from cargo, never from a hand-kept list, so a dependency bump or a new MIT-only
 // crate shows up without an edit; tests/scripts/notice-cli.sh checks the committed file against cargo.
 //
-//   node scripts/notice-cli.mjs <out-file>            write the NOTICE (copy it to crates/pagetriage-cli/NOTICE)
-//   node scripts/notice-cli.mjs --check [file]        exit 1 unless <file> (default crates/pagetriage-cli/NOTICE) is
-//                                                     byte for byte what would be written now
+// The same generator writes the NOTICE of pagetriage-core (`--package pagetriage-core`, BUG-T3-S7-04): the core crate is published
+// and signed too, and its packaged .crate must carry a NOTICE. Its tree is taken with the `pdf` feature on and for all targets, which
+// is the widest build of the crate (the CLI, the wheel and the WebAssembly package all build it with `pdf`).
+// tests/scripts/notice-core.sh checks that file against cargo.
+//
+//   node scripts/notice-cli.mjs [--package P] <out-file>   write the NOTICE of P (default pagetriage-cli; copy it to crates/P/NOTICE)
+//   node scripts/notice-cli.mjs [--package P] --check [file]  exit 1 unless <file> (default crates/P/NOTICE) is byte for byte
+//                                                     what would be written now
 //
 // Run from the repository root. Idempotent: the hand-written part is the repository NOTICE cut before the
 // Python-wheel marker, so regenerating the root NOTICE with gen-site-notice.mjs --py does not change this file.
@@ -17,19 +22,42 @@ import { readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 
 const PY_MARKER = "Crates in the Python wheel and the WebAssembly demo that are licensed under MIT alone";
-const CLI_MARKER = "Crates in the pagetriage command-line tool that are licensed under MIT alone";
-const DEFAULT_FILE = "crates/pagetriage-cli/NOTICE";
+const PACKAGES = {
+  "pagetriage-cli": {
+    treeArgs: ["-p", "pagetriage-cli"],
+    marker: "Crates in the pagetriage command-line tool that are licensed under MIT alone",
+    text: "`cargo tree --locked -p pagetriage-cli --target all -e normal`: the tree for every target, so that a build on\nLinux or Windows is covered as well as one on macOS.\n",
+  },
+  "pagetriage-core": {
+    treeArgs: ["-p", "pagetriage-core", "--features", "pdf"],
+    marker: "Crates in the pagetriage-core crate that are licensed under MIT alone",
+    text: "`cargo tree --locked -p pagetriage-core --features pdf --target all -e normal`: the tree for every target and with the\n`pdf` feature on (the widest build of the crate: the command-line tool, the Python wheel and the WebAssembly package all build it that way).\n",
+  },
+};
 
+// arguments: [--package P] ( <out-file> | --check [file] )
 const argv = process.argv.slice(2);
+let pkgName = "pagetriage-cli";
+if (argv[0] === "--package") {
+  pkgName = argv[1];
+  argv.splice(0, 2);
+}
+const pkg = Object.hasOwn(PACKAGES, pkgName) ? PACKAGES[pkgName] : null;
+if (!pkg) {
+  console.error(`usage: notice-cli.mjs [--package ${Object.keys(PACKAGES).join("|")}] <out-file> | --check [file]`);
+  process.exit(2);
+}
+const DEFAULT_FILE = `crates/${pkgName}/NOTICE`;
+const CLI_MARKER = pkg.marker;
 const check = argv[0] === "--check";
 const target = check ? (argv[1] ?? DEFAULT_FILE) : argv[0];
 if (!target) {
-  console.error("usage: notice-cli.mjs <out-file> | --check [file]");
+  console.error(`usage: notice-cli.mjs [--package ${Object.keys(PACKAGES).join("|")}] <out-file> | --check [file]`);
   process.exit(2);
 }
 const run = (args) => execFileSync("cargo", args, { encoding: "utf8", maxBuffer: 1 << 28 });
 
-const tree = run(["tree", "--locked", "-p", "pagetriage-cli", "--target", "all", "-e", "normal", "--prefix", "none", "-f", "{p}"]);
+const tree = run(["tree", "--locked", ...pkg.treeArgs, "--target", "all", "-e", "normal", "--prefix", "none", "-f", "{p}"]);
 const inTree = new Set();
 for (const line of tree.split("\n")) {
   const m = /^(\S+) v(\S+)/.exec(line.trim());
@@ -66,8 +94,7 @@ const at = base.indexOf(PY_MARKER);
 if (at >= 0) base = base.slice(0, at);
 let text = base.replace(/\s+$/, "") + "\n\n" + CLI_MARKER + "\n" + "-".repeat(CLI_MARKER.length) + "\n";
 text += "Listed from `cargo metadata --locked` (licence field exactly \"MIT\"), restricted to the crates in\n";
-text += "`cargo tree --locked -p pagetriage-cli --target all -e normal`: the tree for every target, so that a build on\n";
-text += "Linux or Windows is covered as well as one on macOS.\n";
+text += pkg.text;
 for (const p of mit) text += block(p);
 
 if (check) {
@@ -81,7 +108,7 @@ if (check) {
     console.log(`${target} is up to date (${mit.length} MIT-only crates)`);
     process.exit(0);
   }
-  console.error(`${target} is ${have === null ? "missing" : "stale"}: run node scripts/notice-cli.mjs ${DEFAULT_FILE}`);
+  console.error(`${target} is ${have === null ? "missing" : "stale"}: run node scripts/notice-cli.mjs ${pkgName === "pagetriage-cli" ? "" : `--package ${pkgName} `}${DEFAULT_FILE}`);
   process.exit(1);
 }
 writeFileSync(target, text);

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Assemble the npm package from the WASM build (dist/wasm/{web,nodejs}) into dist/npm, pack it, and
 # check that the packed tarball installs and runs under Node. It does NOT publish: publishing is a
-# separate, deliberate step (`npm publish dist/npm/pagetriage-*.tgz`).
+# separate, deliberate step (docs/RELEASING.md; the owner's `npm publish` of the signed candidate, never run by a script here).
 #
 #   scripts/build-wasm.sh && scripts/package-npm.sh
 #
@@ -27,7 +27,7 @@ cp LICENSE-MIT LICENSE-APACHE NOTICE "$OUT/package/"
 cp README.md "$OUT/package/README.md"
 cat > "$OUT/package/package.json" <<JSON
 {
-  "name": "pagetriage",
+  "name": "@airplanemode/pagetriage",
   "version": "$VERSION",
   "description": "Deterministic, non-ML page-content analyser for degraded scanned legal documents (WASM build)",
   "license": "MIT OR Apache-2.0",
@@ -53,7 +53,9 @@ cat > "$OUT/package/package.json" <<JSON
 JSON
 
 ( cd "$OUT" && npm pack --silent ./package --pack-destination . >/dev/null )
-TARBALL=$(ls "$OUT"/pagetriage-*.tgz)
+# A scoped name packs to <scope>-<name>-<version>.tgz (TD-108): airplanemode-pagetriage-<version>.tgz.
+TARBALL="$OUT/airplanemode-pagetriage-$VERSION.tgz"
+[ -f "$TARBALL" ] || { echo "error: $TARBALL was not written (found: $(ls "$OUT"))" >&2; exit 1; }
 echo "packed $TARBALL ($(wc -c < "$TARBALL" | tr -d ' ') bytes)"
 scripts/check-no-builder-paths.sh "$TARBALL"
 tar -tzf "$TARBALL" | sed 's/^/  /'
@@ -61,9 +63,9 @@ tar -tzf "$TARBALL" | sed 's/^/  /'
 # Install the tarball in a scratch project and run it: a blank page and the wrong-length buffer error.
 SCRATCH=$(mktemp -d)
 trap 'rm -rf "$SCRATCH"' EXIT
-( cd "$SCRATCH" && npm init -y >/dev/null && npm install --silent --no-audit --no-fund "$OLDPWD/$TARBALL" >/dev/null )
+( cd "$SCRATCH" && npm init -y >/dev/null && npm install --silent --no-audit --no-fund --ignore-scripts --offline "$OLDPWD/$TARBALL" >/dev/null )
 ( cd "$SCRATCH" && node -e '
-const wasm = require("pagetriage");
+const wasm = require("@airplanemode/pagetriage");
 const gray = new Uint8Array(64 * 64).fill(255);
 const out = JSON.parse(wasm.analyse_page(gray, undefined, 64, 64, 150, undefined, "{}"));
 if (!out.findings.some((f) => f.kind === "blank_page")) throw new Error("blank page not reported");

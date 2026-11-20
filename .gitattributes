@@ -16,3 +16,10 @@
 *.ttf binary
 *.zip binary
 *.gz binary
+
+# Vendored from AirplaneMode-Labs/runtime (spec release 0.6.1): the release tool, its record, and the shared vectors are hashed and
+# signed byte for byte, so no checkout may convert their line endings (core.autocrlf=true included). tests/scripts/release-tool-vendored.sh
+# clones with core.autocrlf=true and compares digests.
+scripts/release/release-tool.mjs -text
+scripts/release/VENDORED.json -text
+tests/vectors/** -text
