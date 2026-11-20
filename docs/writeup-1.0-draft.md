@@ -1,12 +1,13 @@
 # pagetriage 1.0: what it does and what is measured
 
-**Draft, not published.** Written 14 Nov 2026 for release row 7 of [release.md](release.md). It uses only
+**Draft, not published.** Written 14 Nov 2026 for release row 7 of [release.md](release.md) and refreshed on 20 Nov 2026 (Sprint 7). It uses only
 evidence that exists today. Every figure names the file it comes from; a figure without a path is not in
-this draft. The 8 GB laptop figures read "not measured" because nobody has measured them, and the draft
-cannot be finished until [row 2](release.md) closes. Nothing here is published, tagged or announced.
+this draft. The 8 GB laptop figures read "not measured on 8 GB" because nobody has measured them, and the draft
+cannot be finished until [row 2](release.md) closes. Nothing here is published, tagged or announced; the version is the release candidate
+1.0.0-rc.1.
 
-Paths starting with `evidence/sprint-3/D2/` are copied into the repository by the architect at wrap-up;
-until then they sit in the Sprint 3 scratch folder.
+Paths starting with `evidence/sprint-N/D2/` are copied into the repository by the architect at wrap-up;
+until then they sit in that sprint's scratch folder.
 
 ## What it is
 
@@ -53,19 +54,41 @@ The procedure is in [release.md](release.md), "Owner must", row 2.
 
 ## Install, today
 
-Not published yet: the npm scope `@airplanemode` and the PyPI and crates.io names are not reserved. A wheel
-and an npm tarball were built locally and installed offline into fresh environments on macOS arm64,
-`evidence/sprint-3/D2/install-all-r2.log`. The wheel is `pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl`;
-Linux and Windows wheels are not built yet. Commands: README, [Install](../README.md#install).
+Not published yet: the npm scope `@airplanemode` and the PyPI and crates.io names are not reserved. The package names are `@airplanemode/pagetriage`, `pagetriage`, `pagetriage-core` and `pagetriage-cli`; they are placeholders.
+The wheel, the npm tarball and the command-line tool were built and installed offline into fresh environments on one macOS arm64 Mac, twice: in Sprint 3 at version 0.1.0
+(`evidence/sprint-3/D2/install-all-r2.log`) and in Sprint 7 at 1.0.0-rc.1 (below). Linux and Windows have not run any of it. Commands: README, [Install](../README.md#install).
+
+## Release readiness, Sprint 7 (20 Nov 2026)
+
+What a reader needs to trust a release is that the files that would be published were built the way a release builds them, install on a machine that has nothing else, and are signed by a key that is not a test key.
+Sprint 7 built the first two and the tooling for the third; the key is the owner's.
+
+- **Built as a release builds them, installed from the built files.** `scripts/release/rehearse.sh` builds the npm tarball (1,833,534 bytes), the wheel (1,776,831 bytes), the sdist (458,602 bytes) and the two crates (376,319 and 46,883 bytes),
+  installs the tarball into an empty project and the wheel into a fresh venv with the network off, and calls each once on a synthetic golden page and a synthetic golden PDF: the output was byte-equal to the golden report each time. A wheel built
+  from the sdist alone passed the same check, and the command-line tool was built from the two packaged `.crate` files with every other crate from a vendored directory and no registry
+  (`evidence/sprint-7/D2/green/D2-02-rehearse-all-nosiblings-final.log`, run in a copy of the repository with no sibling repository). One Mac ran it; the CI job that runs it on Linux, macOS and Windows has not run on a runner.
+- **The crates are reproducible on that Mac**: two `cargo package --locked` runs gave identical `.crate` bytes (`crate reproducibility: identical bytes in two runs (macos)`, same log), and so did the `--no-verify` run that the publish job repeats (`evidence/sprint-7/D2/green/FR1-rehearse-all-nosiblings-1.log`, "the --no-verify bytes equal the verified bytes"), which is what lets them stay in the signed set. Each crate carries `LICENSE-APACHE`, `LICENSE-MIT` and a `NOTICE` (the rehearsal's gate checks the three inside every `.crate`).
+- **A rehearsal signature that cannot be mistaken for a release.** The same run made `release-manifest.json` and `SHA256SUMS`, signed them with the published RFC 8032 test key, and showed ten refusals, each by exit code and first line of stderr:
+  the same files without the explicit flag (`refused: test_key_refused`), against the committed production key file, which holds no key (`refused: no_trusted_key`), with no expected id, with a release id, with a trust file together with the flag, with a wrong id,
+  with one byte flipped, with CRLF line endings in `SHA256SUMS`, and the test key asked to sign a `-release` id (`usage: test_key_release_id`). Two runs with the same `SOURCE_DATE_EPOCH` wrote byte-identical files
+  (`evidence/sprint-7/D2/green/D2-02-rehearse-twice-identical-1.log`). The published key proves the tooling and nothing else.
+- **Publishing cannot happen by accident.** `.github/workflows/publish.yml` starts only by a dispatch on `main`, waits for the owner's approval in a protected environment, verifies the owner's signed manifest against a key committed in the repository (empty today),
+  checks that the tag points at the commit and that no registry holds the version, attests the exact files, and only then publishes. Its rules are tested (`tests/scripts/ci-policy.sh`, with 44 deliberate mutations that must turn it red,
+  `tests/scripts/ci-policy-mutations.sh`) and so is each refusal of its checks (`tests/scripts/publish-guard.sh`, 88 checks). Nobody has run it. The dry run of its commands found one real defect: `npm publish` needs `./` before a path, or it reads
+  it as a GitHub repository name. The owner's steps, in order, are in [RELEASING.md](RELEASING.md).
+- **The README example is run by a test.** "Try it in two minutes" builds the three artefacts, installs them into an empty directory and prints `native_text` for a 586-byte synthetic PDF through Node, Python and the command line; breaking any block turns the
+  test red (`evidence/sprint-7/D2/green/D2-05-quickstart-broken-blocks-1.log`).
+- **Dependencies.** toml 1.2.1 and jsonschema 0.61.2 were applied with the golden reports unchanged on native, Python and WebAssembly; lopdf 0.47.0 was not, because one stream test gets a different refusal reason for a 100 MiB object-stream bomb
+  (`evidence/sprint-7/D2/dependabot.md`). The gzipped WebAssembly package is 889,491 bytes with the PDF parser and 478,303 without it (`scripts/check-wasm-size.sh`, budget 1,000,000).
 
 ## What it does not do
 
 - It has not been run on a real Indian deed, and no confidence is calibrated
   ([Limitations](../README.md#limitations), `docs/detectors/fusion.md`).
 - It does not read text.
-- Nothing is signed. `scripts/release-manifest.mjs` writes an unsigned manifest; a dry run with the public
-  test key verified, which proves the tooling only (`evidence/sprint-3/D2/dry-run-sign.log`).
-- Nothing is published, and no version is tagged. v1.0.0 is held by release rows 2, 4, 5, 6 and 7.
+- Nothing is signed with a real key. The rehearsal signs with the published test key, which proves the tooling only (`evidence/sprint-7/D2/green/D2-02-rehearse-all-nosiblings-final.log`); `docs/release-keys.json` holds no key.
+- Nothing is published, and no version is tagged. v1.0.0 is held by release rows 2, 4, 5, 6 and 7, and every one of them is the owner's ([release.md](release.md)).
+- Nothing has been shown to build or install on Linux or Windows, and nothing was measured on an 8 GB laptop (not measured on 8 GB).
 
 ## To finish this draft
 

@@ -1,0 +1,7 @@
+# Blank issues are off so that every report goes through a form (and its no-real-documents checkbox).
+# Vulnerabilities are never reported in an issue: the contact link below leads to SECURITY.md.
+blank_issues_enabled: false
+contact_links:
+  - name: Report a security vulnerability (privately, never in an issue)
+    url: https://github.com/AirplaneMode-Labs/pagetriage/blob/main/SECURITY.md
+    about: How to report a vulnerability privately. Do not open a public issue for one.

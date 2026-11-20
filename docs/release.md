@@ -3,26 +3,26 @@
 One row per item of the definition of done that every Airplane Mode Labs release must meet. A row is
 Done only when the Evidence column names a file or command that proves it today; anything else is
 Open. Nothing may be tagged while a Blocker-for-tag row is Open. The first release will be 1.0.0; the
-workspace version stays 0.1.0 until the tag commit (step 1 below), and the notes for it live under
-`## [Unreleased]` in [CHANGELOG.md](../CHANGELOG.md).
+workspace version is the release candidate 1.0.0-rc.1 (the wheel and the sdist write it as 1.0.0rc1) until the owner's tag commit
+([RELEASING.md](RELEASING.md), step 7), which is the only change to 1.0.0, and the notes for it live under
+`## [1.0.0-rc.1]` in [CHANGELOG.md](../CHANGELOG.md).
 
-Status as of 2026-11-14 (Sprint 4), after the move to `AirplaneMode-Labs/pagetriage`. Evidence paths
-under `evidence/sprint-3/D2/` and `evidence/sprint-4/D2/` are the copies the architect makes at wrap-up.
-Sprint 4 closed no further row: every Open row needs the owner (8 GB laptop, real key, registry names,
-tag, write-up). What Sprint 4 did change is evidence inside row 6 (notices, below) and the
-History note.
+Status as of 2026-11-20 (Sprint 7). Evidence paths under `evidence/sprint-N/D2/` are the copies the architect makes at wrap-up.
+Sprint 7 closed every row the team could close: what is left is owner-only, and each open row says why. The owner's steps, in order, with the
+commands and the reason the team cannot take each one, are in [RELEASING.md](RELEASING.md); the team's side (the artefacts, the
+`release-rehearsal` CI job, `publish.yml` and its checks) is listed there too.
 
 | # | Definition-of-done item | Status | Evidence | Owner | Blocker-for-tag |
 |---|---|---|---|---|---|
-| 1 | Tests written before the implementation; CI green on Linux, macOS and Windows | Tests-first evidence Done (red/green logs); local macOS green; pushed 15 Nov 2026 at b290cc8; CI at that head red: run 43667700010, fmt, clippy, test (windows-latest); the row stays open until the owner pushes the Sprint 5 fix and reads a green run | Tests first: every detector has a golden input and expected report under `tests/golden/`; the Sprint 3 script (`scripts/release-manifest.mjs`) has `red-D2-02.log` before `green-D2-02.log` in `evidence/sprint-3/D2/`. Local macOS: `cargo fmt`, `clippy -D warnings`, `cargo test`, `scripts/determinism.sh` and `tests/scripts/run-all.sh` pass (`evidence/sprint-3/D2/gates-s3.log`; Sprint 4 re-run: `evidence/sprint-4/D2/gates-s4.log`). The three-OS matrix is configured in `.github/workflows/ci.yml`. Its last run, on the commit pushed on 9 Nov 2026, was green on `ubuntu-latest`, `macos-latest` and `windows-latest` ([run](https://github.com/AirplaneMode-Labs/pagetriage/actions/runs/42634433346)); the Sprint 3 and 4 commits were pushed on 15 Nov 2026 at b290cc8 and that head is red on windows-latest (run 43667700010). The two macOS legs that were cancelled in run 44335095947 are green on re-run (attempt 2) at eb28e49. Not marked Done until the owner pushes the Sprint 5 fix and reads a green run | D2, then owner (push, read CI) | no |
+| 1 | Tests written before the implementation; CI green on Linux, macOS and Windows | Done for the Sprint 6 head; the Sprint 7 commits wait for the push | Tests first: every detector has a golden input and expected report under `tests/golden/`; every Sprint 7 task has a red log older than its green log (`evidence/sprint-7/D2/red/`, `green/`). CI at the Sprint 6 head 1a6a244 (the main session's push of 19 Nov 2026): all 13 jobs of [run 44584709767](https://github.com/AirplaneMode-Labs/pagetriage/actions/runs/44584709767) succeeded on `ubuntu-latest`, `macos-latest` and `windows-latest` (`evidence/sprint-7/D2/partA-ci.log`). The Sprint 7 commits are read by the main session after its push (the jobs are listed in "Sprint 7: what only CI can prove" below); local macOS: `cargo fmt`, `clippy -D warnings`, `cargo test --locked`, `scripts/determinism.sh` and `tests/scripts/run-all.sh` pass (`evidence/sprint-7/D2/green/`) | main session (push, read CI), then owner | no |
 | 2 | Benchmark on an 8 GB laptop recorded in the README | Open | README [Benchmarks](../README.md#benchmarks) carries one Apple-silicon speed figure (quality pass on one synthetic A4 page at 150 dpi, `evidence/sprint-3/D2/bench-quality-time.log`) labelled as a placeholder; the 8 GB Windows no-GPU column reads "not measured on 8 GB" on every row. Full-page analysis time and the large-document figures have bench scripts and CSV files since Sprint 6 (`docs/benchmarks/speed.csv`, `large-doc.csv`, Apple M5 Pro 48 GB only); thread-pool throughput is not measured. No figure for that machine exists, and none was invented. The procedure is below | owner | yes |
-| 3 | README limitations section | Done | README [Limitations](../README.md#limitations): synthetic-only checks, nothing published or tagged, Linux and Windows wheels not built, nothing signed, target hardware unmeasured; detector limits follow | D2 | no |
-| 4 | Signed artifacts and manifest | Open | Tooling exists, signing does not. `scripts/release-manifest.mjs` writes an unsigned `airplanemode.manifest/0.1` (tests: `tests/scripts/release-manifest.sh`, `evidence/sprint-3/D2/red-D2-02.log` then `green-D2-02.log`). A dry run with the public RFC 8032 test key through `cp-sign` verified with `--allow-test-key` and was refused without it (`evidence/sprint-3/D2/dry-run-sign.log`). That signature proves the tooling only: it is not a release signature, and no signed manifest or key is in this repository. A real key does not exist yet | owner, D6 (tooling) | yes |
-| 5 | CHANGELOG and semver tag | Open | [CHANGELOG.md](../CHANGELOG.md) `[Unreleased]` is complete through Sprint 3 and holds the 1.0.0 notes. The tag does not exist (`git tag` prints nothing) and must not be created until every row above and below is Done. The version is still 0.1.0 | owner | yes |
-| 6 | Package installable from a clean machine | Open | Installed offline from locally built artifacts on macOS arm64, each followed by a real analysis of a synthetic golden page that is byte-equal to its golden report: wheel `pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl` into a `python3 -m venv` (`pip install --no-index --no-deps`) and into a `uv venv` (`uv pip install --offline --no-index --no-deps`) (`evidence/sprint-3/D2/install-all-r2.log`); `pagetriage-0.1.0.tgz` from `npm pack` into a fresh empty directory with an empty cache (`npm i <tgz> --ignore-scripts --offline`; `npm ls` shows one package) (`evidence/sprint-3/D2/install-all-r2.log`, same run). Both artifacts carry `LICENSE-MIT`, `LICENSE-APACHE`, no test data, no lifecycle script, nothing over 5 MB, and the "Not published yet" sentence in their README. `cargo package -p pagetriage-core --no-verify --list --allow-dirty` lists 134 files and `-p pagetriage-cli` lists 9 (`cargo-package-list-r2.log` and `cargo-package-list-cli-r2.log`, regenerated after the licence copies), and both crates carry `LICENSE-MIT` and `LICENSE-APACHE` in those lists; the wheel and tarball contain no builder path (`scripts/check-no-builder-paths.sh`, `evidence/sprint-3/D2/builder-paths-r2.log`). The wheel and tarball were rebuilt after the last README edit, so their packaged README equals the repo README; their SHA-256 values are in `FINAL-ARTIFACTS.txt` and `release-manifest-r2.json`. Sprint 4 (S1-082): the wheel now lists `NOTICE` under `dist-info/licenses/` (`evidence/sprint-4/D2/wheel-listing.log`, wheel SHA-256 in `evidence/sprint-4/D2/FINAL-ARTIFACTS.txt`, no builder path), and the demo NOTICE carries a full block for each of the 8 MIT-only crates compiled into the WASM build, and the root NOTICE, so the rebuilt wheel (SHA-256 in `evidence/sprint-4/D2/FINAL-ARTIFACTS.txt`, `evidence/sprint-4/D2/green-fix1-D2-notice.log`), carries the same 8 blocks for the `pagetriage-py` tree (TD-28) (`evidence/sprint-4/D2/green-D2-01.log`, mutation check in `mutation-D2-01.log`); the alloc-stdlib attribution is checked against upstream (`evidence/sprint-4/D2/upstream-licence.log`). Not closed: nothing is published, the names are not reserved, only the macOS arm64 wheel exists (the `wheels` CI job builds Linux and Windows wheels and an sdist as artefacts but has not run on those systems; the sdist was built and built `--locked` locally in Sprint 6), and no clean machine has installed from a registry | owner | yes |
-| 7 | Short write-up | Open | [writeup-1.0-draft.md](writeup-1.0-draft.md) is a draft, not published, built from existing evidence only, with every figure citing a path and the 8 GB figures reading "not measured". It cannot be finished before row 2 closes | owner | yes |
+| 3 | README limitations section | Done | README [Limitations](../README.md#limitations): synthetic-only checks, nothing published or tagged, Linux and Windows runs not yet seen, nothing signed with a real key, target hardware unmeasured; detector limits follow | D2 | no |
+| 4 | Signed artifacts and manifest | Open: the real key is the owner's | The team's side is done. `scripts/release/release-tool.mjs` (runtime's release tool, vendored byte for byte, `scripts/release/VENDORED.json`) writes the manifest and `SHA256SUMS`; the CI job `release-rehearsal (<os>)` signs a `pagetriage-rehearsal` manifest with the published RFC 8032 test key, verifies it with `--allow-test-key`, and proves by exact exit code and first stderr line that the same files are refused without the flag (`refused: test_key_refused`), that the empty production key file `docs/release-keys.json` gives `no_trusted_key`, that a missing `--expect-id` is a usage error, that a test key never signs a `-release` id, and that a tampered file and a CRLF `SHA256SUMS` are refused (local macOS run: `evidence/sprint-7/D2/green/D2-02-rehearse-all-nosiblings-1.log`). `publish.yml` verifies the owner's signed manifest against `docs/release-keys.json` before it publishes anything; the release is armed by the `release` environment variable `RELEASE_PUBLISH_ARMED`, which the first step after the checkout reads (a job-level `if` cannot read an environment variable, TD-125), and the crates are re-packaged with `cargo package --locked --no-verify`, compared with the signed digests, published, and read back from the crates.io sparse index in four steps in a row before the PyPI step (S1-131). That signature proves the tooling only: it is not a release signature, no signed manifest or real key is in this repository, and `docs/release-keys.json` holds no key until the owner adds one | owner (real key and custody) | yes |
+| 5 | CHANGELOG and semver tag | Open: the tag is the owner's | [CHANGELOG.md](../CHANGELOG.md) has `## [1.0.0-rc.1] - 2026-11-20 (untagged)` with the notes for the release. The tag does not exist (`git tag` prints nothing) and must not be created until every row above and below is Done. The version is the release candidate 1.0.0-rc.1: nothing in the repository, no artefact name, no manifest and no demo label reads a plain 1.0.0 (`tests/scripts/no-plain-1.0.0.sh`), and the owner's tag commit is the only change to 1.0.0 ([RELEASING.md](RELEASING.md), step 7) | owner | yes |
+| 6 | Package installable from a clean machine | Open: names, publish and a registry install are the owner's | Installed offline from locally built artifacts on macOS arm64, each followed by a real call on a synthetic golden page (byte-equal to its golden report): Sprint 3, version 0.1.0 (`evidence/sprint-3/D2/install-all-r2.log`), and Sprint 7, version 1.0.0-rc.1, by `scripts/release/rehearse.sh` in a copy of the repository with no sibling repository and GITHUB_SHA and GITHUB_REF cleared: the npm tarball `airplanemode-pagetriage-1.0.0-rc.1.tgz` into an empty project (offline, a fresh cache, `--ignore-scripts`, resolved under that project's `node_modules`), the wheel `pagetriage-1.0.0rc1-cp39-abi3-macosx_11_0_arm64.whl` into a fresh `.venv` (`pip --no-index --no-deps`), and the command-line tool built from the two packaged `.crate` files with every other crate from a `cargo vendor --locked` directory and `cargo install --offline --locked`, run by absolute path outside the checkout (`evidence/sprint-7/D2/green/D2-02-rehearse-all-nosiblings-1.log`). The `release-rehearsal (<os>)` CI job does the same on Linux, macOS and Windows, with an sdist and a wheel built from it on Linux; it has not run on Linux or Windows. The archives hold the licence files and no test data, source maps, lifecycle scripts or files over 5 MB, and no builder path (`scripts/check-no-builder-paths.sh`). Not closed: nothing is published, the names are not reserved, and no clean machine has installed from a registry | owner | yes |
+| 7 | Short write-up | Draft exists; finishing it waits on the 8 GB figure (owner) | [writeup-1.0-draft.md](writeup-1.0-draft.md) is a draft, not published, built from existing evidence only, with every figure citing a path and the 8 GB figures reading "not measured on 8 GB". It cannot be finished before row 2 closes | owner | yes |
 
-Blocker-for-tag rows Open today: 2, 4, 5, 6, 7. Tagging v1.0.0 today would not be honest.
+Blocker-for-tag rows Open today: 2, 4, 5, 6, 7, and every one of them is the owner's (the 8 GB figure, the real key, the tag, reserved names and a registry install, finishing the write-up). Tagging v1.0.0 today would not be honest.
 
 ## History
 
@@ -35,14 +35,14 @@ Two installs are pinned by version only, not by hash. Each runs in a job or scri
 secrets (`contents: read`), and the wheel it builds is never shipped from CI:
 
 - `scripts/determinism.sh` installs `maturin==1.16.0` into a test-only venv;
-- `scripts/package-python.sh` installs `maturin==1.16.0` into a local venv to build the wheel the owner inspects.
+- `scripts/package-python.sh` installs `maturin==1.16.0` into a local venv to build the wheel the owner inspects; the README's "Try it in two minutes" setup block calls it. In CI the quick start runs from the artefacts that `release-rehearsal` built with the hashed tools, and skips that block (`QUICKSTART_REUSE=1`).
 
-Since Sprint 6 the artefact-building CI job does not use either: the `wheels` job installs uv, maturin and ziglang from the hashed
+Since Sprint 6 the artefact-building CI job does not use either: the `release-rehearsal` job (which absorbed the `wheels` job in Sprint 7) and the `publish.yml` build job install uv, maturin and ziglang from the hashed
 `tools/ci/requirements.txt` (`pip install --require-hashes --no-deps --only-binary=:all:`, on an exact Python), and the determinism
 job installs numpy and Pillow from `tools/ci/requirements-determinism.txt` the same way (S1-117, S1-079). `tests/scripts/ci-policy.sh`
-keeps those rules, the action pins and the `wheels` job's permissions from drifting.
+keeps those rules, the action pins and the permissions of `release-rehearsal` and `publish.yml` from drifting (`tests/scripts/ci-policy-mutations.sh` breaks one rule at a time and shows the policy go red).
 
-The exact Python is one CPython 3.12 patch release per OS, set in the `matrix.include` of the `determinism` and `wheels` jobs: 3.12.10 on
+The exact Python is one CPython 3.12 patch release per OS, set in the `matrix.include` of the `determinism` and `release-rehearsal` jobs (and `publish.yml`'s build job): 3.12.10 on
 `macos-latest` and `windows-latest`, 3.12.16 on `ubuntu-latest`. No single patch release exists on all three images in
 `actions/python-versions` (`versions-manifest.json`, read 19 Nov 2026): 3.12.10 is the last 3.12 with a macOS or Windows build, and the
 ubuntu-26.04 image behind `ubuntu-latest` has only 3.12.13 and newer. The hashed files are for the cp312 wheels, which the patch release
@@ -53,6 +53,8 @@ The pip that `actions/setup-python` ships is not pinned either, and the digest-p
 `cargo-deny` release binaries are pinned by SHA-256, not by a lockfile.
 
 MIT-only crates linked only into `pagetriage-cli` (fax 0.2.7, strsim 0.11.1, tiff 0.11.3, and crunchy 0.2.4, which is in the tree only for non-macOS targets) are in `crates/pagetriage-cli/NOTICE` since Sprint 6 (BUG-T3-S4-19, BUG-T3-S4-21). `scripts/notice-cli.mjs` writes it from `cargo tree --locked -p pagetriage-cli --target all -e normal` plus `cargo metadata --locked` (the tree for all targets, so a build on Linux or Windows is covered as well as one on macOS), and `tests/scripts/notice-cli.sh` checks the committed file against cargo and against the generator, with a mutation step that must fail when a block is removed. No CLI binary is distributed.
+
+`pagetriage-core` is a published and signed crate too, and its packaged `.crate` shipped without a NOTICE until Sprint 7 (BUG-T3-S7-04). `crates/pagetriage-core/NOTICE` is now the project notice plus a block for each MIT-only crate of `cargo tree --locked -p pagetriage-core --features pdf --target all -e normal` (libm, lopdf, nom, schemars, schemars_derive, simd-adler32, winnow, zmij), written by the same generator (`node scripts/notice-cli.mjs --package pagetriage-core crates/pagetriage-core/NOTICE`; licence unchanged, MIT OR Apache-2.0) and checked by `tests/scripts/notice-core.sh`. The release rehearsal's gate (`scripts/release/rehearse.sh gate`, through `scripts/release/check-crate.py`) now requires `LICENSE-APACHE`, `LICENSE-MIT` and a non-empty `NOTICE` inside every `.crate` in `dist-release/`, and `tests/scripts/rehearse.sh` shows it refusing a crate that lacks any one of them.
 
 ## Output confinement of `release-manifest.mjs` (Sprint 5, Part A)
 
@@ -149,49 +151,27 @@ nothing: write down what the commands print.
 
 **Row 4, signed artifacts and manifest.**
 
-Owner must: on the offline key machine (not this Mac, not CI):
-
-```sh
-git clone https://github.com/AirplaneMode-Labs/control-plane && cd control-plane   # private repo
-cargo run -p cp-sign -- keygen --out ./keys            # key.secret stays on this machine, mode 0600
-cargo run -p cp-sign -- keyid --pub ./keys/key.pub     # record the keyId in the repository's release notes
-```
-
-Then, after the artifacts exist (rows 5 and 6 steps), in the pagetriage checkout:
-
-```sh
-node scripts/release-manifest.mjs --out dist/release-manifest.json dist/npm/pagetriage-X.Y.Z.tgz dist/wheels/*.whl
-cargo run -p cp-sign -- sign --key ./keys/key.secret dist/release-manifest.json --out dist/release-manifest.signed.json
-cargo run -p cp-sign -- verify --pub ./keys/key.pub dist/release-manifest.signed.json
-```
-
-Publish `release-manifest.signed.json` and `key.pub` next to the artifacts ([RELEASING.md](RELEASING.md),
-"Signing the manifest"; tag procedure step 7 below). Never use `--allow-test-key` for a release.
+Owner must: on the offline key machine (not this Mac, not CI), create the key with `cp-sign keygen`, commit its public key to `docs/release-keys.json`, set
+`RELEASE_KEY_ID`, check the candidate files of the publish run, make and sign the manifest with `cp-sign sign --no-expiry`, and attach it to the GitHub release: steps 3, 4, 6, 12, 13
+and 14 of [RELEASING.md](RELEASING.md), each with its commands. Never use `--allow-test-key` or `--trust-test-key` for a release: the verifier refuses the test key without them, and a release id is never signed with it.
 
 **Row 5, CHANGELOG and semver tag.**
 
-Owner must: after rows 2, 4, 6 and 7 are Done and CI is green on the tag commit:
-follow the tag procedure below from step 1. `git tag v1.0.0` is run by the owner only.
+Owner must: after rows 2, 4, 6 and 7 are as far along as they can be and CI is green on the tag commit, make the tag commit (the only change to 1.0.0: [RELEASING.md](RELEASING.md), step 7) and tag it (step 10).
+`git tag v1.0.0` is run by the owner only.
 
 **Row 6, installable from a clean machine.**
 
-Owner must:
+Owner must: reserve the names (due 22 Nov 2026: npm `@airplanemode/pagetriage`, PyPI `pagetriage`, crates.io `pagetriage-core` and `pagetriage-cli`), dispatch and approve the publish workflow, and then, on a machine that has
+never seen this repository, with Wi-Fi on, run the commands in the block headed "After the owner publishes" below and record the output ([RELEASING.md](RELEASING.md), steps 2, 8 to 11, 14 to 17). Then change the README
+Install section so those commands move into the main text, and mark row 6 Done with the recorded output as evidence.
 
-1. Reserve the names (due 22 Nov 2026): npm `pagetriage` (or `@airplanemode/pagetriage` after the scope
-   exists), PyPI `pagetriage`, crates.io `pagetriage-core` and `pagetriage-cli`.
-2. Publish per tag-procedure steps 4 to 6 below (crates.io, PyPI with wheels for Linux, macOS and Windows,
-   npm).
-3. On a machine that has never seen this repository, with Wi-Fi on, run the commands in the block headed
-   "After the owner publishes" below, and record the output.
-4. Change the README Install section so the "After the owner publishes" commands move into the main text,
-   and mark row 6 Done with the recorded output as evidence.
-
-**After the owner publishes** (step 3; these registry commands do not work today):
+**After the owner publishes** (these registry commands do not work today):
 
 ```sh
 python3 -m venv v && v/bin/pip install pagetriage==X.Y.Z && v/bin/python -I -c "import pagetriage_py; print(len(pagetriage_py.schema_json()))"
-mkdir t && cd t && npm init -y && npm i pagetriage@X.Y.Z && node -e 'console.log(require("pagetriage").version())'
-cargo install pagetriage-cli && pagetriage --version
+mkdir t && cd t && npm init -y && npm i @airplanemode/pagetriage@X.Y.Z && node -e 'console.log(require("@airplanemode/pagetriage").version())'
+cargo install pagetriage-cli --locked && pagetriage --version
 ```
 
 **Row 7, short write-up.**
@@ -206,25 +186,20 @@ Owner must: `git push`, then read the CI run for the pushed commit on
 `ubuntu-latest`, `macos-latest` and `windows-latest` (`gh run list --repo AirplaneMode-Labs/pagetriage`),
 and change row 1's status to Done only when all three are green.
 
-## Tag procedure (owner only, in this order)
+## Tag procedure (owner only)
 
-Taken from [RELEASING.md](RELEASING.md); do not start it while any Blocker-for-tag row is Open.
+The tag commit, the tag, the publish workflow and everything around them are in [RELEASING.md](RELEASING.md), in order, each step with its commands and the reason the team cannot do it. Do not tag until every
+Blocker-for-tag row above is as it must be. The old procedure that stood here (bump, gate, tag, `cargo publish`, `twine upload`, `npm publish`, sign) is replaced by the publish workflow, which publishes only from
+files the owner's signed manifest lists, so that nothing is published unsigned.
 
-1. **Bump the version.** Set `version = "1.0.0"` under `[workspace.package]` in `Cargo.toml` and let
-   `cargo build` update `Cargo.lock`; the wheel and the npm package take the version from there.
-   Move the `[Unreleased]` notes in `CHANGELOG.md` under `## [1.0.0] - YYYY-MM-DD`. This is the tag
-   commit; nothing else goes in it.
-2. **Run the gate** on that commit: `cargo fmt --all --check`, `cargo clippy --workspace --all-targets
-   -- -D warnings`, `cargo test`, `scripts/determinism.sh`, and the three packaging dry runs. CI must be
-   green on Linux, macOS and Windows for the commit.
-3. **Tag** `v1.0.0` on that commit and push the tag.
-4. **crates.io.** `cargo publish -p pagetriage-core`, then `cargo publish -p pagetriage-cli`.
-5. **PyPI.** Build manylinux, macOS and Windows wheels (`maturin-action` in CI or a manylinux
-   container), then `maturin upload` or `twine upload dist/wheels/*`.
-6. **npm.** `npm publish dist/npm/pagetriage-1.0.0.tgz` (`--access public` for a scoped name).
-7. **Sign.** Write the manifest listing the artefacts with their SHA-256 (`node scripts/release-manifest.mjs
-   --out dist/release-manifest.json <artefacts>`), sign it with `cp-sign` and the real key on the offline
-   key machine (see "Owner must", row 4), and publish the signed manifest with the release.
-8. **Site and write-up.** The `pages` workflow deploys `site/` on the push; publish the write-up.
+## Sprint 7: what only CI can prove
 
-Do not tag until every Blocker-for-tag row is Done.
+The Mac that develops this repository cannot run Linux or Windows. These jobs are written, were read line by line and tested statically (`tests/scripts/ci-policy.sh`), and have not run; the main session reads them after its push, and the
+exact log text to look for is in the lane's push list:
+
+| Job (run by CI after the push) | What it proves | Text to look for in its log |
+|---|---|---|
+| `release-rehearsal (ubuntu-latest)`, `(macos-latest)`, `(windows-latest)` | the npm tarball and the wheel install into an empty project or fresh venv and make one real call; on Linux the sdist builds `--locked` and a wheel built from it does the same; the command-line tool builds from the packaged crates with no registry (on every OS); two `cargo package` runs (one with `--no-verify`, as the publish job runs it) give identical bytes; every `.crate` holds the licence texts and a NOTICE; the TEST-key rehearsal signs, verifies and refuses without the flag; the README quick start runs from the built files; the publish dry run | `cli path:` under the runner temp directory and not under the checkout; `ok: pagetriage-core v1.0.0-rc.1 was compiled from pagetriage-core-1.0.0-rc.1.crate`; no line `Downloaded pagetriage-core`; `crate reproducibility: identical bytes in two runs` and `the --no-verify bytes equal the verified bytes`; `pagetriage-core-1.0.0-rc.1 holds LICENSE-APACHE, LICENSE-MIT, NOTICE` from the gate; `proved: no-flag -> exit 3, 'refused: test_key_refused'`; `rehearsal signed with the test key and verified: 10 proofs`; `pagetriage-core-1.0.0-rc.1.crate: OK` from `sha256sum -c`; `gate ok`; `publish dry run ok: nothing was uploaded` |
+| `fmt, clippy, test (windows-latest)`, `(ubuntu-latest)`, `(macos-latest)` | `tests/scripts/run-all.sh`, including the vendored release vectors, the vendored tool's hash after a checkout, the quick-start harness, the publish guard and the workflow policy | `release-tool-vendored.sh`: `every case agrees`; `quickstart.sh`: `43 passed, 0 failed`; `publish-guard.sh`: `117 passed, 0 failed`; `ci-policy.sh`: `0 failed` |
+
+`publish.yml` has no job that runs before the owner dispatches it; `gh run list --workflow publish.yml` shows no run, and nobody on the team runs it.

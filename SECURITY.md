@@ -3,7 +3,9 @@
 ## Reporting a vulnerability
 
 Email jtushar53@gmail.com with a description, the affected version or commit, and steps to reproduce.
-Please do not open a public issue for a vulnerability. You will get an acknowledgement within 7 days.
+Please do not open a public issue for a vulnerability, and never put one in an issue form: report it privately, by email, as
+described here (GitHub's private vulnerability reporting is not enabled yet; enabling it is a repository setting that only the
+owner changes). You will get an acknowledgement within 7 days.
 
 We follow a 90-day coordinated disclosure window: we aim to fix and publish within 90 days of the
 report, and ask reporters to hold details until a fix is released or the 90 days have passed,
@@ -16,7 +18,7 @@ whichever comes first.
 | none released | no package or tag has been published; fixes land on `main` |
 
 Until a first release is tagged, only the `main` branch is supported, and the repository's
-`[workspace.package] version` stays `0.1.0`.
+`[workspace.package] version` stays `1.0.0-rc.1` (a release candidate, untagged).
 
 ## Scope
 

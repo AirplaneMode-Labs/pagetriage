@@ -4,6 +4,8 @@ Deterministic page analysis for scanned documents and PDFs: what is on each page
 is, and which pages to trust. Written in Rust, with no machine learning. It runs as a command-line
 tool, as a Python module and in the browser, and gives the same bytes out on all three.
 
+Live demo: https://airplanemode-labs.github.io/pagetriage/
+
 [![CI](https://github.com/AirplaneMode-Labs/pagetriage/actions/workflows/ci.yml/badge.svg)](https://github.com/AirplaneMode-Labs/pagetriage/actions/workflows/ci.yml)
 [![Licence: MIT OR Apache-2.0](https://img.shields.io/badge/licence-MIT%20OR%20Apache--2.0-blue)](#licence)
 [![Rust 1.98](https://img.shields.io/badge/rust-1.98-orange)](rust-toolchain.toml)
@@ -16,9 +18,9 @@ tool, as a Python module and in the browser, and gives the same bytes out on all
 Wolf-Jolion and Howe (static mode), and what pagetriage says about the page. An illustration, not a
 benchmark; the benchmark numbers are [below](#benchmarks).*
 
-Sprint 6 (19 Nov 2026): Working: the same page analysis as before, plus a stream check that runs before a PDF is opened (account_pdf_streams: how many bytes each font, image and content stream decodes to, with a limit per kind and a reason when one is passed, so a font or image bomb is refused first); its WebAssembly memory and timings were measured in Chrome on a 48 GB Apple M5 Pro (not measured on 8 GB). Not yet: OCR, 8 GB figures (not measured on 8 GB), a signed release, a tag, a published package, Linux and Windows wheels (a CI job is written; nothing has run on those systems yet).
+Sprint 7 (20 Nov 2026): Working: the same page and PDF analysis as before, now as the release candidate 1.0.0-rc.1 (nothing is tagged); a release rehearsal that builds the npm tarball, the wheel and the two crates, installs each built file into an empty project with the network off and calls it once on a synthetic page, builds the command-line tool from the packaged crates with no registry, and signs and verifies a rehearsal manifest with the published test key, which is refused without the flag (so far run on one Mac only); a publish workflow that nobody has run and that cannot start by accident; a README quick start whose code is run by a test. Not yet: OCR, 8 GB figures (not measured on 8 GB), a signed release, a tag, a published package, a run of the rehearsal on Linux or Windows (the CI job is written; nothing has run on those systems yet).
 
-Version 0.1.0, unchanged and untagged (changes are under "Unreleased" in [CHANGELOG.md](CHANGELOG.md)). Nothing is published; the crate, wheel and npm names are not reserved.
+Version 1.0.0-rc.1: a release candidate, untagged (the wheel and the sdist write the same version as 1.0.0rc1; changes are in [CHANGELOG.md](CHANGELOG.md)). Nothing is published or tagged; the crate, wheel and npm names (`pagetriage-core` and `pagetriage-cli` on crates.io, `pagetriage` on PyPI, `@airplanemode/pagetriage` on npm) are placeholders until the owner reserves them.
 
 **Status: early.** The PDF stream accounting, the PDF structure checks, the scan-quality readout, four binarisers and
 near-duplicate detection are built and measured on public benchmarks. Every pixel detector (script,
@@ -27,6 +29,135 @@ extraction coverage), the page typing and the fusion rules are built and opt-in,
 synthetic pages only**: no real deed has been looked at, and no confidence is calibrated. See
 [What works today](#what-works-today), [Benchmarks](#benchmarks), [Limitations](#limitations) and
 the [roadmap](#roadmap).
+
+## Try it in two minutes
+
+No model, no key, no account. It builds this repository, installs the three built artefacts (the npm tarball, the Python wheel and
+the command-line binary) into a fresh empty directory, and runs each of them on one synthetic one-page PDF that the code itself writes.
+
+What it downloads, and when: the setup block downloads Rust crates from crates.io on the first build, and, if the repository's `.venv` has no
+maturin yet, installs maturin 1.16.0 from PyPI once, unhashed (`scripts/package-python.sh`; a known gap, listed in
+[docs/release.md](docs/release.md)). Getting the tools below is a download too. The install and run blocks that follow run offline (offline npm
+and pip, a scrubbed environment) and fetch nothing.
+
+You need Rust 1.98 (`rustup` reads `rust-toolchain.toml`), Node 22, Python 3.9
+or newer, and `wasm-bindgen` at the version pinned in `crates/pagetriage-wasm/Cargo.toml` and `wasm-opt` on your `PATH`
+(`scripts/install-wasm-tools.sh` installs both from digest-pinned release files and prints the `PATH` line). The first build takes several minutes; running the
+code afterwards takes seconds. In the commands, `$REPO` is the folder you cloned into (`export REPO=$PWD` in it).
+
+These blocks are not only documentation: `tests/scripts/quickstart.sh` extracts them and runs each one in a fresh bash with a scrubbed
+environment (no `GITHUB_*`, no `CI`, no token, offline npm and pip), on Linux, macOS and Windows in the `release-rehearsal` CI job, and
+fails when a block fails or an output differs. On Windows it runs them in Git Bash and reads `.venv/bin/` as `.venv/Scripts/` and
+`python3` as `python`.
+
+```sh
+git clone https://github.com/AirplaneMode-Labs/pagetriage && cd pagetriage
+```
+
+Build the artefacts once, from the repository root (the PDF-enabled WebAssembly package for npm, the wheel, the binary):
+
+```sh quickstart:setup
+PAGETRIAGE_WASM_FEATURES=pdf WASM_OUT=dist/wasm-pdf scripts/build-wasm.sh
+WASM_OUT=dist/wasm-pdf scripts/package-npm.sh
+scripts/package-python.sh
+cargo build --release --locked -p pagetriage-cli
+```
+
+Install the npm tarball and the wheel into an empty directory, offline (the tarball has no dependencies; nothing is fetched):
+
+```sh quickstart:install
+npm init -y
+npm install "$REPO"/dist/npm/airplanemode-pagetriage-*.tgz --ignore-scripts
+python3 -m venv .venv
+.venv/bin/pip install --no-index --no-deps "$REPO"/dist/wheels/pagetriage-*.whl
+```
+
+A synthetic PDF with one line of text (586 bytes, written by this block, never a real document):
+
+```pdf quickstart:file=sample.pdf
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 48 >>
+stream
+BT /F1 18 Tf 72 720 Td (Hello, pagetriage) Tj ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f
+0000000009 00000 n
+0000000058 00000 n
+0000000115 00000 n
+0000000241 00000 n
+0000000339 00000 n
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+409
+%%EOF
+```
+
+**Node.** The package is `@airplanemode/pagetriage` (a placeholder name). The call reads the file structure and renders nothing:
+
+```js quickstart:file=quickstart.cjs
+const fs = require("fs");
+const { analyse_pdf_structure } = require("@airplanemode/pagetriage");
+const report = JSON.parse(analyse_pdf_structure(fs.readFileSync("sample.pdf")));
+console.log(report.pages[0].text_layer.state);
+```
+
+```sh quickstart:run
+node quickstart.cjs
+```
+
+```text quickstart:expect
+native_text
+```
+
+**Python.** Same call, same bytes:
+
+```python quickstart:file=quickstart.py
+import json
+import pagetriage_py
+
+with open("sample.pdf", "rb") as f:
+    report = json.loads(pagetriage_py.analyse_pdf_structure(f.read()))
+print(report["pages"][0]["text_layer"]["state"])
+```
+
+```sh quickstart:run
+.venv/bin/python -I quickstart.py
+```
+
+```text quickstart:expect
+native_text
+```
+
+**Command line.** `structure` prints the whole report; this keeps one line of it:
+
+```sh quickstart:run
+"$REPO/target/release/pagetriage" structure sample.pdf --pretty | sed -n 's/.*"state": "\(.*\)".*/\1/p'
+```
+
+```text quickstart:expect
+native_text
+```
+
+`native_text` says the page carries a real text layer. The other states are `scan_only`, `hidden_ocr`, `mixed`, `drawn_only` and `blank`
+([text_layer](docs/detectors/text_layer.md)); the full report also lists the evidence behind each verdict, the script of the text and
+the fonts. Page images (PNG, JPEG, TIFF) go through `analyse` instead; the [Quick start](#quick-start) below shows both.
 
 ## Demo
 
@@ -78,7 +209,7 @@ text.
   measurement, its value, the threshold, its contribution to the confidence, and where the threshold
   came from.
 - **One core, three runtimes.** The same Rust crate builds the CLI, a Python wheel and a
-  WebAssembly package (479 KB gzipped without the PDF parser, 855 KB with it (measured 14 Nov 2026, `evidence/sprint-3/D2/wasm-size.log`)). The core does no file
+  WebAssembly package (478,303 bytes gzipped without the PDF parser, 889,491 with it, `gzip -9`, measured on the Sprint 7 build, 20 Nov 2026, `scripts/check-wasm-size.sh`; 479 KB and 855 KB on 14 Nov 2026, before the stream accounting, `evidence/sprint-3/D2/wasm-size.log`)). The core does no file
   or network I/O and never reads the clock.
 - **The failures are written down.** Each detector has a docs page with measured results, a failure
   gallery, what it was tuned on, and the targets it missed.
@@ -120,8 +251,7 @@ text.
 
 Not published yet: the npm scope @airplanemode and the PyPI and crates.io names are not reserved. The commands below were proven from locally built artifacts on macOS arm64 (an npm pack tarball installed offline into a fresh empty directory, a wheel installed into a fresh venv); publishing to the registries is the owner's step.
 
-Release candidate status: not tagged (version 0.1.0 in the workspace; v1.0.0 is held by the open rows of [docs/release.md](docs/release.md)). Package names are placeholders
-until the handles are reserved.
+Release candidate status: not tagged, not published. The workspace version is the release candidate 1.0.0-rc.1 (the wheel and the sdist write it as `1.0.0rc1`), and the first release is held by the open rows of [docs/release.md](docs/release.md): the 8 GB figure, a real signing key, reserved names, a tag. [docs/RELEASING.md](docs/RELEASING.md) lists, in order, the steps that only the owner can take. The package names (`@airplanemode/pagetriage` on npm, `pagetriage` on PyPI, `pagetriage-core` and `pagetriage-cli` on crates.io) are placeholders until the handles are reserved.
 
 ### From source
 
@@ -134,40 +264,43 @@ cargo build --release -p pagetriage-cli
 
 ### From locally built artifacts
 
-Build the two artifacts, then install them offline into fresh environments. `scripts/prove-install.sh`
-runs all of the commands below and checks a real call against a golden report in each environment.
+Build the artifacts, then install them offline into fresh environments. `scripts/prove-install.sh`
+runs the wheel and tarball commands below and checks a real call against a golden report in each environment;
+the CI job `release-rehearsal (<os>)` does the same on Linux, macOS and Windows, and also builds the command-line tool from the packaged crates.
 
 ```sh
 # Python wheel (abi3, CPython 3.9 or newer)
 # the remap flags keep the builder's home and repository paths out of the wheel
 RUSTFLAGS="$(. scripts/remap-flags.sh; echo "$RUSTFLAGS")" uvx maturin build --release -m crates/pagetriage-py/Cargo.toml -o /tmp/pt/wheels
 python3 -m venv /tmp/pt/pipvenv
-/tmp/pt/pipvenv/bin/pip install --no-index --no-deps /tmp/pt/wheels/pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl
+/tmp/pt/pipvenv/bin/pip install --no-index --no-deps /tmp/pt/wheels/pagetriage-*.whl
 uv venv /tmp/pt/venv
-uv pip install --offline --no-index --no-deps --python /tmp/pt/venv/bin/python /tmp/pt/wheels/pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl
+uv pip install --offline --no-index --no-deps --python /tmp/pt/venv/bin/python /tmp/pt/wheels/pagetriage-*.whl
 /tmp/pt/venv/bin/python -I -c "import pagetriage_py; print(len(pagetriage_py.schema_json()))"
 
-# npm tarball (the WASM package; the node entry is CommonJS, the default entry an ES module)
+# npm tarball (the WASM package with the PDF parser; the node entry is CommonJS, the default entry an ES module)
 scripts/install-wasm-tools.sh        # once; add the PATH line it prints
-scripts/build-wasm.sh && scripts/package-npm.sh        # build-wasm.sh sets the same remap flags; -> dist/npm/pagetriage-0.1.0.tgz
+PAGETRIAGE_WASM_FEATURES=pdf WASM_OUT=dist/wasm-pdf scripts/build-wasm.sh && WASM_OUT=dist/wasm-pdf scripts/package-npm.sh   # -> dist/npm/airplanemode-pagetriage-<version>.tgz
 mkdir -p /tmp/pt/npm-fresh /tmp/pt/npm-cache-empty && cd /tmp/pt/npm-fresh && npm init -y
-npm i "$OLDPWD/dist/npm/pagetriage-0.1.0.tgz" --ignore-scripts --offline --no-audit --no-fund --cache /tmp/pt/npm-cache-empty
-npm ls --all                         # exactly one package: pagetriage
-node -e 'console.log(require("pagetriage").version())'
+npm i "$OLDPWD"/dist/npm/airplanemode-pagetriage-*.tgz --ignore-scripts --offline --no-audit --no-fund --cache /tmp/pt/npm-cache-empty
+npm ls --all                         # exactly one package: @airplanemode/pagetriage
+node -e 'console.log(require("@airplanemode/pagetriage").version())'
 
 # all of the above, with a real analysis of a synthetic golden page compared byte for byte
-scripts/prove-install.sh /tmp/pt/wheels/pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl dist/npm/pagetriage-0.1.0.tgz /tmp/pt/proof
-cargo package -p pagetriage-core --no-verify --list     # what the crate tarball would contain
+scripts/prove-install.sh /tmp/pt/wheels/pagetriage-*.whl dist/npm/airplanemode-pagetriage-*.tgz /tmp/pt/proof
+cargo package --locked -p pagetriage-core -p pagetriage-cli       # the two crates, as the release rehearsal packages them
+bash scripts/release/rehearse.sh all                              # the whole rehearsal: build, install from the built files, sign with the test key, refusals
 ```
 
-What was proven: wheel `pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl`, platform tag
-`macosx_11_0_arm64`, installed twice (`python3 -m venv` with `pip --no-index --no-deps`, and `uv venv`
-with `uv pip install --offline`), and the tarball `pagetriage-0.1.0.tgz` installed from an empty npm
+What was proven, and where. On macOS arm64, in Sprint 3 (version 0.1.0, before the release-candidate version and the `@airplanemode` scope): the wheel `pagetriage-0.1.0-cp39-abi3-macosx_11_0_arm64.whl`,
+platform tag `macosx_11_0_arm64`, installed twice (`python3 -m venv` with `pip --no-index --no-deps`, and `uv venv`
+with `uv pip install --offline`), and the tarball installed from an empty npm
 cache, each followed by an analysis of `tests/golden/inputs/blank_speckle.pgm` whose output is
-byte-equal to `tests/golden/expected/blank_speckle.json`. **Linux and Windows wheels have not been built yet**:
-the `wheels` CI job (Sprint 6) builds them and an sdist from hashed tools as 14-day workflow artefacts, but it has not run on those
-systems (it needs the owner's push), so the wheel above is still the only one that exists and it only installs on macOS arm64. The sdist was
-built locally and builds `--locked` from its own `Cargo.lock` (`scripts/package-sdist.sh`). Evidence: `evidence/sprint-3/D2/`.
+byte-equal to `tests/golden/expected/blank_speckle.json` (evidence: `evidence/sprint-3/D2/`). In Sprint 7 (20 Nov 2026, version 1.0.0-rc.1) the same was done again on that Mac from the files
+`scripts/release/rehearse.sh` builds: the npm tarball and the wheel each installed into an empty project or a fresh venv with the network off and called once on a synthetic golden page
+and a synthetic golden PDF (byte-equal to their golden reports), a wheel built from the sdist alone, and the command-line tool built from the two packaged `.crate` files with every other crate from a vendored directory and no registry
+(evidence: `evidence/sprint-7/D2/`). **Linux and Windows have not run any of it yet**: the `release-rehearsal (ubuntu-latest)`, `(windows-latest)` and `(macos-latest)` jobs are written and have not run on a runner (they need the main
+session's push), so no Linux or Windows wheel exists and no Linux or Windows install has been shown to work. Nothing is signed with a real key, and nothing is published.
 
 ### After the owner publishes
 
@@ -176,7 +309,7 @@ after the publish steps in [docs/release.md](docs/release.md) and record the out
 
 ```sh
 pip install pagetriage
-npm i pagetriage
+npm i @airplanemode/pagetriage
 cargo install pagetriage-cli
 ```
 
@@ -393,10 +526,12 @@ What does not work yet, plainly:
   calibrated (see [fusion](docs/detectors/fusion.md)). The numbers above for the PDF checks and the
   legacy fonts come from a corpus we wrote.
 - **Nothing is published or tagged.** There is no crates.io, PyPI or npm package, and the names are not
-  reserved. The wheel and the npm tarball install from locally built files on macOS arm64 only
-  ([Install](#install)); **Linux and Windows wheels have not been built yet (the CI job that builds them, with an sdist, has not run on those systems)**. No
-  release artefact is signed: `scripts/release-manifest.mjs` writes an unsigned manifest, and signing
-  with a real key is the owner's step ([docs/release.md](docs/release.md) row 4).
+  reserved. The version is the release candidate 1.0.0-rc.1. The wheel, the npm tarball and the command-line tool were built and installed
+  offline from locally built files on one macOS arm64 Mac ([Install](#install)); **no Linux or Windows wheel has been built, and no Linux or Windows install has been shown to work: the CI job
+  that does both (`release-rehearsal`, with an sdist, the crates and a signed rehearsal manifest) is written and has not run on those systems.** No
+  release artefact is signed with a real key: the rehearsal signs with the published RFC 8032 test key, which proves the tooling and nothing else and which the verifier refuses without an explicit flag, and
+  signing with a real key is the owner's step ([docs/release.md](docs/release.md) row 4, [docs/RELEASING.md](docs/RELEASING.md)). The crates `pagetriage-core` and `pagetriage-cli` were packaged twice on that Mac (the second time with `--no-verify`, as the publish job does) and gave identical bytes; that is a property of one
+  machine until the three CI legs say the same.
 - **The target hardware is unmeasured.** No speed figure exists for an 8 GB Windows laptop without
   a GPU. The only browser timings, for the PDF structure call in Chrome, come from a 48 GB Apple M5 Pro (not measured on 8 GB); the
   pixel path in a browser has none. Full-page analysis time and the large-document time and peak memory now have scripts and CSV

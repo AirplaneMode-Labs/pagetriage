@@ -21,7 +21,15 @@ respect; the short version:
    scripts/determinism.sh
    ```
 
-Never commit real document pages or benchmark datasets; golden inputs are synthetic.
+Never commit real document pages or benchmark datasets; golden inputs are synthetic. The same goes for issues and pull
+requests: do not attach a real, confidential or personal document (bank, legal, medical, identity); the bug form has a required
+checkbox for it. Reproduce on a synthetic page (the generators are `tests/golden/gen_inputs.py` and `gen_pdfs.py`), or on a
+public-domain or openly licensed page with its licence named, or redact the page, text layer included. Report a vulnerability
+privately as [SECURITY.md](SECURITY.md) says, never in an issue.
+
+Good places to start are the small, self-contained tasks listed in the issue tracker under the label `good first issue` when the
+maintainers have filed any (none is filed yet), and the "Limitations" section of the [README](README.md#limitations): each limit
+names what would have to change.
 
 Contributions are accepted under the repository licence: unless you state otherwise, anything you
 intentionally submit for inclusion is dual licensed MIT OR Apache-2.0, as the

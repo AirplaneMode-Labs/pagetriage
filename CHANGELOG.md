@@ -1,9 +1,79 @@
 # Changelog
 
-## [Unreleased]
+## [1.0.0-rc.1] - 2026-11-20 (untagged)
 
-To be released as 1.0.0 when every Blocker-for-tag row in [docs/release.md](docs/release.md) is Done.
-The workspace version stays 0.1.0 until then; the bump is the first step of the tag procedure.
+A release candidate. It is to be released as 1.0.0 when every Blocker-for-tag row in [docs/release.md](docs/release.md) is as it must be; all of them are the owner's now
+([docs/RELEASING.md](docs/RELEASING.md) lists the steps in order). The workspace version is 1.0.0-rc.1 (the wheel and the sdist write it as 1.0.0rc1) until the owner's tag
+commit, which is the only change to 1.0.0 (TD-107). Nothing is published or tagged. The sections below are the two sprints that built this candidate, newest first.
+
+### Sprint 7 (20 Nov 2026, untagged; an addition the owner asked for on 19 Nov 2026: release readiness)
+
+#### Added
+
+- D2-02, TD-103, TD-104, TD-106: the release rehearsal. `scripts/release/rehearse.sh` (build, install, sign, gate), `build-artefacts.sh`, `install-crate-offline.sh`, `check-installed.py` and `check-installed.cjs`, and the CI job
+  `release-rehearsal (<os>)` on Linux, macOS and Windows, which replaced and contains the `wheels` job. It builds the npm tarball, the wheel (manylinux_2_17 through zig on Linux), the sdist (Linux), the command-line binary and the
+  two crates (`cargo package --locked -p pagetriage-core -p pagetriage-cli`, run twice: the `.crate` bytes must be identical, S1-126 and TD-123); installs each built file into an empty project or a fresh venv, offline, and makes one
+  real call on a synthetic golden page and a synthetic golden PDF whose output is byte-equal to the golden report (the module path is shown and checked to be inside the fresh project); builds the command-line tool from the packaged
+  `.crate` files with every other crate from a `cargo vendor --locked` directory and `cargo install --offline --locked`, so no `-core` crate can come from crates.io; then makes `release-manifest.json` and `SHA256SUMS`, signs the
+  `pagetriage-rehearsal` manifest with the published RFC 8032 test key, verifies it with `--allow-test-key`, and proves ten refusals by exact exit code, exact first stderr line and the JSON reason (no flag: `test_key_refused`; the empty
+  `docs/release-keys.json`: `no_trusted_key`; no `--expect-id`; the flag with a release id or a trust file; a wrong id; a tampered artefact; CRLF in `SHA256SUMS`; a test key signing a `-release` id). A self-test shows the rehearsal fail with a
+  missing tool, a verifier that never refuses and a tool that always fails. The upload is named `REHEARSAL-test-key-NOT-A-RELEASE-pagetriage-<os>-<sha>`, holds only `dist-release/` and `dist-release-report/` and is kept for 3 days. Run on macOS
+  in a copy with no sibling repository, `GITHUB_SHA` and `GITHUB_REF` cleared; not yet run on Linux or Windows.
+- D2-01, TD-103, TD-104: runtime's release tool, vendored byte for byte (`scripts/release/release-tool.mjs`, `VENDORED.json`, release 0.6.1) with its shared vectors (`tests/vectors/release`, 36 cases), `-text` in `.gitattributes`;
+  `tests/scripts/release-tool-vendored.sh` checks the hash (also after a clone with `core.autocrlf=true`), runs every case in a tree with no sibling repository, shows a broken tool being caught, and shows that
+  `scripts/release-manifest.mjs` and `release-tool manifest` write the same bytes for `pagetriage-release`. `docs/release-keys.json` (no key until the owner adds one).
+- D2-03, TD-105, TD-121, TD-122, TD-123: `.github/workflows/publish.yml` (`workflow_dispatch` only, main only, six locks, three bindings, provenance, then publishing from the exact files the owner's signed manifest lists; never run),
+  `scripts/release/publish-guard.sh` (117 checks in `tests/scripts/publish-guard.sh`, each refusal shown with stand-ins for `gh` and `curl`), `scripts/release/publish-dry-run.sh` (npm, wheel metadata and `cargo publish --dry-run`, run by the CI
+  job), the workflow rules in `tests/scripts/ci-policy.sh` and 55 mutations that must turn them red (`tests/scripts/ci-policy-mutations.sh`), and [docs/RELEASING.md](docs/RELEASING.md): the owner's steps in order, with commands and the reason
+  the team cannot take each.
+- D2-05, TD-115, TD-116, TD-117: "Try it in two minutes" in the README (no model, no key, no download in its code), run block by block by `tests/scripts/quickstart.sh` in a scrubbed environment from the built npm tarball, wheel and
+  binary; a `Live demo:` line in the first lines of the README, checked by `tests/scripts/readme-demo-link.sh`; issue forms (`bug_report.yml` with a required no-real-documents checkbox, `feature_request.yml`, `config.yml` with blank issues off and a
+  link to SECURITY.md; `tests/scripts/issue-forms.sh`); `CONTRIBUTING.md` on real documents.
+- Fix round 1: `publish-guard.sh armed` (lock 3, TD-125) and `publish-guard.sh index-check` (S1-131); `scripts/release/check-crate.py` (the gate's look inside every `.crate`); `crates/pagetriage-core/NOTICE` and `tests/scripts/notice-core.sh`
+  (BUG-T3-S7-04); `node scripts/notice-cli.mjs --package pagetriage-core`.
+- D2-04: `scripts/deps-network-check.sh` (no network-capable crate in any tree, `wasm_js` only on wasm32; `tests/scripts/deps-network-check.sh`) and `bench/pdf_mutation_check.py` (30,000 mutated calls over the synthetic PDFs, 0 panics expected).
+- `scripts/lib/version.sh` (SemVer to PEP 440), `tests/scripts/version-forms.sh`, `tests/scripts/no-plain-1.0.0.sh` (nothing reads a plain 1.0.0 before the tag commit).
+
+#### Changed
+
+- TD-107: the version is the release candidate 1.0.0-rc.1 (`Cargo.toml`, `Cargo.lock`, the npm package; the wheel and sdist are 1.0.0rc1). TD-108: the npm package is `@airplanemode/pagetriage` (tarball `airplanemode-pagetriage-<version>.tgz`).
+- The npm tarball and the rehearsal ship the PDF-enabled WebAssembly build (`PAGETRIAGE_WASM_FEATURES=pdf`: 889,491 bytes by `gzip -9`, against 478,303 without the PDF parser, both inside the 1,000,000-byte budget, measured on the Sprint 7 build) so that `analyse_pdf_structure` is in the package the README quick start calls;
+  before, the tarball held the pixel-only build. `scripts/package-npm.sh`, `package-python.sh` and `prove-install.sh` follow.
+- D2-04: toml 1.1.8 to 1.2.1 and jsonschema 0.60.1 to 0.61.2 ([docs/release.md](docs/release.md); lock diff: toml, toml_datetime, toml_writer, serde_spanned; jsonschema, jsonschema-regex, jsonschema-value, referencing, fancy-regex).
+- The `cargo-deny` step reads its checks from the environment instead of interpolating the matrix value into the command.
+- Fix round 1: `publish.yml` publishes the crates first, as four steps in a row (re-package with `cargo package --locked --no-verify`, compare the digests with the signed manifest, `cargo publish --locked --no-verify`, read the crates.io
+  sparse index back), then npm, then PyPI. `publish-dry-run.sh` runs the same package command (no verify switch any more) and compares its bytes with the rehearsal's crates. `build-artefacts.sh` defaults `SOURCE_DATE_EPOCH` to the commit time,
+  because the sdist and the wheel change with it and the owner compares a second build of the commit before signing (S1-135).
+- Fix round 1: `docs/RELEASING.md` step 11 (the candidates live one day), step 12 (compare with an independent build of the same commit: the push-CI rehearsal artefact or a local `rehearse.sh all`; a per-OS wheel only across the two CI builds) and
+  step 15 (arm with `--env release` just before approving; the first step of the publish job refuses unless armed).
+- README Install, Limitations and the status line, `SECURITY.md`, [docs/release.md](docs/release.md) and the write-up draft describe the release candidate and what has and has not run.
+
+#### Fixed
+
+- Found by the publish dry run: `npm publish verified/<file>.tgz` reads the path as a GitHub `owner/repo` shorthand and runs `git ls-remote`; the workflow and the dry run use `./verified/<file>.tgz`.
+- BUG-T3-S7-02, S1-132a, TD-125: the publish job's `if:` read `vars.RELEASE_PUBLISH_ARMED`, which a job-level `if` cannot see for an environment variable, so the job would have been skipped when the variable is an environment variable (or, as a repository
+  variable, would have armed without the environment). The check is now the first step after the checkout, from the step env; no `if:` in `publish.yml` reads `vars.` (policy rules and 6 mutations).
+- BUG-T3-S7-04: `pagetriage-core` is a signed, published crate and its `.crate` held `LICENSE-APACHE` and `LICENSE-MIT` but no `NOTICE`. `crates/pagetriage-core/NOTICE` is added (licence unchanged), the rehearsal gate requires all three files in every `.crate`
+  (red on the Sprint 7 crate, green on the rebuilt one), the core crate is 379,825 bytes now (375,693 before; no document cites either figure).
+- BUG-T1-S7-03: the README two-minute section said "nothing is downloaded by the code below". The setup block downloads Rust crates and installs maturin 1.16.0 once (unhashed, a known gap in [docs/release.md](docs/release.md)); only the install and run blocks are offline.
+- A runaway in a test stub during development (a stand-in tool that wrapped itself) is guarded against recursion; scratch directories of the rehearsal are removed when it ends.
+
+#### Security
+
+- S1-126, TD-123: two `cargo package --locked` runs of the same tree give byte-identical `.crate` files on macOS (logged as `crate reproducibility: identical bytes in two runs`; the CI job does it on all three systems); the publish job packages the crates again at the
+  tagged commit and compares each digest with the owner's signed manifest before `cargo publish`.
+- S1-131: `cargo publish` in the publish job is `--locked --no-verify` (verification already ran in the build job and every rehearsal), is preceded by a re-package and a digest comparison in four consecutive steps before the PyPI step, and is followed by a
+  read of the crates.io sparse index that fails the job when the index `cksum` is not the signed sha256 (retried for up to 10 minutes; 29 new checks). The rehearsal logs that the `--no-verify` bytes equal the verified bytes.
+- S1-135: `docs/RELEASING.md` has the owner compare the tarball, sdist and `.crate` digests with an independent build of the same commit before signing, and says plainly that per-OS wheels can only be compared across the two CI builds (shown on the Mac: the same sources built in two directories give identical tarball, sdist and crates, and a wheel that differs in its Mach-O UUID and signature hashes).
+- The published RFC 8032 test key is refused without an explicit flag everywhere it can be met, can never sign a `-release` id, and cannot be combined with a trust file; `docs/release-keys.json` holds no key, so no release signature can verify yet.
+- `publish.yml`: no route from a push, a pull request, a fork or a schedule to a publish step; secrets only as `NPM_TOKEN` and `CARGO_REGISTRY_TOKEN` in the step env of the publish job; `id-token` and `attestations` only there.
+
+#### Deferred
+
+- lopdf 0.46.0 to 0.47.0 (pull request #6): every check held except one stream test, `an_object_stream_bomb_is_refused_as_other`, which gets the reason `unaccounted` instead of `other_over_limit`. Still a refusal, but a changed reason is a contract change for
+  S1 and the owner to accept. 0.47.0 also parses more damaged files. Not applied.
+- Linux and Windows runs of the rehearsal, the 8 GB figure, a real signing key, reserved names, the tag and the publish: the owner's, or the main session's push ([docs/release.md](docs/release.md)).
+- npm and crates.io trusted publishing (TD-122): the first publish uses a token of 7 days or less; moving to trusted publishing is decided after it.
 
 ### Sprint 6 (19 Nov 2026, untagged)
 

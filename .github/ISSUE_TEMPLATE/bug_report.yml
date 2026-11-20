@@ -1,0 +1,72 @@
+name: Bug report
+description: pagetriage says something wrong about a page or a PDF, or crashes, hangs or runs out of memory on one
+title: "bug: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. Two rules before you write anything.
+
+        **Do not attach real documents.** Scanned deeds, bank, legal, medical and identity documents contain personal data and
+        belong nowhere near a public issue. Reproduce the problem on a synthetic page, or on a public-domain or openly licensed one
+        (say where it is from and under which licence), or redact the page first: blacken names, numbers and addresses, and check
+        that the text layer of a PDF is redacted as well as the picture. A screenshot of a real page is an attachment too.
+
+        **Vulnerabilities are not reported here.** A crash, hang or unbounded allocation on crafted input that could be abused is a
+        vulnerability: report it privately as [SECURITY.md](https://github.com/AirplaneMode-Labs/pagetriage/blob/main/SECURITY.md)
+        says, never in a public issue.
+  - type: checkboxes
+    id: no-real-documents
+    attributes:
+      label: Documents
+      description: Required. If you cannot tick this box, redact the sample or describe it in words instead of attaching it.
+      options:
+        - label: "I have not attached any real, confidential or personal document (bank, legal, medical, identity). Any sample is synthetic or public."
+          required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Where did you run it?
+      options:
+        - Command line (pagetriage)
+        - Python (pagetriage_py)
+        - npm package (WebAssembly in Node)
+        - Browser demo
+        - Built from source
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: "The output of `pagetriage --version`, the package version, or the commit of your checkout. The current release candidate is 1.0.0-rc.1 and nothing is published yet."
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Operating system and CPU
+      placeholder: "Windows 11 x64, macOS 15 arm64, Ubuntu 24.04 x64"
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened, and what did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: "The exact command or code, and the input. A synthetic input that shows the problem is best: the generators are in tests/golden/ (gen_inputs.py, gen_pdfs.py)."
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: output
+    attributes:
+      label: Output or error message
+      description: Paste text, not a screenshot of a document. Remove anything that came from a real page.
+      render: text

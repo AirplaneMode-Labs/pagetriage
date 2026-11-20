@@ -1,0 +1,29 @@
+name: Feature request
+description: Suggest a detector, a call, a platform or a change to what pagetriage reports
+title: "feature: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you. pagetriage is deterministic and has no machine learning and no model files; a request that needs either is out of
+        scope (see the [project rules](https://github.com/AirplaneMode-Labs/pagetriage/blob/main/CLAUDE.md)). Do not attach real
+        documents: describe them or use a synthetic page. A suspected vulnerability is never filed here: follow
+        [SECURITY.md](https://github.com/AirplaneMode-Labs/pagetriage/blob/main/SECURITY.md).
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do, and what is in the way?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What would you like pagetriage to do?
+      description: What goes in, what comes out, and how a reader would check that it is right.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What have you tried instead?
