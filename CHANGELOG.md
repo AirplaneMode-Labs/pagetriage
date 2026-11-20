@@ -24,7 +24,7 @@ commit, which is the only change to 1.0.0 (TD-107). Nothing is published or tagg
   `scripts/release-manifest.mjs` and `release-tool manifest` write the same bytes for `pagetriage-release`. `docs/release-keys.json` (no key until the owner adds one).
 - D2-03, TD-105, TD-121, TD-122, TD-123: `.github/workflows/publish.yml` (`workflow_dispatch` only, main only, six locks, three bindings, provenance, then publishing from the exact files the owner's signed manifest lists; never run),
   `scripts/release/publish-guard.sh` (117 checks in `tests/scripts/publish-guard.sh`, each refusal shown with stand-ins for `gh` and `curl`), `scripts/release/publish-dry-run.sh` (npm, wheel metadata and `cargo publish --dry-run`, run by the CI
-  job), the workflow rules in `tests/scripts/ci-policy.sh` and 55 mutations that must turn them red (`tests/scripts/ci-policy-mutations.sh`), and [docs/RELEASING.md](docs/RELEASING.md): the owner's steps in order, with commands and the reason
+  job), the workflow rules in `tests/scripts/ci-policy.sh` and 68 mutations that must turn them red (`tests/scripts/ci-policy-mutations.sh`), and [docs/RELEASING.md](docs/RELEASING.md): the owner's steps in order, with commands and the reason
   the team cannot take each.
 - D2-05, TD-115, TD-116, TD-117: "Try it in two minutes" in the README (no model, no key, no download in its code), run block by block by `tests/scripts/quickstart.sh` in a scrubbed environment from the built npm tarball, wheel and
   binary; a `Live demo:` line in the first lines of the README, checked by `tests/scripts/readme-demo-link.sh`; issue forms (`bug_report.yml` with a required no-real-documents checkbox, `feature_request.yml`, `config.yml` with blank issues off and a
@@ -33,6 +33,9 @@ commit, which is the only change to 1.0.0 (TD-107). Nothing is published or tagg
   (BUG-T3-S7-04); `node scripts/notice-cli.mjs --package pagetriage-core`.
 - D2-04: `scripts/deps-network-check.sh` (no network-capable crate in any tree, `wasm_js` only on wasm32; `tests/scripts/deps-network-check.sh`) and `bench/pdf_mutation_check.py` (30,000 mutated calls over the synthetic PDFs, 0 panics expected).
 - `scripts/lib/version.sh` (SemVer to PEP 440), `tests/scripts/version-forms.sh`, `tests/scripts/no-plain-1.0.0.sh` (nothing reads a plain 1.0.0 before the tag commit).
+- Fix round 2 (CI run 44656239981): `gq` in `tests/scripts/lib.sh` (grep without `-q`, for a pipeline under `pipefail`). The policy test's `job_text ... | grep -qE` went red on Linux in one run: the determinism
+  job's text is over 4096 bytes, so awk's second write can meet a pipe that `grep -q` has already closed, and `pipefail` then reports the pipeline as failed (a race; an earlier run won it). The same pattern
+  is gone from 10 more lines of the test and release scripts. `tests/scripts/pipefail-grep-q.sh` reproduces the failure on the real job text in both SIGPIPE modes and refuses a new `| grep -q` or `| grep -m N` in any script or workflow.
 
 #### Changed
 

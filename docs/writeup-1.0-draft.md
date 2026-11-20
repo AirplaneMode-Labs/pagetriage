@@ -73,8 +73,8 @@ Sprint 7 built the first two and the tooling for the third; the key is the owner
   with one byte flipped, with CRLF line endings in `SHA256SUMS`, and the test key asked to sign a `-release` id (`usage: test_key_release_id`). Two runs with the same `SOURCE_DATE_EPOCH` wrote byte-identical files
   (`evidence/sprint-7/D2/green/D2-02-rehearse-twice-identical-1.log`). The published key proves the tooling and nothing else.
 - **Publishing cannot happen by accident.** `.github/workflows/publish.yml` starts only by a dispatch on `main`, waits for the owner's approval in a protected environment, verifies the owner's signed manifest against a key committed in the repository (empty today),
-  checks that the tag points at the commit and that no registry holds the version, attests the exact files, and only then publishes. Its rules are tested (`tests/scripts/ci-policy.sh`, with 44 deliberate mutations that must turn it red,
-  `tests/scripts/ci-policy-mutations.sh`) and so is each refusal of its checks (`tests/scripts/publish-guard.sh`, 88 checks). Nobody has run it. The dry run of its commands found one real defect: `npm publish` needs `./` before a path, or it reads
+  checks that the tag points at the commit and that no registry holds the version, attests the exact files, and only then publishes. Its rules are tested (`tests/scripts/ci-policy.sh`, with 68 deliberate mutations that must turn it red,
+  `tests/scripts/ci-policy-mutations.sh`) and so is each refusal of its checks (`tests/scripts/publish-guard.sh`, 117 checks). Nobody has run it. The dry run of its commands found one real defect: `npm publish` needs `./` before a path, or it reads
   it as a GitHub repository name. The owner's steps, in order, are in [RELEASING.md](RELEASING.md).
 - **The README example is run by a test.** "Try it in two minutes" builds the three artefacts, installs them into an empty directory and prints `native_text` for a 586-byte synthetic PDF through Node, Python and the command line; breaking any block turns the
   test red (`evidence/sprint-7/D2/green/D2-05-quickstart-broken-blocks-1.log`).
