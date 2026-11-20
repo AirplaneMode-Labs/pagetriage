@@ -3,7 +3,7 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 rc=0
-for t in package-npm-notice.sh installer.sh build-site-commit.sh build-wasm-guard.sh cargo-target-dir.sh release-manifest.sh crate-licences.sh path-leak-gate.sh build-site-notices.sh notice-cli.sh wasm-api-doc.sh streams-doc.sh ci-policy.sh check-wheel-tags.sh remap-flags.sh; do
+for t in package-npm-notice.sh installer.sh build-site-commit.sh build-wasm-guard.sh cargo-target-dir.sh release-manifest.sh crate-licences.sh path-leak-gate.sh build-site-notices.sh notice-cli.sh notice-core.sh wasm-api-doc.sh streams-doc.sh ci-policy.sh check-wheel-tags.sh remap-flags.sh version-forms.sh no-plain-1.0.0.sh readme-demo-link.sh issue-forms.sh quickstart.sh release-tool-vendored.sh release-doc.sh rehearse.sh publish-guard.sh deps-network-check.sh ci-policy-mutations.sh; do
   echo "== $t"
   bash "./$t" || rc=1
 done

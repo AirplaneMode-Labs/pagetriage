@@ -22,7 +22,7 @@ import zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SCRIPT = os.environ.get("CHECK_WHEEL_SCRIPT") or os.path.join(HERE, "check_wheel.py")
-VERSION = "0.1.0"
+VERSION = "1.0.0rc1"  # the PEP 440 form that wheel names and dist-info folders carry for the release candidate 1.0.0-rc.1 (TD-107)
 HEAD = "Wheel-Version: 1.0\nGenerator: maturin (1.16.0)\nRoot-Is-Purelib: false\n"
 MIT = "Permission is hereby granted, free of charge, to any person obtaining a copy\nTHE SOFTWARE IS PROVIDED \"AS IS\"\n"
 

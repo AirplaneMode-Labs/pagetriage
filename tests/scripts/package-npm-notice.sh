@@ -33,7 +33,15 @@ JS
 fi
 OUT=$(cd "$S" && bash scripts/package-npm.sh 2>&1); rc=$?
 expect_eq "package-npm.sh exits 0" 0 "$rc"
-TGZ=$(ls "$S"/dist/npm/pagetriage-*.tgz 2>/dev/null | head -1)
+# TD-108 (Sprint 7): the npm package is @airplanemode/pagetriage, so npm pack names the file airplanemode-pagetriage-<version>.tgz
+# (a '/' in a scoped name becomes '-', the '@' is dropped); TD-107: the npm version is the SemVer of the release candidate.
+. "$REPO/scripts/lib/version.sh"
+WANT_VERSION=$(workspace_version "$REPO/Cargo.toml")
+TGZ=$(ls "$S"/dist/npm/*.tgz 2>/dev/null | head -1)
+expect_eq "exactly one tarball in dist/npm" 1 "$(ls "$S"/dist/npm/*.tgz 2>/dev/null | wc -l | tr -d ' ')"
+expect_eq "the tarball is airplanemode-pagetriage-<version>.tgz" "airplanemode-pagetriage-$WANT_VERSION.tgz" "$(basename "$TGZ")"
+expect_eq "package.json name is @airplanemode/pagetriage" '"name": "@airplanemode/pagetriage",' "$(tar -xzOf "$TGZ" package/package.json | grep -m1 '"name"' | sed 's/^ *//')"
+expect_eq "package.json version is the workspace version" "\"version\": \"$WANT_VERSION\"," "$(tar -xzOf "$TGZ" package/package.json | grep -m1 '"version"' | sed 's/^ *//')"
 LIST=$(tar -tzf "$TGZ" 2>/dev/null)
 for f in LICENSE-MIT LICENSE-APACHE NOTICE; do
   expect_eq "tarball lists package/$f" 1 "$(printf '%s\n' "$LIST" | grep -c "^package/$f$")"

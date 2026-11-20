@@ -10,14 +10,30 @@
 #     tools/ci/requirements-determinism.txt through `pip install --require-hashes --no-deps --only-binary=:all:` on every OS;
 #     bench/requirements.txt (loose lower bounds) is no longer installed by CI; the hashed file pins both with == and
 #     carries at least one hash per platform wheel;
-#  C. the wheels job (TD-09, S1-079; D2-05): matrix ubuntu, windows and macos; contents: read at job level and no id-token or
-#     attestations anywhere; no cache action and no Swatinem/rust-cache in it; tools from tools/ci/requirements.txt with
-#     --require-hashes --no-deps --only-binary=:all: and the same exact per-OS Python as job B; every cargo and maturin build line says
-#     --locked; manylinux_2_17 through zig on ubuntu; an sdist; an install with --no-index and a real call; SHA256SUMS written
-#     and printed; one upload-artifact step with retention-days: 14 and if-no-files-found: error; no publish, release, registry
-#     or Pages step and no secret;
+#  C. the release-rehearsal job (TD-106, Sprint 7; it replaced and absorbed the `wheels` job of TD-09, S1-079): matrix ubuntu, windows
+#     and macos; contents: read at job level and no id-token or attestations anywhere; no cache of any kind (no actions/cache, no
+#     Swatinem/rust-cache, no `cache:` input); tools from tools/ci/requirements.txt with --require-hashes --no-deps
+#     --only-binary=:all: and the same exact per-OS Python as job B; every cargo and maturin build line, in the workflow and in
+#     scripts/release/, says --locked; manylinux_2_17 through zig on ubuntu; an sdist; the crates packaged and installed from the
+#     packaged .crate files (offline, source replacement, never `cargo install --path crates/`); installs with --no-index and a real
+#     call; the rehearsal steps in order (build, install, sign, gate), the README quick start, the publish dry run; one upload-artifact
+#     step named REHEARSAL-test-key-NOT-A-RELEASE-pagetriage-<os>-<sha> holding exactly dist-release/ and dist-release-report/,
+#     retention-days: 3, if-no-files-found: error, include-hidden-files: false; no publish, release, registry or Pages step and no secret;
 #  D. ci.yml: no pull_request_target, no `secrets.`, no pages: write or id-token: write; every checkout has
-#     persist-credentials: false; every job sets its own permissions.
+#     persist-credentials: false; every job sets its own permissions;
+#  F. publish.yml (TD-105, Sprint 7; D2-03): it exists but cannot fire by accident. workflow_dispatch only (no inputs, no push, no pull
+#     request, no schedule, no other workflow), top-level permissions: {}, a repository and main-branch guard on both jobs, the `release`
+#     environment on the publish job, the RELEASE_PUBLISH_ARMED variable read in the first step after the checkout (a variable of the
+#     environment is not visible to a job-level `if`, and no `vars.` is read in any `if`; TD-125), id-token and attestations only there, secrets only as
+#     NPM_TOKEN and CARGO_REGISTRY_TOKEN in the step env of the publish job, lock 6 (RELEASE_KEY_ID), the three bindings, the signed manifest
+#     verified against docs/release-keys.json with --expect-id, artefacts of THIS run only, exact file paths, provenance after the checks and
+#     before the first publish step, npm with --provenance --access public --ignore-scripts and a derived dist-tag, PyPI through
+#     pypa/gh-action-pypi-publish with attestations: true and packages-dir, the crates re-packaged (`cargo package --locked --no-verify`),
+#     compared, published (`cargo publish --locked --no-verify`) and read back from the crates.io sparse index as four consecutive steps
+#     BEFORE the PyPI step (S1-126, S1-131), no test-key string, no cache, 1-day candidate upload;
+#  E. all workflows (Sprint 7): no pull_request_target and no workflow_run anywhere; `secrets.` only as NPM_TOKEN or
+#     CARGO_REGISTRY_TOKEN in publish.yml; id-token: write and attestations: write only in publish.yml; no `inputs.` and no
+#     `github.event.` in a workflow other than the pre-Sprint-7 ones; no version or matrix value interpolated into a run: line.
 set -uo pipefail
 . "$(dirname "$0")/lib.sh"
 WF=${WF:-$REPO/.github/workflows}
@@ -69,6 +85,8 @@ github/codeql-action/init 33d7b85da1a04171e211befe2c739303b9a4c066 v4
 github/codeql-action/analyze 33d7b85da1a04171e211befe2c739303b9a4c066 v4
 github/codeql-action/upload-sarif 33d7b85da1a04171e211befe2c739303b9a4c066 v4
 ossf/scorecard-action fa7117db83c52d787ae5a89f350999701505d78e v2.5.0
+actions/attest-build-provenance 4d101475d8b20a2381f78447822ac1eab6504dd8 v4.2.2
+pypa/gh-action-pypi-publish 7245906fb61fa33a13554f9d5fb856fe61758086 v1.14.3
 T
 )
 echo "== A. every uses: is a SHA-pinned row of the conventions table"
@@ -113,38 +131,72 @@ if [ ! -f "$REQ" ]; then fail "tools/ci/requirements-determinism.txt exists"; el
   expect_eq "every requirement line of the hashed file is == pinned (no unpinned or ranged package)" 0 "$(grep -E '^[A-Za-z0-9]' "$REQ" | grep -cvE '^[A-Za-z0-9_.-]+==')"
 fi
 
-# ---- C. the wheels job (D2-05) ---------------------------------------------------------------------
-echo "== C. wheels job: hashed tools, no cache, contents: read, --locked, artefacts only"
-W=$(job_text "$CI" wheels)
-if [ -z "$W" ]; then fail "job 'wheels' not found in ci.yml"; else
+# ---- C. the release-rehearsal job (TD-106) ---------------------------------------------------------
+echo "== C. release-rehearsal job: hashed tools, no cache, contents: read, --locked, offline crate install, the rehearsal, 3-day upload"
+expect_eq "the wheels job is folded into release-rehearsal (no job named wheels remains)" 0 "$(jobs_of "$CI" | grep -cx wheels)"
+W=$(job_text "$CI" release-rehearsal)
+if [ -z "$W" ]; then fail "job 'release-rehearsal' not found in ci.yml"; else
   WC=$(printf '%s\n' "$W" | nocomments)
-  expect_eq "wheels: matrix covers ubuntu, windows and macos" 1 "$(printf '%s\n' "$WC" | grep -cE 'os: \[ubuntu-latest, windows-latest, macos-latest\]')"
-  expect_eq "wheels: job-level permissions is contents: read" 1 "$(printf '%s\n' "$WC" | awk '/^    permissions:/{p=1; next} p && /^      /{print; next} p{exit}' | grep -cE '^      contents: read$')"
-  expect_eq "wheels: no other permission (no id-token, attestations, packages, pages, write)" 0 "$(printf '%s\n' "$WC" | awk '/^    permissions:/{p=1; next} p && /^      /{print; next} p{exit}' | grep -vcE '^      contents: read$')"
-  expect_eq "wheels: no actions/cache and no Swatinem/rust-cache" 0 "$(printf '%s\n' "$WC" | grep -cE 'actions/cache@|Swatinem/rust-cache@')"
-  expect_eq "wheels: no id-token or attestations anywhere" 0 "$(printf '%s\n' "$WC" | grep -cE 'id-token|attestations')"
+  RH=$REPO/scripts/release/rehearse.sh
+  RS=""; for f in "$REPO"/scripts/release/*.sh; do [ -f "$f" ] && RS="$RS$(nocomments < "$f")
+"; done
+  expect_eq "release-rehearsal: the job name is 'release-rehearsal (\${{ matrix.os }})'" 1 "$(printf '%s\n' "$WC" | grep -cF 'name: release-rehearsal (${{ matrix.os }})')"
+  expect_eq "release-rehearsal: matrix covers ubuntu, windows and macos" 1 "$(printf '%s\n' "$WC" | grep -cE 'os: \[ubuntu-latest, windows-latest, macos-latest\]')"
+  expect_eq "release-rehearsal: fail-fast is false" 1 "$(printf '%s\n' "$WC" | grep -cE '^[[:space:]]*fail-fast: false$')"
+  expect_eq "release-rehearsal: job-level permissions is contents: read" 1 "$(printf '%s\n' "$WC" | awk '/^    permissions:/{p=1; next} p && /^      /{print; next} p{exit}' | grep -cE '^      contents: read$')"
+  expect_eq "release-rehearsal: no other permission (no id-token, attestations, packages, pages, write)" 0 "$(printf '%s\n' "$WC" | awk '/^    permissions:/{p=1; next} p && /^      /{print; next} p{exit}' | grep -vcE '^      contents: read$')"
+  expect_eq "release-rehearsal: every step runs in bash (the job sets defaults.run.shell: bash), also on Windows" 1 "$(printf '%s\n' "$WC" | awk '/^    defaults:/{d=1; next} d && /^      run:/{r=1; next} d && r && /^        shell: bash$/{print "yes"; exit} d && !/^      /{exit}' | grep -c yes)"
+  expect_eq "release-rehearsal: a timeout is set" 1 "$(printf '%s\n' "$WC" | grep -cE '^    timeout-minutes: [0-9]+$')"
+  expect_eq "release-rehearsal: no cache of any kind (no actions/cache, no rust-cache, no cache: input)" 0 "$(printf '%s\n' "$WC" | grep -cE 'actions/cache|Swatinem/rust-cache|^[[:space:]]*cache:|cache-dependency-path|cache-directories')"
+  expect_eq "release-rehearsal: no id-token or attestations anywhere" 0 "$(printf '%s\n' "$WC" | grep -cE 'id-token|attestations')"
   WPINS=$(printf '%s\n' "$WC" | py_pins)
-  check_pins "wheels" "$(printf '%s\n' "$WC" | pyver)" "$WPINS"
-  expect_eq "wheels and determinism pin the same Python on every OS" "$(printf '%s\n' "${DPINS:-}" | sort)" "$(printf '%s\n' "$WPINS" | sort)"
-  expect_eq "wheels: tools come from tools/ci/requirements.txt with --require-hashes --no-deps --only-binary=:all:" 1 "$(printf '%s\n' "$WC" | grep -E 'pip install' | grep -F -- '--require-hashes' | grep -F -- '--no-deps' | grep -F -- '--only-binary=:all:' | grep -cF 'tools/ci/requirements.txt')"
-  expect_eq "wheels: no pip install of anything else (only the hashed tools and the --no-index smoke install)" 0 "$(printf '%s\n' "$WC" | grep -E 'pip install' | grep -vE 'tools/ci/requirements.txt|--no-index' | wc -l | tr -d ' ')"
-  expect_eq "wheels: no uvx, no pip install uv==, no npm install" 0 "$(printf '%s\n' "$WC" | grep -cE '(^|[^A-Za-z-])uvx |pip install uv==|npm (i|install|init)( |$)')"
-  expect_eq "wheels: every cargo or maturin build/sdist line says --locked, or is the sdist (maturin sdist compiles nothing)" 0 "$(printf '%s\n' "$WC" | grep -E '(cargo (build|test|check|run|install|tree)|maturin (build|develop))' | grep -vcF -- '--locked')"
-  expect_eq "wheels: maturin build is run with --locked" 1 "$([ "$(printf '%s\n' "$WC" | grep -E 'maturin build' | grep -cF -- '--locked')" -ge 2 ] && echo 1 || echo 0)"
-  expect_eq "wheels: manylinux_2_17 through zig on ubuntu" 1 "$([ "$(printf '%s\n' "$WC" | grep -cE -- '--zig --compatibility manylinux_2_17')" -ge 1 ] && echo 1 || echo 0)"
-  expect_eq "wheels: an sdist is built" 1 "$([ "$(printf '%s\n' "$WC" | grep -cE 'maturin sdist|--sdist|scripts/package-sdist.sh')" -ge 1 ] && echo 1 || echo 0)"
-  expect_eq "wheels: the wheel is installed with --no-index and one real call is made" 1 "$([ "$(printf '%s\n' "$WC" | grep -cE 'pip install --no-index')" -ge 1 ] && [ "$(printf '%s\n' "$WC" | grep -cE 'analyse')" -ge 1 ] && echo 1 || echo 0)"
-  expect_eq "wheels: tags are compared as expanded sets by tests/python/check_wheel.py" 1 "$([ "$(printf '%s\n' "$WC" | grep -cF 'tests/python/check_wheel.py')" -ge 1 ] && echo 1 || echo 0)"
-  expect_eq "wheels: builder paths are checked (scripts/check-no-builder-paths.sh)" 1 "$([ "$(printf '%s\n' "$WC" | grep -cF 'check-no-builder-paths')" -ge 1 ] && echo 1 || echo 0)"
-  expect_eq "wheels: SHA256SUMS is written with newline=\"\\n\" (LF on every runner, BUG-T2-S6-10)" 1 "$([ "$(printf '%s\n' "$WC" | grep -F 'SHA256SUMS' | grep -F 'write_text' | grep -cF 'newline="\n"')" -ge 1 ] && echo 1 || echo 0)"
-  expect_eq "wheels: SHA256SUMS is written and printed" 1 "$([ "$(printf '%s\n' "$WC" | grep -cF 'SHA256SUMS')" -ge 2 ] && echo 1 || echo 0)"
-  UP=$(printf '%s\n' "$WC" | grep -cE 'actions/upload-artifact@')
-  expect_eq "wheels: exactly one upload-artifact step" 1 "$UP"
-  expect_eq "wheels: retention-days: 14" 1 "$(printf '%s\n' "$WC" | grep -cE '^[[:space:]]*retention-days: 14$')"
-  expect_eq "wheels: if-no-files-found: error" 1 "$(printf '%s\n' "$WC" | grep -cE '^[[:space:]]*if-no-files-found: error$')"
-  expect_eq "wheels: the artefact path holds only wheels, the sdist and SHA256SUMS" 0 "$(printf '%s\n' "$WC" | awk '/actions\/upload-artifact@/{u=1} u && /path: \|/{p=1; next} p && /^            /{print; next} p{exit}' | grep -vcE 'target/wheels/(\*\.whl|\*\.tar\.gz|SHA256SUMS)')"
-  expect_eq "wheels: no publish, release, registry, Pages or attestation step, no twine, no gh release" 0 "$(printf '%s\n' "$WC" | grep -ciE 'twine|pypi|npm publish|cargo publish|gh release|upload-pages|deploy-pages|attest|sigstore|cosign|slsa')"
-  expect_eq "wheels: no secret" 0 "$(printf '%s\n' "$WC" | grep -cE 'secrets\.|GITHUB_TOKEN')"
+  check_pins "release-rehearsal" "$(printf '%s\n' "$WC" | pyver)" "$WPINS"
+  expect_eq "release-rehearsal and determinism pin the same Python on every OS" "$(printf '%s\n' "${DPINS:-}" | sort)" "$(printf '%s\n' "$WPINS" | sort)"
+  expect_eq "release-rehearsal: setup-node 22 without a cache input" 1 "$(printf '%s\n' "$WC" | grep -cE '^[[:space:]]*node-version: "22"$')"
+  expect_eq "release-rehearsal: tools come from tools/ci/requirements.txt with --require-hashes --no-deps --only-binary=:all:" 1 "$(printf '%s\n' "$WC" | grep -E 'pip install' | grep -F -- '--require-hashes' | grep -F -- '--no-deps' | grep -F -- '--only-binary=:all:' | grep -cF 'tools/ci/requirements.txt')"
+  expect_eq "release-rehearsal: no other pip install in the workflow job" 0 "$(printf '%s\n' "$WC" | grep -E 'pip install' | grep -vcE 'tools/ci/requirements.txt')"
+  expect_eq "release-rehearsal: every pip install in scripts/release/ is a hashed tool install or an artefact install with --no-index --no-deps" 0 "$(printf '%s\n' "$RS" | grep -E 'pip install' | grep -vE -- '--require-hashes .*--no-deps.*--only-binary=:all:.*tools/ci/requirements.txt|--no-index --no-deps' | wc -l | tr -d ' ')"
+  expect_eq "release-rehearsal: no uvx, no pip install uv==, no npm install of a registry package" 0 "$( { printf '%s\n' "$WC"; printf '%s\n' "$RS"; } | grep -cE '(^|[^A-Za-z-])uvx |pip install uv==')"
+  expect_eq "release-rehearsal: every cargo and maturin build, package, vendor, install or tree line says --locked (workflow and scripts/release/)" 0 "$( { printf '%s\n' "$WC"; printf '%s\n' "$RS"; } | grep -E '(^|[^A-Za-z_-])(cargo (build|test|check|run|install|tree|package|publish|vendor)|maturin (build|develop))( |$)' | grep -vE '^[[:space:]]*(echo|printf|die|log)|die "|echo "|printf |cargo publish' | grep -vcF -- '--locked')"
+  expect_eq "release-rehearsal: cargo package --locked -p pagetriage-core -p pagetriage-cli is run twice (the packaged crates are what gets signed; not the publish = false crates)" 1 "$([ "$(printf '%s\n' "$RS" | grep -cE 'cargo package --locked( --no-verify)? -p pagetriage-core -p pagetriage-cli')" -ge 2 ] && echo 1 || echo 0)"
+  expect_eq "release builds: build-artefacts.sh defaults SOURCE_DATE_EPOCH to the commit time (git log -1 --format=%ct) unless the caller sets one, so the sdist and the wheel of a rehearsal build equal those of the publish build of the same commit (S1-135: the sdist and the wheel change with the epoch)" 1 "$([ "$(nocomments < "$REPO/scripts/release/build-artefacts.sh" | grep -cF 'SOURCE_DATE_EPOCH=$(git log -1 --format=%ct')" -ge 1 ] && [ "$(nocomments < "$REPO/scripts/release/build-artefacts.sh" | grep -cF 'export SOURCE_DATE_EPOCH')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: manylinux_2_17 through zig on ubuntu" 1 "$([ "$(printf '%s\n' "$RS" | grep -cE -- '--zig --compatibility manylinux_2_17')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: an sdist is built, and a wheel is built from the sdist alone with --locked" 1 "$([ "$(printf '%s\n' "$RS" | grep -cF 'scripts/package-sdist.sh')" -ge 1 ] && [ "$(printf '%s\n' "$RS" | grep -E 'maturin build' | grep -cF 'wheel')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: the wheels are installed with --no-index and checked by a real call (check-installed.py)" 1 "$([ "$(printf '%s\n' "$RS" | grep -cE 'pip install --no-index')" -ge 1 ] && [ -f "$REPO/scripts/release/check-installed.py" ] && [ "$(printf '%s\n' "$RS" | grep -cF 'check-installed.py')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: the npm tarball is installed offline with --ignore-scripts and a fresh cache, then a real call (check-installed.cjs)" 1 "$([ "$(printf '%s\n' "$RS" | grep -F 'npm install' | grep -F -- '--ignore-scripts' | grep -cF 'npm_config_offline=true')" -ge 1 ] && [ "$(printf '%s\n' "$RS" | grep -cF 'check-installed.cjs')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: the command publish.yml runs (cargo package --locked --no-verify -p pagetriage-core -p pagetriage-cli) is run in the rehearsal and its bytes are compared with the verified ones (S1-131)" 1 "$([ "$(printf '%s\n' "$RS" | grep -cF 'cargo package --locked --no-verify -p pagetriage-core -p pagetriage-cli')" -ge 1 ] && [ "$(printf '%s\n' "$RS" | grep -cF 'the --no-verify bytes equal the verified bytes')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: tags are compared as expanded sets by tests/python/check_wheel.py (the publish dry run runs it on every wheel)" 1 "$([ "$(printf '%s\n' "$RS" | grep -cF 'tests/python/check_wheel.py')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: builder paths are checked (scripts/check-no-builder-paths.sh)" 1 "$([ "$(printf '%s\n' "$RS" | grep -cF 'check-no-builder-paths')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: the CLI is installed from the packaged crates by scripts/release/install-crate-offline.sh" 1 "$([ "$(printf '%s\n' "$RS" | grep -cF 'install-crate-offline.sh')" -ge 1 ] && [ -f "$REPO/scripts/release/install-crate-offline.sh" ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: no 'cargo install --path crates/' anywhere (workflow and scripts/release/)" 0 "$( { printf '%s\n' "$WC"; printf '%s\n' "$RS"; } | grep -cE 'cargo install .*--path[ =]+"?(\./)?crates/')"
+  expect_eq "release-rehearsal: every cargo install says --offline --locked and a --path, and the script replaces crates-io with a directory source" 1 "$( { printf '%s\n' "$WC"; printf '%s\n' "$RS"; } | grep -E '^[[:space:]]*\( cd .*cargo install|^[[:space:]]*cargo install' | grep -F -- '--offline' | grep -F -- '--locked' | grep -cF -- '--path' | awk '{print ($1>=1)?1:0}')$([ "$(printf '%s\n' "$RS" | grep -cE 'replace-with = "vendored-sources"|directory = ')" -ge 2 ] && echo "" || echo x)"
+  expect_eq "release-rehearsal: the rehearsal steps run in order: build, install, sign, gate" "build install sign gate" "$(printf '%s\n' "$WC" | grep -oE 'rehearse\.sh (build|install|sign|gate)' | awk '{print $2}' | tr '\n' ' ' | sed 's/ $//')"
+  expect_eq "release-rehearsal: the README quick start runs from the built artefacts (QUICKSTART_RUN=1 QUICKSTART_REUSE=1)" 1 "$(printf '%s\n' "$WC" | grep -E 'tests/scripts/quickstart.sh' | grep -F 'QUICKSTART_RUN=1' | grep -cF 'QUICKSTART_REUSE=1')"
+  expect_eq "release-rehearsal: the publish dry run (scripts/release/publish-dry-run.sh) runs in CI" 1 "$(printf '%s\n' "$WC" | grep -cF 'scripts/release/publish-dry-run.sh')"
+  expect_eq "release-rehearsal: wasm tools come from the digest-pinned installer" 1 "$(printf '%s\n' "$WC" | grep -cF 'scripts/install-wasm-tools.sh')"
+  expect_eq "release-rehearsal: the rehearsal script uses the vendored release tool and the TEST key only through the tool's own flag" 1 "$([ "$(printf '%s\n' "$RS" | grep -cF 'scripts/release/release-tool.mjs')" -ge 1 ] && [ "$(printf '%s\n' "$RS" | grep -cF -- '--test-key rfc8032-1')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: refusal proofs check an exact exit code and the first stderr line, and the self-test points at a missing tool" 1 "$([ "$(printf '%s\n' "$RS" | grep -cF 'refused: test_key_refused')" -ge 1 ] && [ "$(printf '%s\n' "$RS" | grep -cF 'refused: no_trusted_key')" -ge 1 ] && [ "$(printf '%s\n' "$RS" | grep -cF 'does-not-exist.mjs')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "release-rehearsal: no secret, no token, no GITHUB_SHA or GITHUB_REF read by the scripts" 0 "$( { printf '%s\n' "$WC" | grep -E 'secrets\.|GITHUB_TOKEN'; printf '%s\n' "$RS" | grep -E 'GITHUB_SHA|GITHUB_REF'; } | grep -cv '^$')"
+  UPC=$(printf '%s\n' "$WC" | grep -cE 'actions/upload-artifact@')
+  expect_eq "release-rehearsal: exactly one upload-artifact step" 1 "$UPC"
+  expect_eq "release-rehearsal: the artefact is named REHEARSAL-test-key-NOT-A-RELEASE-pagetriage-<os>-<sha>" 1 "$(printf '%s\n' "$WC" | grep -cF 'name: REHEARSAL-test-key-NOT-A-RELEASE-pagetriage-${{ matrix.os }}-${{ github.sha }}')"
+  expect_eq "release-rehearsal: the artefact path is exactly dist-release/ and dist-release-report/" "dist-release/
+dist-release-report/" "$(printf '%s\n' "$WC" | awk '/actions\/upload-artifact@/{u=1} u && /path: \|/{p=1; next} p && /^            /{gsub(/^ +/,""); print; next} p{exit}')"
+  expect_eq "release-rehearsal: retention-days: 3" 1 "$(printf '%s\n' "$WC" | grep -cE '^[[:space:]]*retention-days: 3$')"
+  expect_eq "release-rehearsal: if-no-files-found: error" 1 "$(printf '%s\n' "$WC" | grep -cE '^[[:space:]]*if-no-files-found: error$')"
+  expect_eq "release-rehearsal: include-hidden-files: false" 1 "$(printf '%s\n' "$WC" | grep -cE '^[[:space:]]*include-hidden-files: false$')"
+  expect_eq "release-rehearsal: no publish, release, registry or Pages step, no twine, no gh release, no attestation" 0 "$(printf '%s\n' "$WC" | grep -vE 'publish-dry-run' | grep -ciE 'twine|pypi|npm publish|cargo publish|gh release|upload-pages|deploy-pages|attest|sigstore|cosign|slsa')"
+fi
+# the sdist's name is the PEP 440 version (found by the first full local rehearsal with REHEARSE_SDIST=1: 'dist/sdist/pagetriage-<semver>.tar.gz was not written')
+SD=$(nocomments < "$REPO/scripts/package-sdist.sh")
+expect_eq "package-sdist.sh names the sdist with the PEP 440 version (py_version), not the SemVer one" 1 "$([ "$(printf '%s\n' "$SD" | grep -cF 'py_version')" -ge 1 ] && [ "$(printf '%s\n' "$SD" | grep -c 'pagetriage-\$PYVER')" -ge 3 ] && [ "$(printf '%s\n' "$SD" | grep -c 'pagetriage-\$VERSION')" = 0 ] && echo 1 || echo 0)"
+RHS=$REPO/scripts/release/rehearse.sh
+if [ -f "$RHS" ]; then
+  ok "scripts/release/rehearse.sh exists"
+  expect_eq "rehearse.sh: the TEST key is only ever used with the tool's explicit flags (no key file is read, no seed is written down)" 0 "$(nocomments < "$RHS" | grep -ciE '9d61b19d|key\.secret|--key ')"
+  expect_eq "rehearse.sh: it never reads GITHUB_SHA or GITHUB_REF" 0 "$(nocomments < "$RHS" | grep -cE 'GITHUB_SHA|GITHUB_REF')"
+else
+  fail "scripts/release/rehearse.sh exists"
 fi
 if [ -f "$TOOLS/requirements.txt" ]; then
   ok "tools/ci/requirements.txt exists"
@@ -170,4 +222,124 @@ for j in $(jobs_of "$CI"); do
   job_text "$CI" "$j" | grep -qE '^    permissions:' || { echo "  job $j sets no permissions"; BAD=$((BAD+1)); }
 done
 expect_eq "every job sets its own permissions" 0 "$BAD"
+
+# ---- E. all workflows -------------------------------------------------------------------------------
+echo "== E. all workflows: no pull_request_target or workflow_run; secrets, id-token and attestations only in publish.yml"
+ALLC=""; for f in "$WF"/*.yml; do ALLC="$ALLC$(nocomments < "$f")
+"; done
+expect_eq "no pull_request_target and no workflow_run in any workflow" 0 "$(printf '%s\n' "$ALLC" | grep -cE 'pull_request_target|workflow_run')"
+NONPUB=""; for f in "$WF"/*.yml; do [ "$(basename "$f")" = publish.yml ] || NONPUB="$NONPUB$(nocomments < "$f")
+"; done
+expect_eq "outside publish.yml: no secrets. reference" 0 "$(printf '%s\n' "$NONPUB" | grep -c 'secrets\.')"
+expect_eq "outside publish.yml: no attestations: write" 0 "$(printf '%s\n' "$NONPUB" | grep -c 'attestations: write')"
+# FR2: every upload step in every workflow writes include-hidden-files: false out (the stats.yml one was the last without)
+UPL=0; HID=0; for f in "$WF"/*.yml; do n=$(nocomments < "$f" | grep -c 'actions/upload-artifact@'); h=$(nocomments < "$f" | grep -cE '^[[:space:]]*include-hidden-files: false$'); UPL=$((UPL+n)); HID=$((HID+h)); done
+expect_eq "every actions/upload-artifact step in every workflow sets include-hidden-files: false" "$UPL" "$HID"
+if [ -f "$WF/publish.yml" ]; then
+  PC=$(nocomments < "$WF/publish.yml")
+  expect_eq "publish.yml: secrets. is only NPM_TOKEN or CARGO_REGISTRY_TOKEN" 0 "$(printf '%s\n' "$PC" | grep -E 'secrets\.' | grep -vcE 'secrets\.(NPM_TOKEN|CARGO_REGISTRY_TOKEN)\b')"
+fi
+# inputs. and github.event. never appear in the workflows written in Sprint 7 (ci.yml, publish.yml)
+expect_eq "ci.yml: no inputs. and no github.event. expression" 0 "$(printf '%s\n' "$CODE" | grep -cE '\$\{\{[^}]*(inputs\.|github\.event\.)')"
+# no expression inside a run: step (a version or matrix value reaches a script only through env)
+RUNEXPR=$(printf '%s\n' "$CODE" | awk '/^[[:space:]]*(- )?run:/{ind=match($0,/[^ ]/); if ($0 ~ /run:[[:space:]]*[|>]/) {inblk=1; blkind=ind; next} else {print; next}} inblk{ if ($0 ~ /^[[:space:]]*$/) next; cur=match($0,/[^ ]/); if (cur>blkind+1) {print; next} else {inblk=0} }' | grep -c '\${{')
+expect_eq "ci.yml: no \${{ }} expression inside a run: step (values reach scripts through env)" 0 "$RUNEXPR"
+
+# ---- F. publish.yml ---------------------------------------------------------------------------------
+echo "== F. publish.yml: workflow_dispatch only, six locks, three bindings, provenance, then publishing; nobody runs it"
+PUB=$WF/publish.yml
+if [ ! -f "$PUB" ]; then fail ".github/workflows/publish.yml exists"; else
+  ok ".github/workflows/publish.yml exists"
+  PC=$(nocomments < "$PUB")
+  ON=$(printf '%s\n' "$PC" | awk '/^on:/{on=1; next} on && /^[^ ]/{exit} on{print}')
+  expect_eq "publish.yml: the only trigger is workflow_dispatch" "workflow_dispatch:" "$(printf '%s\n' "$ON" | sed '/^[[:space:]]*$/d' | sed 's/^[[:space:]]*//' | tr '\n' ' ' | sed 's/ $//')"
+  expect_eq "publish.yml: no inputs, no github.event, no secrets outside NPM_TOKEN and CARGO_REGISTRY_TOKEN" 0 "$(( $(printf '%s\n' "$PC" | grep -cE '(^|[^A-Za-z_])inputs\.|github\.event\.|^[[:space:]]+inputs:') + $(printf '%s\n' "$PC" | grep -E 'secrets\.' | grep -vcE 'secrets\.(NPM_TOKEN|CARGO_REGISTRY_TOKEN)\b') ))"
+  expect_eq "publish.yml: no pull_request, pull_request_target, push, schedule, release, workflow_run or workflow_call trigger" 0 "$(printf '%s\n' "$PC" | grep -cE '^[[:space:]]*(pull_request|pull_request_target|push|schedule|release|workflow_run|workflow_call|repository_dispatch):')"
+  expect_eq "publish.yml: top-level permissions: {}" 1 "$(printf '%s\n' "$PC" | grep -cE '^permissions: \{\}$')"
+  expect_eq "publish.yml: concurrency group, never cancelled mid-publish" 1 "$(printf '%s\n' "$PC" | awk '/^concurrency:/{c=1; next} c && /^[^ ]/{exit} c{print}' | grep -cE 'cancel-in-progress: false')"
+  expect_eq "publish.yml: exactly two jobs, build and publish" "build publish" "$(jobs_of "$PUB" | tr '\n' ' ' | sed 's/ $//')"
+  expect_eq "publish.yml: the build and publish job names are 'build (\${{ matrix.os }})' and 'publish'" 2 "$([ "$(printf '%s\n' "$PC" | grep -cF 'name: build (${{ matrix.os }})')" = 1 ] && [ "$(printf '%s\n' "$PC" | grep -cxF '    name: publish')" = 1 ] && echo 2 || echo 0)"
+  expect_eq "publish.yml: every job sets its own permissions" 0 "$(for j in $(jobs_of "$PUB"); do job_text "$PUB" "$j" | grep -qE '^    permissions:' || echo "$j"; done | wc -l | tr -d ' ')"
+  PB=$(job_text "$PUB" build | nocomments); PP=$(job_text "$PUB" publish | nocomments)
+  # locks 1 and 3: repository and branch guards on both jobs, the armed variable on publish
+  expect_eq "publish.yml: both jobs carry the repository and main-branch guard (lock 1)" 2 "$(printf '%s\n%s\n' "$PB" "$PP" | grep -cF "if: github.repository == 'AirplaneMode-Labs/pagetriage' && github.ref == 'refs/heads/main'")"
+  # lock 3 (TD-125): RELEASE_PUBLISH_ARMED is a variable of the 'release' environment, which a job-level `if` cannot read. It is read in the
+  # step env of the first step after the checkout, and no `if:` anywhere in the file reads `vars.`.
+  expect_eq "publish.yml: no if: (job-level or step-level) reads vars. (an environment variable is not visible to a job-level if; TD-125)" 0 "$(printf '%s\n' "$PC" | grep -cE '^[[:space:]]*(- )?if:.*vars\.')"
+  expect_eq "publish.yml: the publish job's if is exactly the repository and main-branch guard" 1 "$(printf '%s\n' "$PP" | grep -cE "^    if: github.repository == 'AirplaneMode-Labs/pagetriage' && github.ref == 'refs/heads/main'$")"
+  expect_eq "publish.yml: vars.RELEASE_PUBLISH_ARMED appears once, as the ARMED step env, and vars.RELEASE_KEY_ID once, as the RELEASE_KEY_ID step env" 1 "$([ "$(printf '%s\n' "$PC" | grep -c 'vars\.RELEASE_PUBLISH_ARMED')" = 1 ] && [ "$(printf '%s\n' "$PC" | grep -cE '^          ARMED: \$\{\{ vars\.RELEASE_PUBLISH_ARMED \}\}$')" = 1 ] && [ "$(printf '%s\n' "$PC" | grep -c 'vars\.RELEASE_KEY_ID')" = 1 ] && [ "$(printf '%s\n' "$PC" | grep -cE '^          RELEASE_KEY_ID: \$\{\{ vars\.RELEASE_KEY_ID \}\}$')" = 1 ] && echo 1 || echo 0)"
+  step_n() { printf '%s\n' "$PP" | awk -v n="$1" '/^      - /{c++} c==n{print}'; }   # the text of step n (1-based) of the publish job
+  expect_eq "publish.yml: the first step of the publish job is the checkout" 1 "$(step_n 1 | grep -c 'actions/checkout@')"
+  expect_eq "publish.yml: the armed step is the first step after the checkout (lock 3: ARMED from the step env, publish-guard.sh armed)" 2 "$([ "$(step_n 2 | grep -cE '^          ARMED: \$\{\{ vars\.RELEASE_PUBLISH_ARMED \}\}$')" = 1 ] && [ "$(step_n 2 | grep -cE '^        run: bash scripts/release/publish-guard\.sh armed$')" = 1 ] && echo 2 || echo 0)"
+  expect_eq "publish.yml: the publish job runs in the 'release' environment (lock 2) and needs the build job" 2 "$([ "$(printf '%s\n' "$PP" | grep -cE '^    environment: release$')" = 1 ] && [ "$(printf '%s\n' "$PP" | grep -cE '^    needs: build$')" = 1 ] && echo 2 || echo 0)"
+  expect_eq "publish.yml: the build job has no environment and no secrets" 0 "$(printf '%s\n' "$PB" | grep -cE 'environment:|secrets\.')"
+  # permissions: contents: read on build; id-token and attestations only on publish
+  expect_eq "publish.yml: build has contents: read and nothing else" "contents: read" "$(printf '%s\n' "$PB" | awk '/^    permissions:/{p=1; next} p && /^      /{gsub(/^ +/,""); print; next} p{exit}' | tr '\n' ' ' | sed 's/ $//')"
+  expect_eq "publish.yml: publish has contents: read, id-token: write and attestations: write" "contents: read id-token: write attestations: write" "$(printf '%s\n' "$PP" | awk '/^    permissions:/{p=1; next} p && /^      /{gsub(/^ +/,""); print; next} p{exit}' | tr '\n' ' ' | sed 's/ $//')"
+  expect_eq "publish.yml: id-token and attestations appear nowhere in the build job" 0 "$(printf '%s\n' "$PB" | grep -cE 'id-token|attestations')"
+  # build job rules
+  expect_eq "publish.yml: build covers ubuntu, macos and windows, fail-fast false, same exact Pythons as the rehearsal" "$(printf '%s\n' "${WPINS:-}" | sort)" "$(printf '%s\n' "$PB" | py_pins | sort)"
+  expect_eq "publish.yml: build matrix covers ubuntu, macos and windows" 1 "$(printf '%s\n' "$PB" | grep -cE 'os: \[ubuntu-latest, windows-latest, macos-latest\]')"
+  expect_eq "publish.yml: build runs every step in bash (defaults.run.shell: bash at the top)" 1 "$(printf '%s\n' "$PC" | awk '/^defaults:/{d=1; next} d && /^[^ ]/{exit} d{print}' | grep -cE '^    shell: bash$')"
+  expect_eq "publish.yml: tools by hash (--require-hashes --no-deps --only-binary=:all:), wasm tools from the digest-pinned installer" 1 "$([ "$(printf '%s\n' "$PB" | grep -E 'pip install' | grep -F -- '--require-hashes' | grep -F -- '--no-deps' | grep -cF -- '--only-binary=:all:')" -ge 1 ] && [ "$(printf '%s\n' "$PB" | grep -cF 'scripts/install-wasm-tools.sh')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "publish.yml: no cache of any kind in either job" 0 "$(printf '%s\n%s\n' "$PB" "$PP" | grep -cE 'actions/cache|Swatinem/rust-cache|^[[:space:]]*cache:')"
+  expect_eq "publish.yml: no test-key string anywhere (allowTestKeys, --allow-test-key, --trust-test-key, rfc8032, --test-key)" 0 "$(printf '%s\n' "$PC" | grep -ciE 'allowtestkeys|--allow-test-key|--trust-test-key|rfc8032|--test-key')"
+  expect_eq "publish.yml: no \${{ }} expression inside a run: step in either job" 0 "$(printf '%s\n' "$PC" | awk '/^[[:space:]]*(- )?run:/{ind=match($0,/[^ ]/); if ($0 ~ /run:[[:space:]]*[|>]/) {inblk=1; blkind=ind; next} else {print; next}} inblk{ if ($0 ~ /^[[:space:]]*$/) next; cur=match($0,/[^ ]/); if (cur>blkind+1) {print; next} else {inblk=0} }' | grep -c '\${{')"
+  expect_eq "publish.yml: every checkout has persist-credentials: false" "$(printf '%s\n' "$PC" | grep -c 'actions/checkout@')" "$(printf '%s\n' "$PC" | grep -c 'persist-credentials: false')"
+  expect_eq "publish.yml: the build job uploads one candidate per OS: 1 day, if-no-files-found: error, hidden files off" 1 "$([ "$(printf '%s\n' "$PB" | grep -cE 'actions/upload-artifact@')" = 1 ] && [ "$(printf '%s\n' "$PB" | grep -cE '^[[:space:]]*retention-days: 1$')" = 1 ] && [ "$(printf '%s\n' "$PB" | grep -cE '^[[:space:]]*if-no-files-found: error$')" = 1 ] && [ "$(printf '%s\n' "$PB" | grep -cE '^[[:space:]]*include-hidden-files: false$')" = 1 ] && echo 1 || echo 0)"
+  expect_eq "publish.yml: the candidate artefact name carries the OS" 1 "$(printf '%s\n' "$PB" | grep -cF 'name: pagetriage-candidate-${{ matrix.os }}')"
+  # lock 6, bindings, verification: present in the publish job, in this order, before attestation and the first publish step
+  order() { # order <pattern>...: the line numbers of the first match of each pattern in the publish job, true when strictly increasing
+    local last=0 n p
+    for p in "$@"; do n=$(printf '%s\n' "$PP" | grep -nE -- "$p" | head -1 | cut -d: -f1); [ -n "$n" ] && [ "$n" -gt "$last" ] || { echo "no"; return; }; last=$n; done; echo yes
+  }
+  expect_eq "publish.yml: lock 6 (publish-guard.sh key-id with RELEASE_KEY_ID from vars) comes straight after lock 3 (armed)" yes "$(order 'publish-guard.sh armed' 'RELEASE_KEY_ID: \${{ vars.RELEASE_KEY_ID }}' 'publish-guard.sh key-id')"
+  expect_eq "publish.yml: order: armed, key id, version, tag binding, registry absent, download, signed manifest, verify --expect-id --trust-file, manifest binding, exact set, attestation, crates (package, digests, publish, index), npm, PyPI" yes "$(order 'publish-guard.sh armed' 'publish-guard.sh key-id' 'publish-guard.sh version' 'publish-guard.sh tag-binding' 'publish-guard.sh registry-absent' 'actions/download-artifact@' 'gh release download' 'release-tool.mjs verify' 'publish-guard.sh manifest-binding' 'publish-guard.sh exact-set' 'actions/attest-build-provenance@' 'cargo package --locked --no-verify' 'publish-guard.sh crate-digests' 'cargo publish --locked --no-verify' 'publish-guard.sh index-check' 'npm publish' 'pypa/gh-action-pypi-publish@')"
+  # S1-131: the crate steps are four consecutive steps, before the PyPI step (a Docker action that runs as root must not touch the tree between
+  # the digest comparison and `cargo publish`; a failure there must leave nothing published on PyPI)
+  stepno() { printf '%s\n' "$PP" | awk -v p="$1" '/^      - /{c++} $0 ~ p && !f {print c; f=1}'; }
+  N_PKG=$(stepno 'cargo package --locked'); N_DIG=$(stepno 'publish-guard.sh crate-digests'); N_PUB=$(stepno 'cargo publish --locked'); N_IDX=$(stepno 'publish-guard.sh index-check'); N_PYPI=$(stepno 'pypa/gh-action-pypi-publish@')
+  expect_eq "publish.yml: re-package, digest comparison, cargo publish and the index check are four consecutive steps" "$((N_PKG+1)) $((N_PKG+2)) $((N_PKG+3))" "${N_DIG:-x} ${N_PUB:-x} ${N_IDX:-x}"
+  expect_eq "publish.yml: the crate steps come before the PyPI step (S1-131)" 1 "$([ -n "$N_IDX" ] && [ -n "$N_PYPI" ] && [ "$N_IDX" -lt "$N_PYPI" ] && echo 1 || echo 0)"
+  expect_eq "publish.yml: cargo package and cargo publish both say --locked --no-verify -p pagetriage-core -p pagetriage-cli (verification already ran in build and in the rehearsal), once each" 2 "$([ "$(printf '%s\n' "$PP" | grep -cE 'cargo package --locked --no-verify -p pagetriage-core -p pagetriage-cli$')" = 1 ] && [ "$(printf '%s\n' "$PP" | grep -cE 'cargo publish --locked --no-verify -p pagetriage-core -p pagetriage-cli$')" = 1 ] && echo 2 || echo 0)"
+  expect_eq "publish.yml: every cargo package and cargo publish line in the file is --locked --no-verify" 0 "$(printf '%s\n' "$PC" | grep -E '(^|[^A-Za-z_-])cargo (package|publish)( |$)' | grep -vcE -- '--locked --no-verify')"
+  expect_eq "publish.yml: the post-publish index check reads the crates.io sparse index through the guard, after cargo publish, with no \${{ }} in it" 1 "$([ -n "$N_IDX" ] && [ -n "$N_PUB" ] && [ "$N_IDX" -gt "$N_PUB" ] && [ "$(step_n "$N_IDX" | grep -cE '^        run: .*publish-guard\.sh index-check verified')" = 1 ] && [ "$(step_n "$N_IDX" | grep -c '\${{')" = 0 ] && echo 1 || echo 0)"
+  expect_eq "publish.yml: the release manifest is verified with --expect-id pagetriage-release and --trust-file docs/release-keys.json" 1 "$(printf '%s\n' "$PP" | grep -F 'release-tool.mjs verify' | grep -F -- '--expect-id pagetriage-release' | grep -cF -- '--trust-file docs/release-keys.json')"
+  expect_eq "publish.yml: the tag binding gets GUARD_REPO, GUARD_SHA from github.sha and a GH_TOKEN of github.token" 1 "$(printf '%s\n' "$PP" | awk '/Binding 1/{b=1} b' | head -8 | grep -cE 'GUARD_SHA: \${{ github.sha }}|GH_TOKEN: \${{ github.token }}|GUARD_REPO: \${{ github.repository }}' | awk '{print ($1==3)?1:0}')"
+  expect_eq "publish.yml: download-artifact has no run-id and no github-token input (this run only)" 0 "$(printf '%s\n' "$PP" | awk '/actions\/download-artifact@/{d=1; next} d && /^      - /{d=0} d{print}' | grep -cE 'run-id|github-token|repository:')"
+  expect_eq "publish.yml: the candidates are downloaded by pattern pagetriage-candidate-* with merge-multiple" 1 "$(printf '%s\n' "$PP" | awk '/actions\/download-artifact@/{d=1; next} d && /^      - /{d=0} d{print}' | grep -cE 'pattern: pagetriage-candidate-\*|merge-multiple: true' | awk '{print ($1==2)?1:0}')"
+  expect_eq "publish.yml: the exact paths come from the exact-set lists, with no glob in a publish or attestation step" 0 "$(printf '%s\n' "$PP" | grep -E 'npm publish|cargo publish|subject-path|packages-dir|cp verified' | grep -cE '\*')"
+  expect_eq "publish.yml: attestation is after verification, with subject-path from the exact list" 1 "$(printf '%s\n' "$PP" | grep -cE 'subject-path: \${{ steps\.exact\.outputs\.paths }}')"
+  # publishing steps and secrets
+  expect_eq "publish.yml: npm publish has --provenance --access public --ignore-scripts and a derived --tag" 1 "$(printf '%s\n' "$PP" | grep -F 'npm publish' | grep -F -- '--provenance' | grep -F -- '--access public' | grep -F -- '--ignore-scripts' | grep -cF -- '--tag "$DIST_TAG"')"
+  expect_eq "publish.yml: npm publish names a ./ path (npm reads 'dir/file.tgz' as a GitHub owner/repo shorthand and runs git ls-remote)" 1 "$(printf '%s\n' "$PP" | grep -F 'npm publish' | grep -cF 'npm publish "./verified/')"
+  expect_eq "publish.yml: the dist-tag is derived by the guard from the version read at this commit" 1 "$([ "$(printf '%s\n' "$PP" | grep -cF 'publish-guard.sh dist-tag')" = 1 ] && [ "$(printf '%s\n' "$PP" | grep -cF 'publish-guard.sh version')" = 1 ] && echo 1 || echo 0)"
+  expect_eq "publish.yml: PyPI through pypa/gh-action-pypi-publish with attestations: true and packages-dir" 1 "$(printf '%s\n' "$PP" | awk '/pypa\/gh-action-pypi-publish@/{d=1; next} d && /^      - /{d=0} d{print}' | grep -cE 'attestations: true|packages-dir: pypi-dist/' | awk '{print ($1==2)?1:0}')"
+  expect_eq "publish.yml: no PyPI token anywhere (trusted publishing)" 0 "$(printf '%s\n' "$PC" | grep -ciE 'pypi_token|PYPI_API|password:|twine')"
+  expect_eq "publish.yml: NPM_TOKEN and CARGO_REGISTRY_TOKEN appear only in a publish-job step env (once each)" 2 "$([ "$(printf '%s\n' "$PP" | grep -cE 'secrets\.NPM_TOKEN')" = 1 ] && [ "$(printf '%s\n' "$PP" | grep -cE 'secrets\.CARGO_REGISTRY_TOKEN')" = 1 ] && [ "$(printf '%s\n' "$PB" | grep -cE 'secrets\.')" = 0 ] && echo 2 || echo 0)"
+  expect_eq "publish.yml: each token line sits under an env: key of a step, never in run:" 2 "$(printf '%s\n' "$PP" | awk '/^        env:/{e=1; next} /^        run:/{e=0} /^      - /{e=0} e && /secrets\./{c++} END{print c+0}')"
+  expect_eq "publish.yml: an announcement of the checks: the build prints the candidate digests for the owner" 1 "$([ "$(printf '%s\n' "$PB" | grep -cE 'candidate digests')" -ge 1 ] && echo 1 || echo 0)"
+  # FR2 (BUG-T3-S7-19): no step of publish.yml may be made optional or conditional, and both jobs have a timeout
+  expect_eq "publish.yml: no continue-on-error anywhere (a failed lock or binding must fail the job)" 0 "$(printf '%s\n' "$PC" | grep -c 'continue-on-error')"
+  expect_eq "publish.yml: no step-level if: in the publish job (job-level guards only; always() would run a step after a failed check)" 0 "$(printf '%s\n' "$PP" | grep -cE '^      +(- )?if:|^        if:')"
+  expect_eq "publish.yml: the only step-level if: in the build job is the Linux-only wasm tools step, exactly" "        if: matrix.os == 'ubuntu-latest'" "$(printf '%s\n' "$PB" | grep -E '^        if:')"
+  expect_eq "publish.yml: no if: mentions always(), failure(), cancelled() or success() anywhere" 0 "$(printf '%s\n' "$PC" | grep -cE '(always|failure|cancelled|success)\(\)')"
+  expect_eq "publish.yml: the build job has timeout-minutes: 75 and the publish job timeout-minutes: 30" 1 "$([ "$(printf '%s\n' "$PB" | grep -cE '^    timeout-minutes: 75$')" = 1 ] && [ "$(printf '%s\n' "$PP" | grep -cE '^    timeout-minutes: 30$')" = 1 ] && echo 1 || echo 0)"
+fi
+# ---- G. scripts/release/publish-dry-run.sh ------------------------------------------------------------
+echo "== G. publish-dry-run.sh: every publish command is a dry run; no token; the checks the publish job relies on"
+DRY=$REPO/scripts/release/publish-dry-run.sh
+if [ ! -f "$DRY" ]; then fail "scripts/release/publish-dry-run.sh exists"; else
+  ok "scripts/release/publish-dry-run.sh exists"
+  DC=$(nocomments < "$DRY")
+  expect_eq "dry run: every npm publish and cargo publish line says --dry-run (no real publish is reachable)" 0 "$(printf '%s\n' "$DC" | grep -E '(^|[^A-Za-z_-])(npm|cargo) publish' | grep -vE '^[[:space:]]*(echo|printf|die|log)|die "|echo "|printf ' | grep -vc -- '--dry-run')"
+  expect_eq "dry run: npm publish --dry-run has --ignore-scripts and --access public and the derived --tag" 1 "$(printf '%s\n' "$DC" | grep -F 'npm publish' | grep -F -- '--dry-run' | grep -F -- '--ignore-scripts' | grep -F -- '--access public' | grep -cF -- '--tag')"
+  expect_eq "dry run: cargo publish --dry-run --locked --no-verify names the two crates (the publish job's flags)" 1 "$(printf '%s\n' "$DC" | grep -F 'cargo publish' | grep -F -- '--dry-run' | grep -F -- '--locked' | grep -F -- '--no-verify' | grep -cF -- '-p pagetriage-core -p pagetriage-cli')"
+  expect_eq "dry run: it runs the publish job's package command (cargo package --locked --no-verify -p pagetriage-core -p pagetriage-cli) and compares the crates with those of the rehearsal (S1-131)" 1 "$([ "$(printf '%s\n' "$DC" | grep -cE 'cargo package --locked --no-verify .*-p pagetriage-core -p pagetriage-cli')" -ge 1 ] && [ "$(printf '%s\n' "$DC" | grep -cF 'publish-guard.sh crate-digests')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "dry run: no verify switch (the same command as the publish job, never a different one)" 0 "$(printf '%s\n' "$DC" | grep -c 'PUBLISH_DRY_RUN_VERIFY')"
+  expect_eq "dry run: the wheel check (tests/python/check_wheel.py) runs on every wheel, and the dist-tag comes from publish-guard.sh" 1 "$([ "$(printf '%s\n' "$DC" | grep -cF 'tests/python/check_wheel.py')" -ge 1 ] && [ "$(printf '%s\n' "$DC" | grep -cF 'publish-guard.sh dist-tag')" -ge 1 ] && echo 1 || echo 0)"
+  expect_eq "dry run: no token, no provenance flag (needs OIDC), no secret and no registry credential is set" 0 "$(printf '%s\n' "$DC" | grep -vE '^[[:space:]]*(log|echo|die) |die "|log "|echo "' | grep -cE 'NODE_AUTH_TOKEN=|NPM_TOKEN=|CARGO_REGISTRY_TOKEN=|secrets\.|--provenance|npm login|cargo login|twine')"
+  expect_eq "dry run: the credentials that could exist in a runner's environment are removed before each publish command runs" 1 "$([ "$(printf '%s\n' "$DC" | grep -E '(npm|cargo) publish' | grep -cE 'env -u NODE_AUTH_TOKEN -u NPM_TOKEN -u CARGO_REGISTRY_TOKEN')" -ge 2 ] && echo 1 || echo 0)"
+fi
+
 finish

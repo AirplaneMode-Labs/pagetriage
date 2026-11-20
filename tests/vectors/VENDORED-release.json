@@ -1,0 +1,7 @@
+{
+  "source": "AirplaneMode-Labs/runtime spec/vectors/release",
+  "specRelease": "0.6.1",
+  "sha256": "54d78d44f73d43d9c89032200241241d2bca6f45240baf21f36b8f18cefc83e1",
+  "files": 31,
+  "note": "sha256 is the digest of the sorted listing of tests/vectors/release, one line per file: '<sha256>  vectors/release/<path>' and an LF (the same listing runtime's LANDED.json calls vectorsRelease). Copied byte for byte; do not edit."
+}
