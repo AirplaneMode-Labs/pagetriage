@@ -15,6 +15,7 @@ named in every row; none is an 8 GB laptop figure (not measured on 8 GB).
 """
 import argparse
 import csv
+import datetime
 import platform
 import statistics
 import subprocess
@@ -23,7 +24,7 @@ import time
 
 # (label, width, height): A4 at the stated resolution
 SIZES = [("A4 100 dpi", 827, 1169, 100), ("A4 150 dpi", 1240, 1754, 150), ("A4 200 dpi", 1654, 2339, 200), ("A4 300 dpi", 2480, 3508, 300)]
-HEADER = ["machine", "command", "commit", "page", "width", "height", "dpi", "megapixels", "runs", "median_ms", "worst_ms", "megapixels_per_second", "eight_gb_laptop"]
+HEADER = ["date", "machine", "command", "commit", "page", "width", "height", "dpi", "megapixels", "runs", "median_ms", "worst_ms", "megapixels_per_second", "eight_gb_laptop"]
 EIGHT_GB = "not measured on 8 GB"
 
 
@@ -91,13 +92,18 @@ def commit():
         return "unknown"
 
 
+def today():
+    """UTC date of the run, YYYY-MM-DD."""
+    return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d")
+
+
 def rows(results, command):
     out = []
-    m, c = machine(), commit()
+    d, m, c = today(), machine(), commit()
     for (label, w, h, dpi), times in results:
         med = statistics.median(times)
         mp = w * h / 1e6
-        out.append([m, command, c, label, w, h, dpi, f"{mp:.2f}", len(times), f"{med:.1f}", f"{max(times):.1f}", f"{mp / (med / 1000.0):.2f}", EIGHT_GB])
+        out.append([d, m, command, c, label, w, h, dpi, f"{mp:.2f}", len(times), f"{med:.1f}", f"{max(times):.1f}", f"{mp / (med / 1000.0):.2f}", EIGHT_GB])
     return out
 
 
@@ -116,9 +122,11 @@ def main(argv=None):
     results = [(s, measure(pagetriage_py, s[1], s[2], s[3], args.runs)) for s in sizes]
     command = f"python -I bench/speed_eval.py --runs {args.runs}" + (f" --csv {args.csv}" if args.csv else "")
     table = rows(results, command)
-    print("page,width,height,megapixels,runs,median_ms,worst_ms,megapixels_per_second")
+    shown = ["page", "width", "height", "megapixels", "runs", "median_ms", "worst_ms", "megapixels_per_second"]
+    print(",".join(shown))
     for r in table:
-        print(",".join(str(x) for x in r[3:5] + r[5:6] + r[7:12]))
+        row = dict(zip(HEADER, r))
+        print(",".join(str(row[k]) for k in shown))
     if args.csv:
         with open(args.csv, "w", newline="", encoding="utf-8") as f:
             w = csv.writer(f, lineterminator="\n")

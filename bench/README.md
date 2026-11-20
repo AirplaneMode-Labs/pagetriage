@@ -40,7 +40,30 @@ calls the Rust core through `pagetriage_py`, and scores the output.
 | `speed_eval.py` | `analyse_page` time per A4 page at 100, 150, 200 and 300 dpi (synthetic text-like pages from a seeded generator): median and worst of N runs in ms and megapixels per second. `--csv docs/benchmarks/speed.csv`. Needs `pagetriage_py` (TD-09) |
 | `large_doc_eval.py` | `pagetriage structure` and `pagetriage streams` over synthetic text PDFs of 100, 1,000 and 5,000 pages under `/usr/bin/time`: wall time and peak memory. `--csv docs/benchmarks/large-doc.csv`. Needs the release CLI (TD-09) |
 | `streams_wasm_chrome.mjs` | Stream accounting in installed Chrome: WebAssembly memory before and after, and the time of 5 runs, for each synthetic bomb that `examples/gen_stream_bombs.rs` writes (`scripts/stream-bombs.sh` is the native side). `--csv docs/benchmarks/wasm-streams.csv`. Results in `docs/detectors/streams.md` |
+| `record.py` | Runs one bench command from the repository root and keeps what it printed, line for line, in a JSON file under `docs/benchmarks/` with the UTC date, the git commit (`-dirty` when the tree had uncommitted changes), the machine (model and RAM only), the exact command, its exit code and its wall time. No builder path is kept. `--check FILE` verifies a record. See "Raw results" below |
+| `record_all.sh` | The commands behind every `docs/benchmarks/eval-*.json`, in groups: `synthetic` (no download), `structure` (the synthetic PDF corpus, and pdf-inspector beside it), `dibco` (needs `fetch.py`), `sizes` (builds both WebAssembly packages and the release artefacts, then `sizes_report.py`) |
+| `sizes_report.py` | One line per WebAssembly build (raw and `gzip -9`, as `scripts/check-wasm-size.sh` measures it) and per release artefact (bytes and SHA-256), for `record.py` to keep |
 | `tests/` | Offline unit tests (`python -I -m unittest discover -s bench/tests`) |
+
+## Raw results
+
+Every figure that the README, `docs/` and the demo page quote from these scripts has its raw output committed in [`docs/benchmarks/`](../docs/benchmarks/)
+(the owner's rule since 20 Nov 2026): CSV files written by `speed_eval.py`, `large_doc_eval.py`, `scripts/stream-bombs.sh`, `streams_wasm_chrome.mjs` and
+`site/tools/bench-structure.mjs`, and `eval-*.json` records written by `record.py`. Each row or record carries its date, commit, machine and command, and every one
+says "not measured on 8 GB": nothing in this repository is measured on an 8 GB laptop. [`docs/benchmarks/README.md`](../docs/benchmarks/README.md) lists every file,
+what it is and the exact command that reproduces it. To add a figure: run the script through `record.py` (or give it a `--csv` option that writes the columns above), add a row to
+that index, and add the figure to `docs/benchmarks/claims.json` with the text that quotes it; `tests/scripts/benchmarks.sh` fails for a quoted figure that has no matching committed row.
+A figure for which no raw file exists is not quoted bare: it is marked "raw data not kept" next to the figure, and listed in the index.
+
+```sh
+export PATH="$PWD/.venv/bin:$PATH"            # numpy, Pillow, qrcode and augraphy installed; pagetriage_py built with maturin
+bench/record_all.sh synthetic                  # about 12 minutes on the Mac of docs/benchmarks (the sum of the wall times in the records)
+bench/record_all.sh structure
+python -I bench/fetch.py && bench/record_all.sh dibco    # about 23 minutes there, 9 of them Howe in dual mode
+```
+
+`qrcode` (for the `real qr` rows of `qr_synth_eval.py`) and `augraphy` (for `skew_eval.py --augraphy`) are not in `requirements.txt`: they are
+development-time packages used only by those two evaluations.
 
 ## Setup
 

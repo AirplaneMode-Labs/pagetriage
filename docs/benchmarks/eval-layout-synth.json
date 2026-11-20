@@ -1,0 +1,33 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "layout-synth",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:21:28Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/layout_synth_eval.py --seeds 5",
+ "exit_code": 0,
+ "wall_seconds": 10.0,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "page                       lines mean |err|   blocks    cols   ms (med)",
+  "latin, 1 column             5/5    0.0%    5/5    5/5        95",
+  "devanagari, 1 column        5/5    0.0%    5/5    5/5        85",
+  "bengali, 1 column           5/5    0.0%    5/5    5/5        84",
+  "latin, 2 columns            5/5    0.0%    5/5    5/5        99",
+  "devanagari, 2 columns       5/5    0.0%    5/5    5/5        96",
+  "latin, skew 1.5 deg         5/5    0.0%    5/5    5/5        98",
+  "latin, skew 4 deg           5/5    0.0%    5/5    5/5        98",
+  "latin, speckle 0.2%         5/5    0.0%    5/5    5/5        98",
+  "latin, blur 1.2 px          5/5    0.0%    5/5    5/5        94"
+ ],
+ "stderr": []
+}

@@ -1,0 +1,38 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "quality-stress",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T03:54:41Z",
+ "commit": "2aed8b69c759",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/quality_stress.py",
+ "exit_code": 0,
+ "wall_seconds": 5.8,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "case               grade blur sev  lines (gate off)   default run",
+  "clean                  A     0.00                41   script",
+  "blur 2 px              B     0.32                41   script",
+  "blur 3 px              D     1.00                64   degraded",
+  "blur 4 px              D     1.00               262   degraded",
+  "blur 6 px              D     1.00                22   degraded",
+  "noise sigma 20         C     0.00                41   script",
+  "noise sigma 40         D     0.00                55   script",
+  "noise sigma 60         D     0.00                 3   script",
+  "speckle 3%             C     0.00                41   script",
+  "bleed-through 0.4      A     0.00                47   script",
+  "photocopied x5         A     0.00                45   script",
+  "photocopied x10        B     0.00                 0   -",
+  "skew 25 deg            C     0.00                 0   -",
+  "blank                  D     0.00                 0   -"
+ ],
+ "stderr": []
+}

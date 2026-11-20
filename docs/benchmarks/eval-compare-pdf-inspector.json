@@ -1,0 +1,35 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "compare-pdf-inspector",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:25:04Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/compare_pdf_inspector.py --corpus bench/data/synth_pdf --split all --tool target/pdf-inspector-compare",
+ "exit_code": 0,
+ "wall_seconds": 0.5,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "split=all pages=300 files with pdf-inspector errors=0",
+  "coarse classes (native_text and mixed folded into 'text'):",
+  "  pdf-inspector agrees with the label on 263/300 = 87.7%",
+  "  pagetriage    agrees with the label on 300/300 = 100.0%",
+  "",
+  "pdf-inspector confusion (label \\ pdf-inspector):",
+  "label                                 text   raster_only  invisible_oc   vector_only         empty       garbled",
+  "text                                   160             0             0             0             0             0",
+  "raster_only                              0            43             0             0             0             0",
+  "invisible_ocr_under_image                6             1            56             0             0             0",
+  "vector_only                             12             0             0             3             1             0",
+  "empty                                   17             0             0             0             1             0"
+ ],
+ "stderr": []
+}

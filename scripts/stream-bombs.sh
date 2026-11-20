@@ -30,10 +30,11 @@ peak_bytes() { # parses /usr/bin/time output on stdin: BSD gives bytes, GNU give
 budget_extra=$((64 * 1024 * 1024))
 fail=0
 machine="$(sysctl -n machdep.cpu.brand_string 2>/dev/null || grep -m1 'model name' /proc/cpuinfo 2>/dev/null | cut -d: -f2 | sed 's/^ //' || true) ($(uname -s) $(uname -r) $(uname -m), $(getconf _NPROCESSORS_ONLN 2>/dev/null || echo '?') cores)"
+date=$(date -u +%Y-%m-%d)
 commit=$(git rev-parse --short=12 HEAD 2>/dev/null || echo unknown)
 [ -n "$(git status --porcelain 2>/dev/null)" ] && commit="$commit-dirty"
 if [ -n "${STREAMS_CSV:-}" ]; then
-  echo 'machine,command,commit,file,input_bytes,verdict,reason,wall_ms,peak_rss_bytes,budget_bytes,within_budget,eight_gb_laptop' > "$STREAMS_CSV"
+  echo 'date,machine,command,commit,file,input_bytes,verdict,reason,wall_ms,peak_rss_bytes,budget_bytes,within_budget,eight_gb_laptop' > "$STREAMS_CSV"
 fi
 printf '%-28s %12s %-8s %-20s %9s %14s %s\n' file input_bytes verdict reason wall_ms peak_rss_bytes budget
 for f in "$work"/*.pdf; do
@@ -52,8 +53,8 @@ for f in "$work"/*.pdf; do
   printf '%-28s %12s %-8s %-20s %9s %14s %s\n' "$name" "$size" "$verdict" "${reason:--}" "$(( (end - start) / 1000000 ))" "$peak" "$status"
   if [ -n "${STREAMS_CSV:-}" ]; then
     within=$([ "$peak" -le "$limit" ] && echo true || echo false)
-    printf '"%s","scripts/stream-bombs.sh (cargo build --release; /usr/bin/time %s target/release/pagetriage streams FILE)",%s,%s,%s,%s,%s,%s,%s,%s,%s,not measured on 8 GB\n' \
-      "$machine" "${time_args[*]}" "$commit" "$name" "$size" "$verdict" "${reason:-}" "$(( (end - start) / 1000000 ))" "$peak" "$limit" "$within" >> "$STREAMS_CSV"
+    printf '%s,"%s","scripts/stream-bombs.sh (cargo build --release; /usr/bin/time %s target/release/pagetriage streams FILE)",%s,%s,%s,%s,%s,%s,%s,%s,%s,not measured on 8 GB\n' \
+      "$date" "$machine" "${time_args[*]}" "$commit" "$name" "$size" "$verdict" "${reason:-}" "$(( (end - start) / 1000000 ))" "$peak" "$limit" "$within" >> "$STREAMS_CSV"
   fi
 done
 rm -f "$work"/*.pdf "$work/out.json" "$work/time.txt"

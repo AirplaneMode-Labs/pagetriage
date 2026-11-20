@@ -1,0 +1,50 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "binarize-sauvola-train",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:09:13Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/eval_binarize.py --method sauvola --sets dibco2009 dibco2010",
+ "exit_code": 0,
+ "wall_seconds": 0.2,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "H2009-1   F= 86.28  published=     -  PSNR=17.84     0.0s  {}",
+  "H2009-2   F= 58.34  published=     -  PSNR=15.22     0.0s  {}",
+  "H2009-3   F= 85.59  published=     -  PSNR=15.06     0.0s  {}",
+  "H2009-4   F= 75.21  published=     -  PSNR=13.26     0.0s  {}",
+  "H2009-5   F= 81.20  published=     -  PSNR=18.06     0.0s  {}",
+  "P2009-1   F= 90.82  published=     -  PSNR=16.29     0.0s  {}",
+  "P2009-2   F= 95.41  published=     -  PSNR=17.12     0.0s  {}",
+  "P2009-3   F= 95.03  published=     -  PSNR=17.76     0.0s  {}",
+  "P2009-4   F= 89.26  published=     -  PSNR=16.09     0.0s  {}",
+  "P2009-5   F= 88.61  published=     -  PSNR=14.47     0.0s  {}",
+  "H2010-1   F= 55.16  published=     -  PSNR=11.79     0.0s  {}",
+  "H2010-2   F= 81.57  published=     -  PSNR=18.42     0.0s  {}",
+  "H2010-3   F= 83.79  published=     -  PSNR=16.93     0.0s  {}",
+  "H2010-4   F= 87.93  published=     -  PSNR=17.12     0.0s  {}",
+  "H2010-5   F= 62.82  published=     -  PSNR=11.67     0.0s  {}",
+  "H2010-6   F= 79.91  published=     -  PSNR=16.56     0.0s  {}",
+  "H2010-7   F= 89.66  published=     -  PSNR=18.09     0.0s  {}",
+  "H2010-8   F= 77.42  published=     -  PSNR=15.28     0.0s  {}",
+  "H2010-9   F= 80.52  published=     -  PSNR=18.04     0.0s  {}",
+  "H2010-10  F= 81.17  published=     -  PSNR=17.03     0.0s  {}",
+  "",
+  "handwritten  n=15  mean F= 77.77",
+  "printed      n= 5  mean F= 91.83",
+  "all          n=20  mean F= 81.28"
+ ],
+ "stderr": [
+  "<repo>/.venv/lib/python3.12/site-packages/PIL/TiffImagePlugin.py:949: UserWarning: Corrupt EXIF data.  Expecting to read 2 bytes but only got 0. ",
+  "  warnings.warn(str(msg))"
+ ]
+}

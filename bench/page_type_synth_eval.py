@@ -103,7 +103,10 @@ def page(kind, seed, noise=2.0, blur=0.0):
 
 def typed(img):
     out = json.loads(pagetriage_py.analyse_page(np.asarray(img).tobytes(), img.width, img.height, 150, None, None, OPTS))
-    return out["page_type"]["label"]
+    page_type = out.get("page_type")
+    # A page the quality gate stops (grade D with a blur severity of 0.9 or more) is not typed: say so instead of crashing, and
+    # count it as a miss under its own name.
+    return page_type["label"] if page_type else "not typed (gated)"
 
 
 def main():

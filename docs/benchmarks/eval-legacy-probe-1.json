@@ -1,0 +1,26 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "legacy-probe-1",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:07:48Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/tools/legacy_probe.py 1",
+ "exit_code": 0,
+ "wall_seconds": 0.0,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "example legacy-style paragraph: ;g foDj; foys[k vkt fnukad iUnjg ekjp dks iq.ks esa fu\"ikfnr fd;k x;k gS",
+  "tuning  legacy-style text flagged 12/12   English text flagged 0/12",
+  "test    legacy-style text flagged 12/12   English text flagged 0/12"
+ ],
+ "stderr": []
+}

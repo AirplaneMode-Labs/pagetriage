@@ -1,0 +1,43 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "binarize-howe-tune-c-2011",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:11:25Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/eval_binarize.py --method howe --howe-mode tune_c --sets dibco2011",
+ "exit_code": 0,
+ "wall_seconds": 83.5,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "H2011-1   F= 74.80  published=  88.2  PSNR=10.71     3.3s  {'c': 269.1, 't_hi': 0.4}",
+  "H2011-2   F= 98.36  published=  96.6  PSNR=28.20     7.4s  {'c': 761.1, 't_hi': 0.4}",
+  "H2011-3   F= 95.59  published=  94.9  PSNR=21.85     7.6s  {'c': 160.0, 't_hi': 0.4}",
+  "H2011-4   F= 77.87  published=  92.5  PSNR=13.13     2.3s  {'c': 320.0, 't_hi': 0.4}",
+  "H2011-5   F= 96.78  published=  96.2  PSNR=21.33     3.4s  {'c': 2152.7, 't_hi': 0.4}",
+  "H2011-6   F= 86.94  published=  91.1  PSNR=17.49     4.8s  {'c': 380.5, 't_hi': 0.4}",
+  "H2011-7   F= 92.51  published=  92.3  PSNR=22.05     4.9s  {'c': 761.1, 't_hi': 0.4}",
+  "H2011-8   F= 96.76  published=  94.9  PSNR=25.16     3.2s  {'c': 226.3, 't_hi': 0.4}",
+  "P2011-1   F= 90.40  published=  94.3  PSNR=14.86     4.2s  {'c': 80.0, 't_hi': 0.4}",
+  "P2011-2   F= 76.36  published=  73.5  PSNR=11.58     3.2s  {'c': 160.0, 't_hi': 0.4}",
+  "P2011-3   F= 96.56  published=  96.3  PSNR=18.95     2.7s  {'c': 1076.3, 't_hi': 0.4}",
+  "P2011-4   F= 95.13  published=  94.5  PSNR=19.76    14.7s  {'c': 452.5, 't_hi': 0.4}",
+  "P2011-5   F= 94.67  published=  93.7  PSNR=18.36     4.6s  {'c': 269.1, 't_hi': 0.4}",
+  "P2011-6   F= 78.17  published=  89.9  PSNR=15.83    12.3s  {'c': 640.0, 't_hi': 0.4}",
+  "P2011-7   F= 85.95  published=  89.7  PSNR=21.06     2.4s  {'c': 380.5, 't_hi': 0.4}",
+  "P2011-8   F= 90.83  published=  88.5  PSNR=16.17     2.3s  {'c': 380.5, 't_hi': 0.4}",
+  "",
+  "handwritten  n= 8  mean F= 89.95  published mean over the same images= 93.34  (ours - published = -3.39)",
+  "printed      n= 8  mean F= 88.51  published mean over the same images= 90.05  (ours - published = -1.54)",
+  "all          n=16  mean F= 89.23  published mean over the same images= 91.69  (ours - published = -2.46)"
+ ],
+ "stderr": []
+}

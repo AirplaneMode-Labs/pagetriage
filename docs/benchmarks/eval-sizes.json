@@ -1,0 +1,33 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "sizes",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:51:41Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/sizes_report.py --wasm pixel-only=dist/wasm-pixel/web/pagetriage_bg.wasm --wasm pdf=dist/wasm-pdf/web/pagetriage_bg.wasm --dir dist-release",
+ "exit_code": 0,
+ "wall_seconds": 0.2,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "artefact,measure,bytes,sha256",
+  "wasm pixel-only,raw,1426379,8aaa06683aa933ca145bcd1fbf94e9b8960613d018a74d7336a9647c7604dcc7",
+  "wasm pixel-only,gzip -9,478315,",
+  "wasm pdf,raw,2433537,3db2a77d0805edbfe72e19fddc181a54fcd8563d260afaf9b4c3b1e8272e2e3e",
+  "wasm pdf,gzip -9,889502,",
+  "airplanemode-pagetriage-1.0.0-rc.1.tgz,file,1834660,53ef6fc15b1109910a817112e428115342108384339999a52b929705760fd929",
+  "pagetriage-1.0.0rc1-cp39-abi3-macosx_11_0_arm64.whl,file,1777841,9c7de9cbc7ff1aa4753aed441e1592b7b27b171503993e20bb0ed0b4557621b1",
+  "pagetriage-1.0.0rc1.tar.gz,file,466586,9170b9417b9ce9fbaab3e231fa3f3d615166292349ed501cf56c36e024575e99",
+  "pagetriage-cli-1.0.0-rc.1.crate,file,47907,84e64f1fa11e1c3fbb3bbaab9bd08c657bab6d3bcb65146a6821d24d3e8b2dc3",
+  "pagetriage-core-1.0.0-rc.1.crate,file,380680,ef8b4694b29c2d54a7cae4d3ba08c67b2986dfd767932d59311fb7f0ba1a6293"
+ ],
+ "stderr": []
+}

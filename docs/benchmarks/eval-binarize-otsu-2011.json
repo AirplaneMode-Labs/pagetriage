@@ -1,0 +1,43 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "binarize-otsu-2011",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:09:13Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/eval_binarize.py --method otsu --sets dibco2011",
+ "exit_code": 0,
+ "wall_seconds": 0.2,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "H2011-1   F= 67.55  published=     -  PSNR= 9.26     0.0s  {}",
+  "H2011-2   F= 88.97  published=     -  PSNR=20.34     0.0s  {}",
+  "H2011-3   F= 86.66  published=     -  PSNR=17.30     0.0s  {}",
+  "H2011-4   F= 49.28  published=     -  PSNR= 7.73     0.0s  {}",
+  "H2011-5   F= 90.22  published=     -  PSNR=16.52     0.0s  {}",
+  "H2011-6   F= 65.20  published=     -  PSNR=12.23     0.0s  {}",
+  "H2011-7   F= 82.06  published=     -  PSNR=18.38     0.0s  {}",
+  "H2011-8   F= 88.94  published=     -  PSNR=20.15     0.0s  {}",
+  "P2011-1   F= 94.00  published=     -  PSNR=17.04     0.0s  {}",
+  "P2011-2   F= 76.55  published=     -  PSNR=11.65     0.0s  {}",
+  "P2011-3   F= 91.92  published=     -  PSNR=15.41     0.0s  {}",
+  "P2011-4   F= 93.48  published=     -  PSNR=18.48     0.0s  {}",
+  "P2011-5   F= 79.98  published=     -  PSNR=11.78     0.0s  {}",
+  "P2011-6   F= 90.15  published=     -  PSNR=20.02     0.0s  {}",
+  "P2011-7   F= 86.43  published=     -  PSNR=21.47     0.0s  {}",
+  "P2011-8   F= 82.27  published=     -  PSNR=13.74     0.0s  {}",
+  "",
+  "handwritten  n= 8  mean F= 77.36",
+  "printed      n= 8  mean F= 86.85",
+  "all          n=16  mean F= 82.10"
+ ],
+ "stderr": []
+}

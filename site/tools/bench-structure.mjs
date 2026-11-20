@@ -271,7 +271,7 @@ await page.waitForFunction(() => window.ready === true, null, { timeout: 15000 }
 const cmd = `PAGETRIAGE_WASM_FEATURES=pdf WASM_OUT=dist/wasm bash scripts/build-wasm.sh && node site/tools/bench-structure.mjs --wasm ${opt("--wasm", "dist/wasm/web")} --out ${OUT} --runs ${RUNS}`;
 const dirty = git("status", "--porcelain", "--", "crates", "Cargo.toml", "Cargo.lock", "scripts/build-wasm.sh").length > 0;
 const commit = `${git("rev-parse", "--short=12", "HEAD")}${dirty ? "-dirty" : ""}`;
-const base = { machine: machine(), browser: chrome, commit, build: wasmSha, command: cmd };
+const base = { date: new Date().toISOString().slice(0, 10), machine: machine(), browser: chrome, commit, build: wasmSha, command: cmd };
 const rows = [];
 const add = (r) => rows.push({ ...base, input_bytes: "", pages: "", runs: "", median_ms: "", worst_ms: "", outcome: "ok", detail: "", wasm_memory_bytes: "", eight_gb_laptop: "not measured on 8 GB", ...r });
 
@@ -323,7 +323,7 @@ for (const [name, bytes] of files) {
 await browser.close();
 server.close();
 
-const cols = ["machine", "browser", "commit", "build", "command", "kind", "subject", "input_bytes", "pages", "runs", "median_ms", "worst_ms", "outcome", "detail", "wasm_memory_bytes", "eight_gb_laptop"];
+const cols = ["date", "machine", "browser", "commit", "build", "command", "kind", "subject", "input_bytes", "pages", "runs", "median_ms", "worst_ms", "outcome", "detail", "wasm_memory_bytes", "eight_gb_laptop"];
 writeFileSync(resolve(REPO, OUT), [cols.join(","), ...rows.map((r) => cols.map((c) => csv(r[c])).join(","))].join("\n") + "\n");
 if (consoleErrors.length) console.log("console errors on the bench page:", consoleErrors);
 for (const r of rows) console.log(`${r.kind.padEnd(8)} ${String(r.subject).padEnd(44)} in=${String(r.input_bytes).padStart(9)} median=${String(r.median_ms).padStart(9)} worst=${String(r.worst_ms).padStart(9)} ${r.outcome}`);

@@ -1,0 +1,40 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "stamp-synth",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T03:57:10Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/stamp_synth_eval.py",
+ "exit_code": 0,
+ "wall_seconds": 74.6,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "condition             split    found  kind ok  shape ok colour ok",
+  "colour                dev      18/18     18/18      18/18      18/18 ",
+  "colour                test     18/18     18/18      18/18      18/18 ",
+  "faint (opacity 0.4)   dev      13/18     13/18      13/18      13/18 ",
+  "faint (opacity 0.4)   test     10/18     10/18      10/18      10/18 ",
+  "blur 1 px             dev      16/18     16/18      16/18      16/18 ",
+  "blur 1 px             test     17/18     17/18      17/18      17/18 ",
+  "gray only (unsupported)dev       0/12      0/12       0/12       0/12 ",
+  "gray only (unsupported)test      0/12      0/12       0/12       0/12 ",
+  "",
+  "false stamps (pages with any stamp or seal finding / pages tried)",
+  "no stamp           colour  0/12   gray only  0/12",
+  "blue heading       colour  0/12   gray only  0/12",
+  "blue handwriting   colour  0/12   gray only  0/12",
+  "red bare frame     colour  0/12   gray only  0/12",
+  "yellow bar         colour  0/12   gray only  0/12",
+  "multicolour logo   colour  0/12   gray only  0/12"
+ ],
+ "stderr": []
+}

@@ -1,0 +1,43 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "binarize-wolf-2011",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:09:14Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/eval_binarize.py --method wolf --sets dibco2011",
+ "exit_code": 0,
+ "wall_seconds": 0.3,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "H2011-1   F= 85.19  published=     -  PSNR=13.69     0.0s  {}",
+  "H2011-2   F= 89.08  published=     -  PSNR=20.27     0.0s  {}",
+  "H2011-3   F= 86.51  published=     -  PSNR=17.32     0.0s  {}",
+  "H2011-4   F= 73.35  published=     -  PSNR=12.26     0.0s  {}",
+  "H2011-5   F= 90.48  published=     -  PSNR=16.48     0.0s  {}",
+  "H2011-6   F= 55.32  published=     -  PSNR=12.09     0.0s  {}",
+  "H2011-7   F= 82.68  published=     -  PSNR=18.33     0.0s  {}",
+  "H2011-8   F= 90.70  published=     -  PSNR=20.67     0.0s  {}",
+  "P2011-1   F= 95.04  published=     -  PSNR=17.77     0.0s  {}",
+  "P2011-2   F= 77.55  published=     -  PSNR=11.82     0.0s  {}",
+  "P2011-3   F= 93.83  published=     -  PSNR=16.46     0.0s  {}",
+  "P2011-4   F= 95.10  published=     -  PSNR=19.62     0.0s  {}",
+  "P2011-5   F= 83.92  published=     -  PSNR=12.94     0.0s  {}",
+  "P2011-6   F= 87.86  published=     -  PSNR=18.82     0.0s  {}",
+  "P2011-7   F= 82.82  published=     -  PSNR=20.06     0.0s  {}",
+  "P2011-8   F= 85.37  published=     -  PSNR=14.26     0.0s  {}",
+  "",
+  "handwritten  n= 8  mean F= 81.66",
+  "printed      n= 8  mean F= 87.69",
+  "all          n=16  mean F= 84.67"
+ ],
+ "stderr": []
+}

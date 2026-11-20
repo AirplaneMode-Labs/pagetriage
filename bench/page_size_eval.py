@@ -20,6 +20,8 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "synth"))
+# ru_maxrss is in bytes on macOS and in KiB on Linux: the peak memory is reported in megabytes of 1,000,000 bytes on both
+RSS_BYTES = 1 if sys.platform == "darwin" else 1024
 import numpy as np  # noqa: E402
 import pagetriage_py  # noqa: E402
 import scanimg  # noqa: E402
@@ -65,5 +67,5 @@ for name,dpi in (("A1",200),("A1",300)):
     t=time.perf_counter()
     try:
         r=json.loads(pagetriage_py.analyse_page(img.tobytes(),w,h,dpi,None,None,json.dumps({"detectors":["layout"]})))
-        print(name,dpi,w*h/1e6,"Mpx ok",round(time.perf_counter()-t,1),"s","peak MB",resource.getrusage(resource.RUSAGE_SELF).ru_maxrss//1024)
+        print(name,dpi,w*h/1e6,"Mpx ok",round(time.perf_counter()-t,1),"s","peak MB",round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss*RSS_BYTES/1e6))
     except Exception as e: print(name,dpi,w*h/1e6,"Mpx ERROR",str(e)[:100])

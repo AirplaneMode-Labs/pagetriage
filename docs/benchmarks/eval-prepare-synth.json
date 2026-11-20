@@ -1,0 +1,32 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "prepare-synth",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:05:08Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/prepare_synth_eval.py",
+ "exit_code": 0,
+ "wall_seconds": 69.2,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  " tilt split  turn right  abstained  wrong  level <0.5  median |skew|  baseline     page crop",
+  "    0 dev          8/12          4      0        1.00           0.00      0.00          0.33",
+  "    0 test         8/12          4      0        1.00           0.00      0.00          0.34",
+  "    3 dev         10/12          2      0        1.00           0.00      3.00          0.30",
+  "    3 test         7/12          5      0        1.00           0.00      2.95          0.31",
+  "    6 dev         10/12          2      0        1.00           0.00      6.00          0.27",
+  "    6 test         9/12          3      0        1.00           0.00      6.00          0.28",
+  "   10 dev         12/12          0      0        1.00           0.00     10.00          0.25",
+  "   10 test        10/12          2      0        1.00           0.00     10.00          0.25"
+ ],
+ "stderr": []
+}

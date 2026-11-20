@@ -144,9 +144,10 @@ if (csvPath) {
   } catch { /* not a git checkout */ }
   const { createHash } = await import("node:crypto");
   const build = createHash("sha256").update(readFileSync(join(webDir, "pagetriage_bg.wasm"))).digest("hex").slice(0, 12);
-  const header = "machine,browser,commit,build,command,file,input_bytes,verdict,reason,runs,median_ms,worst_ms,wasm_memory_before_bytes,wasm_memory_after_bytes,budget_bytes,within_budget,eight_gb_laptop";
+  const header = "date,machine,browser,commit,build,command,file,input_bytes,verdict,reason,runs,median_ms,worst_ms,wasm_memory_before_bytes,wasm_memory_after_bytes,budget_bytes,within_budget,eight_gb_laptop";
   const lines = results.map((r) =>
     [
+      new Date().toISOString().slice(0, 10),
       q(r.machine),
       q(`Chrome ${r.chrome}`),
       commit,

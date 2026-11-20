@@ -1,0 +1,50 @@
+{
+ "schema": "pagetriage-bench-record-1",
+ "name": "binarize-howe-dual-train",
+ "date": "2026-11-20",
+ "started_utc": "2026-11-20T04:12:48Z",
+ "commit": "2aed8b69c759-dirty",
+ "machine": "Apple M5 Pro (Mac17,8), 48 GiB RAM, Darwin arm64",
+ "tools": {
+  "python": "3.12.14",
+  "numpy": "2.4.4",
+  "Pillow": "12.2.0",
+  "qrcode": "8.2",
+  "augraphy": "8.2.6",
+  "pagetriage": "1.0.0rc1"
+ },
+ "command": "python -I bench/eval_binarize.py --method howe --howe-mode dual --sets dibco2009 dibco2010",
+ "exit_code": 0,
+ "wall_seconds": 332.2,
+ "eight_gb_laptop": "not measured on 8 GB",
+ "stdout": [
+  "H2009-1   F= 95.47  published=  95.8  PSNR=22.08    22.6s  {'c': 190.3, 't_hi': 0.25}",
+  "H2009-2   F= 96.13  published=  95.7  PSNR=27.67    42.3s  {'c': 761.1, 't_hi': 0.5}",
+  "H2009-3   F= 95.41  published=  95.1  PSNR=20.40     6.5s  {'c': 113.1, 't_hi': 0.5}",
+  "H2009-4   F= 89.58  published=  94.5  PSNR=18.27    19.5s  {'c': 190.3, 't_hi': 0.5}",
+  "H2009-5   F= 92.11  published=  92.6  PSNR=22.11    20.9s  {'c': 160.0, 't_hi': 0.25}",
+  "P2009-1   F= 94.94  published=  94.2  PSNR=19.03     6.9s  {'c': 380.5, 't_hi': 0.5}",
+  "P2009-2   F= 96.93  published=  96.9  PSNR=18.85     6.8s  {'c': 761.1, 't_hi': 0.25}",
+  "P2009-3   F= 98.83  published=  98.3  PSNR=23.94    12.0s  {'c': 1076.3, 't_hi': 0.5}",
+  "P2009-4   F= 92.79  published=  92.8  PSNR=18.14    12.9s  {'c': 380.5, 't_hi': 0.25}",
+  "P2009-5   F= 84.40  published=  84.3  PSNR=13.10     5.7s  {'c': 226.3, 't_hi': 0.25}",
+  "H2010-1   F= 94.53  published=  96.0  PSNR=19.30    12.6s  {'c': 160.0, 't_hi': 0.5}",
+  "H2010-2   F= 95.63  published=  95.4  PSNR=23.95    35.8s  {'c': 113.1, 't_hi': 0.25}",
+  "H2010-3   F= 96.61  published=  94.7  PSNR=23.22     8.4s  {'c': 452.5, 't_hi': 0.5}",
+  "H2010-4   F= 94.18  published=  93.9  PSNR=20.16     9.5s  {'c': 190.3, 't_hi': 0.25}",
+  "H2010-5   F= 95.59  published=  96.4  PSNR=22.84    19.5s  {'c': 380.5, 't_hi': 0.5}",
+  "H2010-6   F= 94.93  published=  90.9  PSNR=21.88     8.2s  {'c': 226.3, 't_hi': 0.5}",
+  "H2010-7   F= 93.84  published=  95.1  PSNR=20.56    19.9s  {'c': 452.5, 't_hi': 0.25}",
+  "H2010-8   F= 94.24  published=  93.4  PSNR=20.37    19.0s  {'c': 160.0, 't_hi': 0.25}",
+  "H2010-9   F= 96.29  published=  93.5  PSNR=24.57    17.1s  {'c': 269.1, 't_hi': 0.25}",
+  "H2010-10  F= 87.87  published=  87.2  PSNR=18.68    26.1s  {'c': 113.1, 't_hi': 0.5}",
+  "",
+  "handwritten  n=15  mean F= 94.16  published mean over the same images= 94.01  (ours - published = +0.15)",
+  "printed      n= 5  mean F= 93.58  published mean over the same images= 93.30  (ours - published = +0.28)",
+  "all          n=20  mean F= 94.01  published mean over the same images= 93.84  (ours - published = +0.18)"
+ ],
+ "stderr": [
+  "<repo>/.venv/lib/python3.12/site-packages/PIL/TiffImagePlugin.py:949: UserWarning: Corrupt EXIF data.  Expecting to read 2 bytes but only got 0. ",
+  "  warnings.warn(str(msg))"
+ ]
+}

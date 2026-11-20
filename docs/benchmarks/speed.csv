@@ -1,5 +1,5 @@
-machine,command,commit,page,width,height,dpi,megapixels,runs,median_ms,worst_ms,megapixels_per_second,eight_gb_laptop
-Apple M5 Pro (Darwin 27.2.0 arm64),python -I bench/speed_eval.py --runs 5 --csv docs/benchmarks/speed.csv,eb28e490030b-dirty,A4 100 dpi,827,1169,100,0.97,5,33.6,36.3,28.81,not measured on 8 GB
-Apple M5 Pro (Darwin 27.2.0 arm64),python -I bench/speed_eval.py --runs 5 --csv docs/benchmarks/speed.csv,eb28e490030b-dirty,A4 150 dpi,1240,1754,150,2.17,5,67.4,71.3,32.26,not measured on 8 GB
-Apple M5 Pro (Darwin 27.2.0 arm64),python -I bench/speed_eval.py --runs 5 --csv docs/benchmarks/speed.csv,eb28e490030b-dirty,A4 200 dpi,1654,2339,200,3.87,5,108.7,116.4,35.59,not measured on 8 GB
-Apple M5 Pro (Darwin 27.2.0 arm64),python -I bench/speed_eval.py --runs 5 --csv docs/benchmarks/speed.csv,eb28e490030b-dirty,A4 300 dpi,2480,3508,300,8.70,5,232.2,247.3,37.46,not measured on 8 GB
+date,machine,command,commit,page,width,height,dpi,megapixels,runs,median_ms,worst_ms,megapixels_per_second,eight_gb_laptop
+2026-11-19,Apple M5 Pro (Darwin 27.2.0 arm64),python -I bench/speed_eval.py --runs 5 --csv docs/benchmarks/speed.csv,eb28e490030b-dirty,A4 100 dpi,827,1169,100,0.97,5,33.6,36.3,28.81,not measured on 8 GB
+2026-11-19,Apple M5 Pro (Darwin 27.2.0 arm64),python -I bench/speed_eval.py --runs 5 --csv docs/benchmarks/speed.csv,eb28e490030b-dirty,A4 150 dpi,1240,1754,150,2.17,5,67.4,71.3,32.26,not measured on 8 GB
+2026-11-19,Apple M5 Pro (Darwin 27.2.0 arm64),python -I bench/speed_eval.py --runs 5 --csv docs/benchmarks/speed.csv,eb28e490030b-dirty,A4 200 dpi,1654,2339,200,3.87,5,108.7,116.4,35.59,not measured on 8 GB
+2026-11-19,Apple M5 Pro (Darwin 27.2.0 arm64),python -I bench/speed_eval.py --runs 5 --csv docs/benchmarks/speed.csv,eb28e490030b-dirty,A4 300 dpi,2480,3508,300,8.70,5,232.2,247.3,37.46,not measured on 8 GB

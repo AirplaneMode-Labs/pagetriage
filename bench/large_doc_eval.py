@@ -13,6 +13,7 @@ is measured around the process. No algorithm lives here. The figures are for the
 """
 import argparse
 import csv
+import datetime
 import os
 import platform
 import re
@@ -21,7 +22,7 @@ import sys
 import tempfile
 import time
 
-HEADER = ["machine", "command", "commit", "pages", "file_bytes", "call", "exit_code", "wall_ms", "peak_rss_bytes", "eight_gb_laptop"]
+HEADER = ["date", "machine", "command", "commit", "pages", "file_bytes", "call", "exit_code", "wall_ms", "peak_rss_bytes", "eight_gb_laptop"]
 EIGHT_GB = "not measured on 8 GB"
 WORDS = "the of and to in is that for it as was with be by on not he this are or his from at which but have an had they you were their one all we can her has there been if more when will would who so no".split()
 
@@ -113,7 +114,7 @@ def main(argv=None):
         return 2
     command = f"python -I bench/large_doc_eval.py --pages {args.pages}" + (f" --csv {args.csv}" if args.csv else "")
     rows = []
-    m, c = machine(), commit()
+    d, m, c = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d"), machine(), commit()
     with tempfile.TemporaryDirectory(prefix="pagetriage-largedoc-") as tmp:
         for n in (int(x) for x in args.pages.split(",")):
             path = os.path.join(tmp, f"synthetic-{n}p.pdf")
@@ -122,7 +123,7 @@ def main(argv=None):
                 f.write(data)
             for call in ("structure", "streams"):
                 code, wall, peak = run_timed(args.cli, call, path)
-                rows.append([m, command, c, n, len(data), call, code, f"{wall:.0f}", peak if peak is not None else "", EIGHT_GB])
+                rows.append([d, m, command, c, n, len(data), call, code, f"{wall:.0f}", peak if peak is not None else "", EIGHT_GB])
                 print(f"{n:>6} pages {len(data):>10} bytes  {call:<9} exit {code}  {wall:>8.0f} ms  peak {peak if peak is not None else '?'} bytes")
     if args.csv:
         with open(args.csv, "w", newline="", encoding="utf-8") as f:
