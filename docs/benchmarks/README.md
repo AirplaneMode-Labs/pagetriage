@@ -108,8 +108,9 @@ and `tests/scripts/streams-doc.sh` compare with the pages that quote them.
 
 ## How the rule is enforced
 
-`bash tests/scripts/benchmarks.sh` (part of `tests/scripts/run-all.sh`, so part of CI on Linux, macOS and Windows) runs [`tests/scripts/benchmarks-check.mjs`](../../tests/scripts/benchmarks-check.mjs) on this tree and then on copies of it with one thing broken at a
-time, each of which must fail:
+`bash tests/scripts/benchmarks.sh` (part of `tests/scripts/run-all.sh`, so part of CI on Linux, macOS and Windows) runs [`tests/scripts/benchmarks-check.mjs`](../../tests/scripts/benchmarks-check.mjs) on a copy of README.md, `bench/README.md`, `site/index.html` and `docs/` made from git's file list (tracked files, and
+untracked files that are not ignored), so a file that exists only on one machine, such as a gitignored one, cannot satisfy it, and then on copies of that with one thing broken at a time, each of which must fail. It needs no build, no downloaded data, no network and no interpreter but Node.
+It does not re-measure anything and does not compare the sizes in `eval-sizes.json` with artefacts built today (that needs a build: `bench/record_all.sh sizes`); it prints that as a note. Checks:
 
 - every file here is in the index, and every index row names a file that exists, with the date, commit and machine the file itself carries and a reproduce command that writes it;
 - every CSV row and every record carries a date, a commit, a machine and a command, says `not measured on 8 GB` (unless it was made with `--eight-gb`, and then the machine must be an 8 GB one), is under 5 MB, and holds no home or builder path;

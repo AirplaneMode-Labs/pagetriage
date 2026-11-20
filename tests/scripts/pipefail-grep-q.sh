@@ -91,7 +91,7 @@ expect_eq "the lint sees all 8 spellings of a pipeline into grep -q or grep -m (
 OKS=0; for n in 1 2 3 4 5 6 7; do [ -z "$(hazards "$SCR/ok$n.sh")" ] && OKS=$((OKS+1)) || echo "  the lint flagged ok$n.sh: $(hazards "$SCR/ok$n.sh")"; done
 expect_eq "the lint passes all 7 safe lines (gq, a file operand, a comment, a || list, grep -c, a YAML block, a pattern that holds -q)" 7 "$OKS"
 
-FILES=(tests/scripts/*.sh scripts/*.sh scripts/lib/*.sh scripts/release/*.sh .github/workflows/*.yml)
+FILES=(tests/scripts/*.sh scripts/*.sh scripts/lib/*.sh scripts/release/*.sh bench/*.sh .github/workflows/*.yml)
 # this file holds the hazard on purpose (the 'unsafe' function above and its self-test lines)
 LIST=()
 for f in "${FILES[@]}"; do case "$f" in tests/scripts/pipefail-grep-q.sh) ;; *) LIST+=("$f") ;; esac; done
@@ -100,20 +100,40 @@ NHITS=0; [ -n "$HITS" ] && NHITS=$(printf '%s\n' "$HITS" | grep -c '')
 expect_eq "no shell script or workflow pipes into grep -q or grep -m N (use gq from tests/scripts/lib.sh, or grep >/dev/null)" 0 "$NHITS"
 if [ -n "$HITS" ]; then printf '%s\n' "$HITS" | cut -c1-200 | sed 's/^/    /' | head -n 60; fi
 COVERED=0
-for want in tests/scripts/ci-policy.sh tests/scripts/lib.sh scripts/package-npm.sh scripts/lib/version.sh scripts/release/rehearse.sh scripts/release/publish-dry-run.sh .github/workflows/ci.yml .github/workflows/publish.yml; do
+for want in tests/scripts/ci-policy.sh tests/scripts/lib.sh scripts/package-npm.sh scripts/lib/version.sh scripts/release/rehearse.sh scripts/release/publish-dry-run.sh bench/record_all.sh .github/workflows/ci.yml .github/workflows/publish.yml; do
   for f in "${LIST[@]}"; do [ "$f" = "$want" ] && { COVERED=$((COVERED+1)); break; }; done
 done
-expect_eq "the lint covers the test scripts, the build scripts, the release scripts and the workflows" 8 "$COVERED"
+expect_eq "the lint covers the test scripts, the build scripts, the release scripts, the bench script and the workflows" 9 "$COVERED"
 expect_eq "tests/scripts/run-all.sh runs this lint (so CI does)" 1 "$([ "$(tr ' ' '\n' < tests/scripts/run-all.sh | grep -cxF 'pipefail-grep-q.sh')" = 1 ] && echo 1 || echo 0)"
-# every tracked shell script and workflow is in the lint's file list (a new directory of scripts would otherwise escape it)
-if git rev-parse --git-dir >/dev/null 2>&1; then
-  MISSING=""
+# Every shell script and workflow git knows about is in the lint's file list (a new directory of scripts would otherwise escape it).
+# "Knows about" is tracked files AND untracked files that are not ignored (`git ls-files --cached --others --exclude-standard`): the files the next commit holds
+# once it is made with `git add -A`. A tracked-only list passes on a working tree where a new script is still untracked and goes red on CI the moment the script
+# is committed (CI run 44678293921: bench/record_all.sh, added by 3b6e443, was in none of the globs above, and this check could not see it before the commit).
+# Files that are ignored (a .venv, bench/data, target/) never count; a tracked file that is deleted in the working tree is skipped.
+# uncovered <git working tree>: the shell scripts and workflows in it that are not in $LIST, space-separated
+uncovered() {
+  local d=$1 f g found missing=""
   while IFS= read -r f; do
+    [ -e "$d/$f" ] || continue
     [ "$f" = tests/scripts/pipefail-grep-q.sh ] && continue
     case "$f" in .github/ISSUE_TEMPLATE/*|.github/dependabot.yml) continue ;; esac
     found=0; for g in "${LIST[@]}"; do [ "$g" = "$f" ] && { found=1; break; }; done
-    [ "$found" = 1 ] || MISSING="$MISSING $f"
-  done < <(git ls-files '*.sh' '.github/workflows/*.yml' '.github/workflows/*.yaml')
-  expect_eq "every tracked .sh file and workflow is covered by the lint" "" "$MISSING"
+    [ "$found" = 1 ] || missing="$missing $f"
+  done < <(git -C "$d" ls-files --cached --others --exclude-standard -- '*.sh' '.github/workflows/*.yml' '.github/workflows/*.yaml' | sort -u)
+  printf '%s' "$missing"
+}
+if git rev-parse --git-dir >/dev/null 2>&1; then
+  expect_eq "every tracked or untracked-but-not-ignored .sh file and workflow is covered by the lint" "" "$(uncovered "$REPO")"
+  # the check itself, on a scratch repository: a script git has not seen yet must be reported (the CI run above); an ignored one, and one deleted after
+  # `git add`, must not be. Nothing here touches the real repository.
+  UNT=$(mktemp -d); git -C "$UNT" init -q 2>/dev/null
+  mkdir -p "$UNT/newdir" "$UNT/bench/data"
+  printf '#!/usr/bin/env bash\n' > "$UNT/newdir/untracked.sh"
+  printf '#!/usr/bin/env bash\n' > "$UNT/bench/data/ignored.sh"; printf 'bench/data/\n' > "$UNT/.gitignore"
+  printf '#!/usr/bin/env bash\n' > "$UNT/gone.sh"; git -C "$UNT" add gone.sh 2>/dev/null; rm -f "$UNT/gone.sh"
+  expect_eq "the coverage check reports a new script that is untracked, and skips an ignored one and a deleted one" " newdir/untracked.sh" "$(uncovered "$UNT")"
+  rm -rf "$UNT"
+else
+  echo "note - not a git checkout (no .git): the check that every .sh file and workflow is covered by the lint is skipped; it needs git's file list"
 fi
 finish

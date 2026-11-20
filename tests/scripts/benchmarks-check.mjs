@@ -23,7 +23,9 @@ const out = [];
 const ok = (m) => out.push(`ok   - ${m}`);
 const bad = (m) => out.push(`FAIL - ${m}`);
 const check = (cond, m) => (cond ? ok(m) : bad(m));
-const read = (rel) => readFileSync(join(ROOT, rel), "utf8");
+// CRLF is read as LF: .gitattributes checks every text file out with LF (tests/scripts/benchmarks.sh asserts it), but a checker whose answer depended on that
+// would count the `|---|` row of a table as a data row on a CRLF copy (the separator test ends in `|$`). benchmarks.sh runs a CRLF copy and wants the same output.
+const read = (rel) => readFileSync(join(ROOT, rel), "utf8").replace(/\r\n/g, "\n");
 const has = (rel) => existsSync(join(ROOT, rel));
 const BEN = "docs/benchmarks";
 const NOT_KEPT = "raw data not kept";
