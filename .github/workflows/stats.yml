@@ -44,6 +44,7 @@ jobs:
           name: stats-csv
           path: ${{ runner.temp }}/out/stats.csv
           if-no-files-found: error
+          include-hidden-files: false
           retention-days: 1
 
   push:

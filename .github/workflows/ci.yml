@@ -115,20 +115,32 @@ jobs:
           "$BENCH_VENV_BIN/python" -m pip install --require-hashes --no-deps --only-binary=:all: -r tools/ci/requirements-determinism.txt
           "$BENCH_VENV_BIN/python" -I -m unittest discover -s bench/tests -v
 
-  # Wheels and the sdist (TD-09), one build per platform, published nowhere: a workflow artefact is not a release. Every
-  # tool is installed by hash (S1-079): uv, maturin and ziglang from tools/ci/requirements.txt with
-  # `pip install --require-hashes --no-deps --only-binary=:all:`, on an exact Python per OS. cargo and maturin run with --locked.
-  # The job has contents: read and nothing else (no id-token, no attestations), uses no cache action and no secret, and has
-  # no registry, release or Pages step. Linux builds the manylinux_2_17 wheel through zig and the sdist (scripts/package-sdist.sh
-  # prunes the sdist's Cargo.lock to its own workspace and builds it --locked); each wheel gets the builder-path gate, the
-  # tests/python/check_wheel.py checks (tags compared as expanded sets), a fresh-venv install with --no-index and a real call
-  # (analyse), and its sha256 in SHA256SUMS, uploaded with the files for 14 days.
+  # The release rehearsal (TD-103, TD-106, Sprint 7), one job per OS. It replaced the `wheels` job of TD-09, which it contains: the
+  # wheel on each OS (manylinux_2_17 through zig on Linux) and, on Linux, the sdist and a wheel built from the sdist alone.
+  # Beyond that it builds the npm tarball (the PDF-enabled WebAssembly build), the command-line binary and the two crates
+  # (`cargo package --workspace --locked`, run twice: the .crate bytes must be identical, S1-126), installs each BUILT artefact into an
+  # empty project or a fresh venv, offline, and makes one real call on a synthetic golden page whose output is byte-equal to its
+  # golden report (the CLI is built from the packaged .crate files, with third-party crates from a `cargo vendor --locked` directory
+  # source, `cargo install --offline --locked`, so no '-core' crate can come from crates.io). Then it signs a pagetriage-rehearsal
+  # manifest and SHA256SUMS with the published RFC 8032 TEST key through the vendored release tool, verifies it with the explicit
+  # test-key flag, and proves the refusals (no flag, the empty production key file, a missing --expect-id, a release id, a tampered
+  # artefact, CRLF in SHA256SUMS) by exact exit code and first stderr line; a self-test points the script at a missing tool and
+  # expects the rehearsal to fail. The README quick start (tests/scripts/quickstart.sh) then runs from those artefacts.
+  # Every tool is installed by hash (S1-079): uv, maturin and ziglang from tools/ci/requirements.txt with
+  # `pip install --require-hashes --no-deps --only-binary=:all:`, on an exact Python per OS; cargo and maturin run with --locked.
+  # The job has contents: read and nothing else (no id-token, no attestations), uses no cache of any kind and no secret, and has no
+  # registry, release or Pages step. Its artefact is named REHEARSAL-test-key-NOT-A-RELEASE-..., holds only dist-release/ and
+  # dist-release-report/, and is kept for 3 days: it is not a release and nothing signed here is trusted anywhere.
   # First run: after the owner's push (the Linux and Windows legs cannot run on the Mac that develops this repository).
-  wheels:
-    name: wheels (${{ matrix.os }})
+  release-rehearsal:
+    name: release-rehearsal (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 75
     permissions:
       contents: read
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -150,67 +162,41 @@ jobs:
       - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: "1.98"
+          targets: wasm32-unknown-unknown
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python }}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
       - name: Hashed tool install (uv, maturin, ziglang) into a venv
         run: |
           python -m venv tools-venv
           "$TOOLS_BIN/python" -m pip install --require-hashes --no-deps --only-binary=:all: -r tools/ci/requirements.txt
           "$TOOLS_BIN/maturin" --version
-      - name: Empty the wheel output folder
-        run: rm -rf target/wheels
-      - name: Build the manylinux_2_17 wheel through zig (ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          export PATH="$PWD/$TOOLS_BIN:$PATH"
-          . scripts/remap-flags.sh
-          maturin build --release --locked --zig --compatibility manylinux_2_17 -m crates/pagetriage-py/Cargo.toml -o target/wheels
-      - name: Build the sdist (ubuntu), build it --locked from its own Cargo.lock, and check that the repository's Cargo.lock did not change
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          export PATH="$PWD/$TOOLS_BIN:$PATH"
-          SDIST_OUT=target/wheels scripts/package-sdist.sh
-          git diff --exit-code -- Cargo.lock
-      - name: Build the wheel (windows, macos)
-        if: matrix.os != 'ubuntu-latest'
-        run: |
-          export PATH="$PWD/$TOOLS_BIN:$PATH"
-          . scripts/remap-flags.sh
-          maturin build --release --locked -m crates/pagetriage-py/Cargo.toml -o target/wheels
-      - name: Builder-path gate on the wheel and the sdist (no home, checkout or temp path inside)
-        run: |
-          shopt -s nullglob
-          bash scripts/check-no-builder-paths.sh target/wheels/*.whl target/wheels/*.tar.gz
-      - name: Wheel contents check (extension, licences, NOTICE, sizes, no scripts) with the tags compared as expanded sets
-        run: |
-          VERSION=$(sed -n '/^\[workspace.package\]/,/^\[/s/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
-          python -I tests/python/check_wheel.py target/wheels/pagetriage-"$VERSION"-*.whl "$VERSION"
-      - name: Install the wheel into a fresh venv with no index and make a real call (analyse, structure, streams)
-        run: |
-          ls -l target/wheels
-          python -m venv smoke-venv
-          if [ -d smoke-venv/Scripts ]; then SMOKE=smoke-venv/Scripts; else SMOKE=smoke-venv/bin; fi
-          "$SMOKE/python" -m pip install --no-index --no-deps target/wheels/pagetriage-*.whl
-          "$SMOKE/python" -I tests/python/smoke_wheel.py
-      - name: sha256 of every file, written to SHA256SUMS and printed
-        run: |
-          python -I - <<'PY'
-          import hashlib, pathlib
-          d = pathlib.Path("target/wheels")
-          lines = [f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}" for p in sorted(d.iterdir()) if p.suffix in (".whl", ".gz")]
-          (d / "SHA256SUMS").write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
-          PY
-          cat target/wheels/SHA256SUMS
+      - name: Install pinned wasm-bindgen CLI and wasm-opt (digest-pinned release binaries)
+        run: scripts/install-wasm-tools.sh
+      - name: Build the artefacts (npm tarball, wheel, CLI; Linux also the sdist and a wheel from the sdist alone; crates packaged twice, byte-identical)
+        run: bash scripts/release/rehearse.sh build
+      - name: Install each built artefact into an empty project, offline, and make one real call (the CLI from the packaged crates)
+        run: bash scripts/release/rehearse.sh install
+      - name: Release rehearsal with the published TEST key (manifest, SHA256SUMS, sign, verify, exact refusal proofs, missing-tool self-test)
+        run: bash scripts/release/rehearse.sh sign
+      - name: Gate (dist-release holds only the manifest entries and the two files; no key material, no builder path, no plain release version)
+        run: bash scripts/release/rehearse.sh gate
+      - name: README quick start (its blocks are extracted and run from the built artefacts, in a scrubbed environment)
+        run: QUICKSTART_RUN=1 QUICKSTART_REUSE=1 bash tests/scripts/quickstart.sh
+      - name: Dry run of the publish commands (package metadata, wheel check, workspace packaging); nothing is published
+        run: bash scripts/release/publish-dry-run.sh
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: pagetriage-wheels-${{ matrix.os }}
+          name: REHEARSAL-test-key-NOT-A-RELEASE-pagetriage-${{ matrix.os }}-${{ github.sha }}
           path: |
-            target/wheels/*.whl
-            target/wheels/*.tar.gz
-            target/wheels/SHA256SUMS
-          retention-days: 14
+            dist-release/
+            dist-release-report/
+          retention-days: 3
           if-no-files-found: error
+          include-hidden-files: false
 
   # Packaging dry runs: the npm tarball and the Python wheel are built, installed in a scratch project,
   # and run. Nothing is published from CI (docs/RELEASING.md).
@@ -261,9 +247,13 @@ jobs:
         with:
           toolchain: "1.98"
       - name: cargo-deny 0.20.2 (digest-pinned binary)
+        env:
+          CHECKS: ${{ matrix.checks }}
         run: |
           mkdir -p "$RUNNER_TEMP/bin"
           curl --proto '=https' --tlsv1.2 -fsSL -o "$RUNNER_TEMP/cargo-deny.tgz" https://github.com/EmbarkStudios/cargo-deny/releases/download/0.20.2/cargo-deny-0.20.2-x86_64-unknown-linux-musl.tar.gz
           echo "9f12ed4c49936e09b48bf862b595cde2fe64fcbd9d74dfacac6131ca824c8d5f  $RUNNER_TEMP/cargo-deny.tgz" | sha256sum -c -
           tar -xzf "$RUNNER_TEMP/cargo-deny.tgz" --strip-components=1 -C "$RUNNER_TEMP/bin"
-          "$RUNNER_TEMP/bin/cargo-deny" --all-features check ${{ matrix.checks }}
+          # CHECKS holds one fixed matrix value ('advisories' or 'bans licenses sources'); the shell splits it into the check names
+          # shellcheck disable=SC2086
+          "$RUNNER_TEMP/bin/cargo-deny" --all-features check $CHECKS
