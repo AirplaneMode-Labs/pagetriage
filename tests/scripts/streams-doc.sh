@@ -7,7 +7,7 @@
 #   - every name in the `streams:exports` block is a `pub fn` of crates/pagetriage-wasm/src/lib.rs and
 #     account_pdf_streams sits behind #[cfg(feature = "pdf")];
 #   - the `streams:residuals` block names the five things that stay reachable inside pdf.js;
-#   - every row of docs/benchmarks/streams-native.csv and wasm-streams.csv names its machine, commit and command,
+#   - every row of docs/benchmarks/streams-native.csv and wasm-streams.csv names its date, machine, commit and command,
 #     says "not measured on 8 GB", and is within its memory budget (input size + 64 MiB);
 #   - every number in the `streams:bench` block equals the row of those two files it names.
 #
@@ -125,7 +125,7 @@ check(wasm.length >= 12, `wasm-streams.csv has the bombs (${wasm.length} rows)`)
 for (const [label, rows] of [["streams-native.csv", native], ["wasm-streams.csv", wasm]]) {
   for (const r of rows) {
     const where = `${label} ${r.file}`;
-    check(r.machine && r.commit && r.command, `${where} names its machine, commit and command`);
+    check(r.date && /^\d{4}-\d{2}-\d{2}$/.test(r.date) && r.machine && r.commit && r.command, `${where} names its date, machine, commit and command`);
     check(r.eight_gb_laptop === "not measured on 8 GB", `${where} says "not measured on 8 GB"`);
     check(r.within_budget === "true", `${where} is within input + 64 MiB`);
     check(Number(r.budget_bytes) === Number(r.input_bytes) + 64 * 1024 * 1024, `${where} states its budget as input + 64 MiB`);

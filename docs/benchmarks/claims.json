@@ -1,0 +1,2328 @@
+{
+ "version": 1,
+ "about": "Every benchmark figure quoted in README.md, docs/ and the demo, with the committed file and row that backs it (or the words \"raw data not kept\"). Checked by tests/scripts/benchmarks.sh.",
+ "claims": [
+  {
+   "id": "readme-textlayer-all",
+   "doc": "README.md",
+   "quote": "300 of 300 correct",
+   "checks": [
+    {
+     "file": "eval-structure-all.json",
+     "match": "text-layer state accuracy: 300/300",
+     "figures": [
+      "300"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-textlayer-heldout",
+   "doc": "README.md",
+   "quote": "the other half (159 pages) scored 159 of 159",
+   "checks": [
+    {
+     "file": "eval-structure-heldout.json",
+     "match": "text-layer state accuracy: 159/159",
+     "figures": [
+      "159"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-legacy",
+   "doc": "README.md",
+   "quote": "17 of 17 flagged, none flagged among the other 283 pages",
+   "checks": [
+    {
+     "file": "eval-structure-all.json",
+     "match": "flagged 17/17 labelled pages.*false positives 0/283",
+     "figures": [
+      "17",
+      "283"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-wasm-times",
+   "doc": "README.md",
+   "quote": "20 pages 7.40 ms; 100 pages 32.20 ms; 300 pages 88.40 ms",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "analyse",
+      "subject": "text-20p.pdf"
+     },
+     "expect": {
+      "pages": "20",
+      "median_ms": "7.40"
+     }
+    },
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "analyse",
+      "subject": "text-100p.pdf"
+     },
+     "expect": {
+      "pages": "100",
+      "median_ms": "32.20"
+     }
+    },
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "analyse",
+      "subject": "text-300p.pdf"
+     },
+     "expect": {
+      "pages": "300",
+      "median_ms": "88.40"
+     }
+    }
+   ]
+  },
+  {
+   "id": "readme-wasm-bomb",
+   "doc": "README.md",
+   "quote": "a 1.07 GiB decompression bomb 26.60 ms",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "analyse",
+      "subject": "bomb-content-1p.pdf"
+     },
+     "expect": {
+      "median_ms": "26.60"
+     },
+     "extract": [
+      {
+       "col": "detail",
+       "re": "inflates to (\\d+) bytes",
+       "per": 1073741824,
+       "digits": 2,
+       "text": "1.07"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-wasm-first-call",
+   "doc": "README.md",
+   "quote": "(worst of 5: 24.70 ms at 20 pages)",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "analyse",
+      "subject": "text-20p.pdf"
+     },
+     "expect": {
+      "worst_ms": "24.70",
+      "pages": "20",
+      "runs": "5"
+     }
+    }
+   ]
+  },
+  {
+   "id": "readme-wasm-size",
+   "doc": "README.md",
+   "quote": "WASM file 2,335,481 bytes, 854,940 gzipped",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm raw"
+     },
+     "expect": {
+      "input_bytes": "2,335,481"
+     },
+     "commas": [
+      "input_bytes"
+     ]
+    },
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm gzip -9 (gzip CLI, as scripts/check-wasm-size.sh)"
+     },
+     "expect": {
+      "input_bytes": "854,940"
+     },
+     "commas": [
+      "input_bytes"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-wasm-machine",
+   "doc": "README.md",
+   "quote": "Apple M5 Pro 48 GB;",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm raw"
+     },
+     "contains": {
+      "machine": "Apple M5 Pro 48 GB"
+     }
+    }
+   ]
+  },
+  {
+   "id": "readme-wasm-commit",
+   "doc": "README.md",
+   "quote": "commit b290cc84c08d-dirty (Sprint 5 changes not yet committed)",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm raw"
+     },
+     "expect": {
+      "commit": "b290cc84c08d-dirty"
+     }
+    }
+   ]
+  },
+  {
+   "id": "readme-speed",
+   "doc": "README.md",
+   "quote": "100 dpi (0.97 MP) 33.6 ms; 150 dpi 67.4 ms; 200 dpi 108.7 ms; 300 dpi (8.70 MP) 232.2 ms; 29 to 37 megapixels per second",
+   "checks": [
+    {
+     "file": "speed.csv",
+     "where": {
+      "page": "A4 100 dpi"
+     },
+     "expect": {
+      "dpi": "100",
+      "megapixels": "0.97",
+      "median_ms": "33.6"
+     }
+    },
+    {
+     "file": "speed.csv",
+     "where": {
+      "page": "A4 150 dpi"
+     },
+     "expect": {
+      "dpi": "150",
+      "median_ms": "67.4"
+     }
+    },
+    {
+     "file": "speed.csv",
+     "where": {
+      "page": "A4 200 dpi"
+     },
+     "expect": {
+      "dpi": "200",
+      "median_ms": "108.7"
+     }
+    },
+    {
+     "file": "speed.csv",
+     "where": {
+      "page": "A4 300 dpi"
+     },
+     "expect": {
+      "dpi": "300",
+      "megapixels": "8.70",
+      "median_ms": "232.2"
+     }
+    },
+    {
+     "file": "speed.csv",
+     "column": "megapixels_per_second",
+     "agg": "min",
+     "text": "29",
+     "digits": 0
+    },
+    {
+     "file": "speed.csv",
+     "column": "megapixels_per_second",
+     "agg": "max",
+     "text": "37",
+     "digits": 0
+    }
+   ]
+  },
+  {
+   "id": "readme-speed-where",
+   "doc": "README.md",
+   "quote": "Apple M5 Pro (the file names the model, not the RAM), commit eb28e490030b-dirty (Sprint 6 changes not yet committed)",
+   "checks": [
+    {
+     "file": "speed.csv",
+     "where": {
+      "page": "A4 300 dpi"
+     },
+     "expect": {
+      "commit": "eb28e490030b-dirty"
+     },
+     "contains": {
+      "machine": "Apple M5 Pro"
+     }
+    }
+   ]
+  },
+  {
+   "id": "readme-large",
+   "doc": "README.md",
+   "quote": "5,000 pages (13.9 MB): structure 760 ms and 180 MB peak, streams 22 ms and 39 MB peak; 1,000 pages: 157 ms and 42 MB, 8 ms and 11 MB. The 100-page structure row (413 ms)",
+   "checks": [
+    {
+     "file": "large-doc.csv",
+     "where": {
+      "pages": "5000",
+      "call": "structure"
+     },
+     "expect": {
+      "pages": "5,000",
+      "wall_ms": "760"
+     },
+     "derive": {
+      "file_bytes": {
+       "per": 1000000.0,
+       "digits": 1,
+       "text": "13.9"
+      },
+      "peak_rss_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "180"
+      }
+     },
+     "commas": [
+      "pages"
+     ]
+    },
+    {
+     "file": "large-doc.csv",
+     "where": {
+      "pages": "5000",
+      "call": "streams"
+     },
+     "expect": {
+      "wall_ms": "22"
+     },
+     "derive": {
+      "peak_rss_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "39"
+      }
+     }
+    },
+    {
+     "file": "large-doc.csv",
+     "where": {
+      "pages": "1000",
+      "call": "structure"
+     },
+     "expect": {
+      "pages": "1,000",
+      "wall_ms": "157"
+     },
+     "derive": {
+      "peak_rss_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "42"
+      }
+     },
+     "commas": [
+      "pages"
+     ]
+    },
+    {
+     "file": "large-doc.csv",
+     "where": {
+      "pages": "1000",
+      "call": "streams"
+     },
+     "expect": {
+      "wall_ms": "8"
+     },
+     "derive": {
+      "peak_rss_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "11"
+      }
+     }
+    },
+    {
+     "file": "large-doc.csv",
+     "where": {
+      "pages": "100",
+      "call": "structure"
+     },
+     "expect": {
+      "pages": "100",
+      "wall_ms": "413"
+     }
+    }
+   ]
+  },
+  {
+   "id": "readme-streams-bombs",
+   "doc": "README.md",
+   "quote": "Every file within peak memory of input size + 64 MiB: 4 to 8 MB native and 2 to 6 MB WASM for each 1 GiB bomb except the object stream one (23 MB native, 36 MB WASM), 10 to 23 ms native;",
+   "checks": [
+    {
+     "file": "streams-native.csv",
+     "column": "peak_rss_bytes",
+     "agg": "min",
+     "text": "4",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     },
+     "per": 1000000.0
+    },
+    {
+     "file": "streams-native.csv",
+     "column": "peak_rss_bytes",
+     "agg": "max",
+     "text": "8",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     },
+     "per": 1000000.0
+    },
+    {
+     "file": "wasm-streams.csv",
+     "column": "wasm_memory_after_bytes",
+     "agg": "min",
+     "text": "2",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     },
+     "per": 1000000.0
+    },
+    {
+     "file": "wasm-streams.csv",
+     "column": "wasm_memory_after_bytes",
+     "agg": "max",
+     "text": "6",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     },
+     "per": 1000000.0
+    },
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "objstm-1gib.pdf"
+     },
+     "derive": {
+      "peak_rss_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "23"
+      }
+     }
+    },
+    {
+     "file": "wasm-streams.csv",
+     "where": {
+      "file": "objstm-1gib.pdf"
+     },
+     "derive": {
+      "wasm_memory_after_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "36"
+      }
+     }
+    },
+    {
+     "file": "streams-native.csv",
+     "column": "wall_ms",
+     "agg": "min",
+     "text": "10",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     }
+    },
+    {
+     "file": "streams-native.csv",
+     "column": "wall_ms",
+     "agg": "max",
+     "text": "23",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     }
+    },
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "font-1gib.pdf"
+     },
+     "derive": {
+      "budget_bytes": {
+       "per": 1048576,
+       "minus": "input_bytes",
+       "digits": 0,
+       "text": "64"
+      }
+     }
+    }
+   ],
+   "config": [
+    "1"
+   ]
+  },
+  {
+   "id": "readme-streams-100k",
+   "doc": "README.md",
+   "quote": "100,000 x 1 MiB stops in the 512th stream (0.18 s native, 0.45 s in Chrome)",
+   "checks": [
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "streams-100k-x-1mib.pdf"
+     },
+     "derive": {
+      "wall_ms": {
+       "per": 1000,
+       "digits": 2,
+       "text": "0.18"
+      }
+     }
+    },
+    {
+     "file": "wasm-streams.csv",
+     "where": {
+      "file": "streams-100k-x-1mib.pdf"
+     },
+     "derive": {
+      "median_ms": {
+       "per": 1000,
+       "digits": 2,
+       "text": "0.45"
+      }
+     }
+    }
+   ],
+   "config": [
+    "100,000",
+    "1",
+    "512"
+   ]
+  },
+  {
+   "id": "readme-streams-object-table",
+   "doc": "README.md",
+   "quote": "the object table costs about 0.45 KB per object, so 100,000 tiny objects cost 53 MB native",
+   "checks": [
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "streams-100k-empty.pdf"
+     },
+     "derive": {
+      "peak_rss_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "53"
+      }
+     }
+    },
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "streams-100k-empty.pdf"
+     },
+     "derive": {
+      "peak_rss_bytes": {
+       "minus": "input_bytes",
+       "per": 100000000.0,
+       "digits": 2,
+       "text": "0.45"
+      }
+     }
+    }
+   ],
+   "config": [
+    "100,000"
+   ]
+  },
+  {
+   "id": "readme-streams-wasm-size",
+   "doc": "README.md",
+   "quote": "WASM file 2,435,212 bytes, 889,888 gzipped (+99,731 and +34,948; raw data not kept)",
+   "checks": [
+    {
+     "not_kept": "the size of the Sprint 6 stream-accounting build (sha256 daa491d36090) was read from a build log that was not committed; the current builds are measured in eval-sizes.json"
+    }
+   ]
+  },
+  {
+   "id": "readme-streams-machine",
+   "doc": "README.md",
+   "quote": "Apple M5 Pro, 48 GiB (the native file names the model only)",
+   "checks": [
+    {
+     "file": "wasm-streams.csv",
+     "where": {
+      "file": "clean.pdf"
+     },
+     "contains": {
+      "machine": "48 GiB"
+     }
+    }
+   ]
+  },
+  {
+   "id": "wasmapi-size",
+   "doc": "docs/wasm-api.md",
+   "quote": "2,335,481 bytes raw, 854,940 bytes with `gzip -9`",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm raw"
+     },
+     "expect": {
+      "input_bytes": "2,335,481"
+     },
+     "commas": [
+      "input_bytes"
+     ]
+    },
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm gzip -9 (gzip CLI, as scripts/check-wasm-size.sh)"
+     },
+     "expect": {
+      "input_bytes": "854,940"
+     },
+     "commas": [
+      "input_bytes"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "wasmapi-size-s6",
+   "doc": "docs/wasm-api.md",
+   "quote": "2,435,212 bytes raw and 889,888 gzipped (+99,731 and +34,948; raw data not kept",
+   "checks": [
+    {
+     "not_kept": "the size of the Sprint 6 stream-accounting build was read from a log that was not committed"
+    }
+   ]
+  },
+  {
+   "id": "wasmapi-size-now",
+   "doc": "docs/wasm-api.md",
+   "quote": "2,433,537 bytes raw and 889,502 gzipped",
+   "checks": [
+    {
+     "file": "eval-sizes.json",
+     "values": [
+      {
+       "re": "^wasm pdf,raw,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "2,433,537"
+      },
+      {
+       "re": "^wasm pdf,gzip -9,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "889,502"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "wasmapi-blocking",
+   "doc": "docs/wasm-api.md",
+   "quote": "(about 88 ms for 300 pages here, 27 ms for the decompression bomb, 1 ms or less for a one-page file)",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "analyse",
+      "subject": "text-300p.pdf"
+     },
+     "expect": {
+      "pages": "300"
+     },
+     "derive": {
+      "median_ms": {
+       "per": 1,
+       "digits": 0,
+       "text": "88"
+      }
+     }
+    },
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "analyse",
+      "subject": "bomb-content-1p.pdf"
+     },
+     "derive": {
+      "median_ms": {
+       "per": 1,
+       "digits": 0,
+       "text": "27"
+      }
+     }
+    },
+    {
+     "file": "wasm-structure.csv",
+     "column": "median_ms",
+     "agg": "max",
+     "text": "1",
+     "digits": 0,
+     "where": {
+      "kind": "analyse",
+      "subject": [
+       "sample-native_latin.pdf",
+       "sample-redacted_text.pdf",
+       "sample-signed_then_edited.pdf"
+      ]
+     },
+     "round": "ceil"
+    }
+   ]
+  },
+  {
+   "id": "streams-reading-1",
+   "doc": "docs/detectors/streams.md",
+   "quote": "**Every 1 GiB bomb except the object stream one ends with 4 to 8 MB of native memory and 2 to 6 MB of WebAssembly memory**, against a budget of input + 64 MiB, and in 10 to 23 ms native (median 11.5 to 90 ms in Chrome; the image bomb takes longest because its cap is 256 MiB). The WebAssembly module's initial memory is 1.6 MB",
+   "checks": [
+    {
+     "file": "streams-native.csv",
+     "column": "peak_rss_bytes",
+     "agg": "min",
+     "text": "4",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     },
+     "per": 1000000.0
+    },
+    {
+     "file": "streams-native.csv",
+     "column": "peak_rss_bytes",
+     "agg": "max",
+     "text": "8",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     },
+     "per": 1000000.0
+    },
+    {
+     "file": "wasm-streams.csv",
+     "column": "wasm_memory_after_bytes",
+     "agg": "min",
+     "text": "2",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     },
+     "per": 1000000.0
+    },
+    {
+     "file": "wasm-streams.csv",
+     "column": "wasm_memory_after_bytes",
+     "agg": "max",
+     "text": "6",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     },
+     "per": 1000000.0
+    },
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "font-1gib.pdf"
+     },
+     "derive": {
+      "budget_bytes": {
+       "per": 1048576,
+       "minus": "input_bytes",
+       "digits": 0,
+       "text": "64"
+      }
+     }
+    },
+    {
+     "file": "streams-native.csv",
+     "column": "wall_ms",
+     "agg": "min",
+     "text": "10",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     }
+    },
+    {
+     "file": "streams-native.csv",
+     "column": "wall_ms",
+     "agg": "max",
+     "text": "23",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     }
+    },
+    {
+     "file": "wasm-streams.csv",
+     "column": "median_ms",
+     "agg": "min",
+     "text": "11.5",
+     "digits": 1,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     }
+    },
+    {
+     "file": "wasm-streams.csv",
+     "column": "median_ms",
+     "agg": "max",
+     "text": "90",
+     "digits": 0,
+     "where": {
+      "file": [
+       "font-1gib.pdf",
+       "image-1gib.pdf",
+       "unreferenced-1gib.pdf",
+       "lying-length-1gib.pdf",
+       "asciihex-flate-1gib.pdf",
+       "flate-in-flate-1gib.pdf"
+      ]
+     }
+    },
+    {
+     "file": "wasm-streams.csv",
+     "where": {
+      "file": "font-1gib.pdf"
+     },
+     "derive": {
+      "wasm_memory_before_bytes": {
+       "per": 1000000.0,
+       "digits": 1,
+       "text": "1.6"
+      }
+     }
+    }
+   ],
+   "config": [
+    "1",
+    "256"
+   ]
+  },
+  {
+   "id": "streams-reading-2",
+   "doc": "docs/detectors/streams.md",
+   "quote": "**The object stream bomb is the largest single-stream figure** (23 MB native, 36 MB WASM): the parser decodes object streams itself while loading, capped at 16 MiB (`load_decoded_max`), so up to 16 MiB plus the allocator's growth is held for a moment.",
+   "checks": [
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "objstm-1gib.pdf"
+     },
+     "derive": {
+      "peak_rss_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "23"
+      }
+     }
+    },
+    {
+     "file": "wasm-streams.csv",
+     "where": {
+      "file": "objstm-1gib.pdf"
+     },
+     "derive": {
+      "wasm_memory_after_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "36"
+      }
+     }
+    }
+   ],
+   "config": [
+    "16"
+   ]
+  },
+  {
+   "id": "streams-reading-3",
+   "doc": "docs/detectors/streams.md",
+   "quote": "about 0.45 KB per object (52.9 MB native for 100,000 objects in a 7.4 MB file; 33 MB in WASM). The \"input + 64 MiB\" bound holds for both 100k files, but it does not hold in general for a file with millions of tiny objects: the parser's object table scales with the object count (the cap is `max_objects`, 3,000,000, shared with the structural layer).",
+   "checks": [
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "streams-100k-empty.pdf"
+     },
+     "derive": {
+      "peak_rss_bytes": {
+       "minus": "input_bytes",
+       "per": 100000000.0,
+       "digits": 2,
+       "text": "0.45"
+      }
+     }
+    },
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "streams-100k-empty.pdf"
+     },
+     "derive": {
+      "peak_rss_bytes": {
+       "per": 1000000.0,
+       "digits": 1,
+       "text": "52.9"
+      },
+      "input_bytes": {
+       "per": 1000000.0,
+       "digits": 1,
+       "text": "7.4"
+      },
+      "budget_bytes": {
+       "per": 1048576,
+       "minus": "input_bytes",
+       "digits": 0,
+       "text": "64"
+      }
+     }
+    },
+    {
+     "file": "wasm-streams.csv",
+     "where": {
+      "file": "streams-100k-empty.pdf"
+     },
+     "derive": {
+      "wasm_memory_after_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "33"
+      }
+     }
+    }
+   ],
+   "config": [
+    "100,000",
+    "3,000,000",
+    "100"
+   ]
+  },
+  {
+   "id": "streams-reading-4",
+   "doc": "docs/detectors/streams.md",
+   "quote": "**100,000 streams of 1 MiB each stop in the 512th stream** (`total_over_limit`, `early_stop: true`) in 0.18 s native and 0.45 s in Chrome, because the running total passes 512 MiB; the rest of the 114 MB file is counted by the scan and never decoded.",
+   "checks": [
+    {
+     "file": "streams-native.csv",
+     "where": {
+      "file": "streams-100k-x-1mib.pdf"
+     },
+     "derive": {
+      "wall_ms": {
+       "per": 1000,
+       "digits": 2,
+       "text": "0.18"
+      },
+      "input_bytes": {
+       "per": 1000000.0,
+       "digits": 0,
+       "text": "114"
+      }
+     }
+    },
+    {
+     "file": "wasm-streams.csv",
+     "where": {
+      "file": "streams-100k-x-1mib.pdf"
+     },
+     "derive": {
+      "median_ms": {
+       "per": 1000,
+       "digits": 2,
+       "text": "0.45"
+      }
+     }
+    }
+   ],
+   "config": [
+    "100,000",
+    "1",
+    "512"
+   ]
+  },
+  {
+   "id": "streams-size",
+   "doc": "docs/detectors/streams.md",
+   "quote": "`pagetriage_bg.wasm` with the `pdf` feature: 2,335,481 bytes raw and 854,940 with `gzip -9` before",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm raw"
+     },
+     "expect": {
+      "input_bytes": "2,335,481"
+     },
+     "commas": [
+      "input_bytes"
+     ]
+    },
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm gzip -9 (gzip CLI, as scripts/check-wasm-size.sh)"
+     },
+     "expect": {
+      "input_bytes": "854,940"
+     },
+     "commas": [
+      "input_bytes"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "streams-size-s6",
+   "doc": "docs/detectors/streams.md",
+   "quote": "2,435,212 and 889,888 after (+99,731 raw, +34,948 gzip; raw data not kept, read from a log that was not committed).",
+   "checks": [
+    {
+     "not_kept": "the size of the Sprint 6 stream-accounting build was read from a log that was not committed"
+    }
+   ]
+  },
+  {
+   "id": "streams-size-now",
+   "doc": "docs/detectors/streams.md",
+   "quote": "The current build (20 Nov 2026) is 2,433,537 bytes raw and 889,502 gzipped",
+   "checks": [
+    {
+     "file": "eval-sizes.json",
+     "values": [
+      {
+       "re": "^wasm pdf,raw,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "2,433,537"
+      },
+      {
+       "re": "^wasm pdf,gzip -9,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "889,502"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "streams-budget",
+   "doc": "docs/detectors/streams.md",
+   "quote": "is 1,000,000 bytes gzip and is not raised (110,498 bytes spare on the current build)",
+   "checks": [
+    {
+     "file": "eval-sizes.json",
+     "values": [
+      {
+       "re": "^wasm pdf,gzip -9,(\\d+),",
+       "sub_from": 1000000,
+       "digits": 0,
+       "commas": true,
+       "text": "110,498"
+      }
+     ]
+    }
+   ],
+   "config": [
+    "1,000,000"
+   ]
+  },
+  {
+   "id": "readme-howe-train",
+   "doc": "README.md",
+   "quote": "F-measure 94.0; the Howe 2013 paper's figures for the same images average 93.8",
+   "checks": [
+    {
+     "file": "eval-binarize-howe-dual-train.json",
+     "values": [
+      {
+       "re": "^all +n=20 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "94.0"
+      },
+      {
+       "re": "^all +n=20 +mean F= +[\\d.]+ +published mean over the same images= +([\\d.]+)",
+       "digits": 1,
+       "text": "93.8"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-howe-2011",
+   "doc": "README.md",
+   "quote": "F-measure 89.6; the paper reports 91.9",
+   "checks": [
+    {
+     "file": "eval-binarize-howe-dual-2011.json",
+     "values": [
+      {
+       "re": "^all +n=16 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "89.6"
+      },
+      {
+       "re": "^all +n=16 +mean F= +[\\d.]+ +published mean over the same images= +([\\d.]+)",
+       "digits": 1,
+       "text": "91.9"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-howe-2011-target",
+   "doc": "README.md",
+   "quote": "**Misses our target** of being within 1.5 points of the paper.",
+   "checks": [
+    {
+     "protocol": "1.5 F-measure points is the Phase 1 target set before the run (docs/detectors/binarize.md, \"Acceptance: missed\")"
+    }
+   ]
+  },
+  {
+   "id": "readme-howe-2011-13",
+   "doc": "README.md",
+   "quote": "on the other 13 pages we score 92.9 against the paper's 92.5",
+   "checks": [
+    {
+     "file": "eval-binarize-howe-dual-2011.json",
+     "mean": {
+      "lines": "^(?<key>[HP]2011-\\d+)\\s+F= *(?<f>[\\d.]+)\\s+published= *(?<pub>[\\d.]+)",
+      "exclude": [
+       "H2011-1",
+       "H2011-4",
+       "P2011-6"
+      ],
+      "field": "f",
+      "digits": 1,
+      "count": 13,
+      "text": "92.9"
+     }
+    },
+    {
+     "file": "eval-binarize-howe-dual-2011.json",
+     "mean": {
+      "lines": "^(?<key>[HP]2011-\\d+)\\s+F= *(?<f>[\\d.]+)\\s+published= *(?<pub>[\\d.]+)",
+      "exclude": [
+       "H2011-1",
+       "H2011-4",
+       "P2011-6"
+      ],
+      "field": "pub",
+      "digits": 1,
+      "count": 13,
+      "text": "92.5"
+     }
+    }
+   ]
+  },
+  {
+   "id": "readme-others-2011",
+   "doc": "README.md",
+   "quote": "Otsu 82.1, Sauvola 81.6, Wolf 84.7",
+   "checks": [
+    {
+     "file": "eval-binarize-otsu-2011.json",
+     "values": [
+      {
+       "re": "^all +n=16 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "82.1"
+      }
+     ]
+    },
+    {
+     "file": "eval-binarize-sauvola-2011.json",
+     "values": [
+      {
+       "re": "^all +n=16 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "81.6"
+      }
+     ]
+    },
+    {
+     "file": "eval-binarize-wolf-2011.json",
+     "values": [
+      {
+       "re": "^all +n=16 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "84.7"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-emboss",
+   "doc": "README.md",
+   "quote": "3 to 5 of 6 on rendered reliefs, 0 of 6 under sensor noise 4",
+   "checks": [
+    {
+     "file": "eval-emboss-synth.json",
+     "match": "^emboss +A 5 +dev +3/6",
+     "figures": [
+      "3",
+      "6"
+     ]
+    },
+    {
+     "file": "eval-emboss-synth.json",
+     "match": "^emboss +A 12 +test +5/6",
+     "figures": [
+      "5",
+      "6"
+     ]
+    },
+    {
+     "file": "eval-emboss-synth.json",
+     "match": "^emboss +A 8 noise 4 +test +0/6",
+     "figures": [
+      "0"
+     ]
+    }
+   ],
+   "config": [
+    "4"
+   ]
+  },
+  {
+   "id": "readme-quality-time",
+   "doc": "README.md",
+   "quote": "median 68.3 ms (min 67.7, max 71.1)",
+   "checks": [
+    {
+     "file": "eval-quality-time.json",
+     "match": "median 68.3 ms, min 67.7 ms, max 71.1 ms",
+     "figures": [
+      "68.3",
+      "67.7",
+      "71.1"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-quality-time-where",
+   "doc": "README.md",
+   "quote": "Release wheel built on 20 Nov 2026 on one Apple M5 Pro (48 GiB RAM)",
+   "checks": [
+    {
+     "file": "eval-quality-time.json",
+     "meta": {
+      "machine": "48 GiB RAM"
+     }
+    }
+   ]
+  },
+  {
+   "id": "readme-quality-time-wheel",
+   "doc": "README.md",
+   "quote": "about 68 ms ([Benchmarks](#benchmarks))",
+   "checks": [
+    {
+     "file": "eval-quality-time.json",
+     "values": [
+      {
+       "re": "median ([\\d.]+) ms",
+       "digits": 0,
+       "text": "68"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-badge",
+   "doc": "README.md",
+   "quote": "[![WebAssembly: 478 KB gzipped]",
+   "checks": [
+    {
+     "file": "eval-sizes.json",
+     "values": [
+      {
+       "re": "^wasm pixel-only,gzip -9,(\\d+),",
+       "digits": 0,
+       "per": 1000,
+       "text": "478"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-wasm-sizes-now",
+   "doc": "README.md",
+   "quote": "(478,315 bytes gzipped without the PDF parser, 889,502 with it, `gzip -9` as `scripts/check-wasm-size.sh` measures it, built and measured on 20 Nov 2026,",
+   "checks": [
+    {
+     "file": "eval-sizes.json",
+     "values": [
+      {
+       "re": "^wasm pixel-only,gzip -9,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "478,315"
+      },
+      {
+       "re": "^wasm pdf,gzip -9,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "889,502"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-wasm-sizes-before",
+   "doc": "README.md",
+   "quote": "854,940 bytes with it before the stream accounting,",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm gzip -9 (gzip CLI, as scripts/check-wasm-size.sh)"
+     },
+     "expect": {
+      "input_bytes": "854,940"
+     },
+     "commas": [
+      "input_bytes"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-skew",
+   "doc": "README.md",
+   "quote": "Median error 0.05 degrees; 90th percentile 0.75; worst 26.5",
+   "checks": [
+    {
+     "file": "eval-skew-white.json",
+     "values": [
+      {
+       "re": "^HELD-OUT sets +82 +984 +([\\d.]+)",
+       "digits": 2,
+       "text": "0.05"
+      },
+      {
+       "re": "^HELD-OUT sets +82 +984 +[\\d.]+ +([\\d.]+)",
+       "digits": 2,
+       "text": "0.75"
+      },
+      {
+       "re": "^HELD-OUT sets +82 +984 +[\\d.]+ +[\\d.]+ +([\\d.]+)",
+       "digits": 1,
+       "text": "26.5"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-skew-tail",
+   "doc": "README.md",
+   "quote": "60 of 984 measurements are off by more than 1 degree",
+   "checks": [
+    {
+     "file": "eval-skew-white.json",
+     "values": [
+      {
+       "re": "^HELD-OUT sets +82 +(984) ",
+       "digits": 0,
+       "text": "984"
+      },
+      {
+       "re": "^HELD-OUT sets +82 +984 +[\\d.]+ +[\\d.]+ +[\\d.]+ +\\S+ +\\d+ +(\\d+)",
+       "digits": 0,
+       "text": "60"
+      }
+     ]
+    }
+   ],
+   "config": [
+    "1"
+   ]
+  },
+  {
+   "id": "readme-hero",
+   "doc": "README.md",
+   "quote": "(F 92.5 against 86.6)",
+   "checks": [
+    {
+     "file": "eval-hero-figure.json",
+     "values": [
+      {
+       "re": "Otsu +F ([\\d.]+)",
+       "digits": 1,
+       "text": "92.5"
+      },
+      {
+       "re": "Howe, static +F ([\\d.]+)",
+       "digits": 1,
+       "text": "86.6"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-otsu-howe-2011",
+   "doc": "README.md",
+   "quote": "Otsu 82.1, Howe 89.6.",
+   "checks": [
+    {
+     "file": "eval-binarize-otsu-2011.json",
+     "values": [
+      {
+       "re": "^all +n=16 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "82.1"
+      }
+     ]
+    },
+    {
+     "file": "eval-binarize-howe-dual-2011.json",
+     "values": [
+      {
+       "re": "^all +n=16 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "89.6"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-phash-layout",
+   "doc": "README.md",
+   "quote": "12% to 16% of distinct page pairs fall within the default 10-bit threshold",
+   "checks": [
+    {
+     "file": "eval-phash.json",
+     "values": [
+      {
+       "re": "^\\| pHash<=10 and dHash<=22 \\| (12\\.30)%",
+       "digits": 0,
+       "text": "12"
+      }
+     ]
+    },
+    {
+     "file": "eval-phash.json",
+     "values": [
+      {
+       "re": "^\\| <=10 \\| 771 \\| ([\\d.]+)%",
+       "digits": 0,
+       "text": "16"
+      }
+     ]
+    }
+   ],
+   "config": [
+    "10"
+   ]
+  },
+  {
+   "id": "demo-textlayer",
+   "doc": "site/index.html",
+   "quote": "300 of 300 right",
+   "checks": [
+    {
+     "file": "eval-structure-all.json",
+     "match": "text-layer state accuracy: 300/300",
+     "figures": [
+      "300"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-textlayer-heldout",
+   "doc": "site/index.html",
+   "quote": "the other half scored 159 of 159.",
+   "checks": [
+    {
+     "file": "eval-structure-heldout.json",
+     "match": "text-layer state accuracy: 159/159",
+     "figures": [
+      "159"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-legacy",
+   "doc": "site/index.html",
+   "quote": "17 of 17 found, none among the other 283 pages",
+   "checks": [
+    {
+     "file": "eval-structure-all.json",
+     "match": "flagged 17/17 labelled pages.*false positives 0/283",
+     "figures": [
+      "17",
+      "283"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-skew",
+   "doc": "site/index.html",
+   "quote": "median error 0.05 degrees",
+   "checks": [
+    {
+     "file": "eval-skew-white.json",
+     "values": [
+      {
+       "re": "^HELD-OUT sets +82 +984 +([\\d.]+)",
+       "digits": 2,
+       "text": "0.05"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-skew-tail",
+   "doc": "site/index.html",
+   "quote": "(90th percentile 0.75 degrees, worst 26.5 on papyri)",
+   "checks": [
+    {
+     "file": "eval-skew-white.json",
+     "values": [
+      {
+       "re": "^HELD-OUT sets +82 +984 +[\\d.]+ +([\\d.]+)",
+       "digits": 2,
+       "text": "0.75"
+      },
+      {
+       "re": "^HELD-OUT sets +82 +984 +[\\d.]+ +[\\d.]+ +([\\d.]+)",
+       "digits": 1,
+       "text": "26.5"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-howe-2011",
+   "doc": "site/index.html",
+   "quote": "F-measure 89.6, the paper reports 91.9",
+   "checks": [
+    {
+     "file": "eval-binarize-howe-dual-2011.json",
+     "values": [
+      {
+       "re": "^all +n=16 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "89.6"
+      },
+      {
+       "re": "^all +n=16 +mean F= +[\\d.]+ +published mean over the same images= +([\\d.]+)",
+       "digits": 1,
+       "text": "91.9"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-howe-train",
+   "doc": "site/index.html",
+   "quote": "F-measure 94.0, the paper reports 93.8",
+   "checks": [
+    {
+     "file": "eval-binarize-howe-dual-train.json",
+     "values": [
+      {
+       "re": "^all +n=20 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "94.0"
+      },
+      {
+       "re": "^all +n=20 +mean F= +[\\d.]+ +published mean over the same images= +([\\d.]+)",
+       "digits": 1,
+       "text": "93.8"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "demo-quality-time",
+   "doc": "site/index.html",
+   "quote": "quality pass about 68 ms on one synthetic A4 page at 150 dpi",
+   "checks": [
+    {
+     "file": "eval-quality-time.json",
+     "values": [
+      {
+       "re": "median ([\\d.]+) ms",
+       "digits": 0,
+       "text": "68"
+      }
+     ]
+    }
+   ],
+   "config": [
+    "150"
+   ]
+  },
+  {
+   "id": "readme-large-13000-note",
+   "doc": "README.md",
+   "quote": "The ratios below, from a 13,000-page file, are not reproduced by a script (raw data not kept).",
+   "checks": [
+    {
+     "not_kept": "measured ad hoc in Sprint 1 with no repository script; the fixtures and the logs were not committed"
+    }
+   ]
+  },
+  {
+   "id": "readme-large-ratios",
+   "doc": "README.md",
+   "quote": "On the 655 MB scan fixture peak memory was about 2.6 times the file size and on the 1.32 GB one about 2.3 times, so a 1 GiB scan of that kind needs roughly 3 GB; the 22 MB born-digital fixture used far more per byte, because 13,000 pages of bookkeeping dominate when the pages themselves are small. These ratios were measured ad hoc in Sprint 1 on fixtures that are not in the repository: raw data not kept.",
+   "checks": [
+    {
+     "not_kept": "measured ad hoc in Sprint 1 with no repository script; the fixtures and the logs were not committed"
+    }
+   ]
+  },
+  {
+   "id": "readme-howe-speed",
+   "doc": "README.md",
+   "quote": "about 50 seconds per A4 page in `dual` mode (extrapolated from 23 s per megapixel; raw data not kept)",
+   "checks": [
+    {
+     "not_kept": "the Howe speed per megapixel was measured ad hoc; eval_binarize prints seconds per image, not per megapixel"
+    }
+   ]
+  },
+  {
+   "id": "readme-phash-search",
+   "doc": "README.md",
+   "quote": "Near-duplicate search over 13,000 page hashes takes under 0.1 s (raw data not kept).",
+   "checks": [
+    {
+     "not_kept": "measured ad hoc in Sprint 1, no script"
+    }
+   ]
+  },
+  {
+   "id": "readme-fold-16",
+   "doc": "README.md",
+   "quote": "found all 16 synthetic creases (a sweep run once; raw data not kept)",
+   "checks": [
+    {
+     "not_kept": "the crease sweep (8 positions, horizontal and vertical) was run once without a committed script; bench/quality_synth_eval.py runs 4 fold cases"
+    }
+   ]
+  },
+  {
+   "id": "readme-large-script-note",
+   "doc": "README.md",
+   "quote": "full-page analysis time is now measured by `bench/speed_eval.py` (A4 at 300 dpi, 8.7 megapixels, 232 ms median on an Apple M5 Pro; not measured on 8 GB)",
+   "checks": [
+    {
+     "file": "speed.csv",
+     "where": {
+      "page": "A4 300 dpi"
+     },
+     "expect": {
+      "dpi": "300"
+     },
+     "derive": {
+      "megapixels": {
+       "per": 1,
+       "digits": 1,
+       "text": "8.7"
+      },
+      "median_ms": {
+       "per": 1,
+       "digits": 0,
+       "text": "232"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "readme-bleed-auc",
+   "doc": "README.md",
+   "quote": "AUC 0.86 on the pages it was tuned on, 0.71 on held-out pages",
+   "checks": [
+    {
+     "file": "eval-quality-dibco.json",
+     "values": [
+      {
+       "re": "^ bleed_through\\n  tune sets +strong=\\d+ clean=\\d+ AUC=([\\d.]+)",
+       "digits": 2,
+       "text": "0.86"
+      },
+      {
+       "re": "^ bleed_through\\n  tune sets.*\\n  held-out sets +strong=\\d+ clean=\\d+ AUC=([\\d.]+)",
+       "digits": 2,
+       "text": "0.71"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "readme-pagesize-cost",
+   "doc": "README.md",
+   "quote": "With the layout, script, QR, photo, rulings and redaction detectors on, one synthetic text page took 128 ms at A4 and 150 dpi, 439 ms at 300 dpi and 1686 ms at 600 dpi; a poster sheet (A1 at 300 dpi, 69.7 megapixels) took 1.7 s with only the layout on, and the process peaked at 4139 MB (A1 at 200 dpi, 31.0 megapixels: 0.8 s and 2109 MB), which is about half the memory of an 8 GB laptop (the peak is that of the whole script process, on a Mac with 48 GiB RAM; nothing was run on 8 GB). One Apple M5 Pro, one run per row, not measured on 8 GB",
+   "checks": [
+    {
+     "file": "eval-page-size.json",
+     "match": "^A4 +150 dpi +1240x1754 +A skew +0.0 \\(true 0.0\\) lines +40 \\( 40\\).* 128 ms$",
+     "figures": [
+      "150",
+      "128"
+     ]
+    },
+    {
+     "file": "eval-page-size.json",
+     "match": "^A4 +300 dpi +2481x3507 +A .* 439 ms$",
+     "figures": [
+      "300",
+      "439"
+     ]
+    },
+    {
+     "file": "eval-page-size.json",
+     "match": "^A4 +600 dpi +4962x7014 +A .* 1686 ms$",
+     "figures": [
+      "600",
+      "1686"
+     ]
+    },
+    {
+     "file": "eval-page-size.json",
+     "match": "^A1 300 ",
+     "figures": [
+      "300"
+     ],
+     "values": [
+      {
+       "re": "^A1 300 ([\\d.]+) Mpx",
+       "digits": 1,
+       "text": "69.7"
+      },
+      {
+       "re": "^A1 300 [\\d.]+ Mpx ok ([\\d.]+) s",
+       "digits": 1,
+       "text": "1.7"
+      },
+      {
+       "re": "^A1 300 .* peak MB (\\d+)",
+       "digits": 0,
+       "text": "4139"
+      }
+     ]
+    },
+    {
+     "file": "eval-page-size.json",
+     "match": "^A1 200 ",
+     "figures": [
+      "200"
+     ],
+     "values": [
+      {
+       "re": "^A1 200 ([\\d.]+) Mpx",
+       "digits": 1,
+       "text": "31.0"
+      },
+      {
+       "re": "^A1 200 [\\d.]+ Mpx ok ([\\d.]+) s",
+       "digits": 1,
+       "text": "0.8"
+      },
+      {
+       "re": "^A1 200 .* peak MB (\\d+)",
+       "digits": 0,
+       "text": "2109"
+      }
+     ]
+    },
+    {
+     "file": "eval-page-size.json",
+     "meta": {
+      "machine": "48 GiB"
+     }
+    }
+   ],
+   "config": [
+    "1"
+   ]
+  },
+  {
+   "id": "wasmapi-bomb",
+   "doc": "docs/wasm-api.md",
+   "quote": "Flate data of about 1.07 MiB that inflates to 1,153,433,600 bytes (1.07 GiB): the call returned in 26.60 ms (median of 5; worst 64.60 ms, the cold first call), the report had one page with",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "analyse",
+      "subject": "bomb-content-1p.pdf"
+     },
+     "expect": {
+      "median_ms": "26.60",
+      "worst_ms": "64.60",
+      "runs": "5"
+     },
+     "derive": {
+      "input_bytes": {
+       "per": 1048576,
+       "digits": 2,
+       "text": "1.07"
+      }
+     },
+     "extract": [
+      {
+       "col": "detail",
+       "re": "inflates to (\\d+) bytes",
+       "per": 1,
+       "digits": 0,
+       "commas": true,
+       "text": "1,153,433,600"
+      },
+      {
+       "col": "detail",
+       "re": "inflates to (\\d+) bytes",
+       "per": 1073741824,
+       "digits": 2,
+       "text": "1.07"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "wasmapi-bomb-mem",
+   "doc": "docs/wasm-api.md",
+   "quote": "139 MiB (`wasm.memory.buffer.byteLength`;",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "analyse",
+      "subject": "bomb-content-1p.pdf"
+     },
+     "derive": {
+      "wasm_memory_bytes": {
+       "per": 1048576,
+       "digits": 0,
+       "text": "139"
+      }
+     }
+    }
+   ]
+  },
+  {
+   "id": "wasmapi-timer",
+   "doc": "docs/wasm-api.md",
+   "quote": "(resolution about 0.1 ms in Chrome)",
+   "checks": [
+    {
+     "protocol": "the timer resolution of performance.now() in a Chrome worker, a property of the browser"
+    }
+   ]
+  },
+  {
+   "id": "wasmapi-first-call",
+   "doc": "docs/wasm-api.md",
+   "quote": "(`init` below is only about 3 ms for a 2.3 MB module, and the first call on a one-page file costs 7 to 10 ms against 1 ms or less afterwards)",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "init"
+     },
+     "derive": {
+      "median_ms": {
+       "per": 1,
+       "digits": 0,
+       "text": "3"
+      }
+     }
+    },
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "size",
+      "subject": "pagetriage_bg.wasm raw"
+     },
+     "derive": {
+      "input_bytes": {
+       "per": 1000000.0,
+       "digits": 1,
+       "text": "2.3"
+      }
+     }
+    },
+    {
+     "file": "wasm-structure.csv",
+     "column": "worst_ms",
+     "agg": "min",
+     "text": "7",
+     "digits": 0,
+     "where": {
+      "kind": "analyse",
+      "subject": [
+       "sample-encrypted.pdf",
+       "sample-jpeg_scan.pdf",
+       "sample-native_latin.pdf",
+       "sample-redacted_text.pdf",
+       "sample-scanned_ocr.pdf",
+       "sample-scripts_legacy.pdf",
+       "sample-signed_then_edited.pdf",
+       "sample-vector_empty_mixed.pdf"
+      ]
+     }
+    },
+    {
+     "file": "wasm-structure.csv",
+     "column": "worst_ms",
+     "agg": "max",
+     "text": "10",
+     "digits": 0,
+     "where": {
+      "kind": "analyse",
+      "subject": [
+       "sample-encrypted.pdf",
+       "sample-jpeg_scan.pdf",
+       "sample-native_latin.pdf",
+       "sample-redacted_text.pdf",
+       "sample-scanned_ocr.pdf",
+       "sample-scripts_legacy.pdf",
+       "sample-signed_then_edited.pdf",
+       "sample-vector_empty_mixed.pdf"
+      ]
+     }
+    },
+    {
+     "file": "wasm-structure.csv",
+     "column": "median_ms",
+     "agg": "max",
+     "text": "1",
+     "digits": 0,
+     "where": {
+      "kind": "analyse",
+      "subject": [
+       "sample-encrypted.pdf",
+       "sample-jpeg_scan.pdf",
+       "sample-native_latin.pdf",
+       "sample-redacted_text.pdf",
+       "sample-scanned_ocr.pdf",
+       "sample-scripts_legacy.pdf",
+       "sample-signed_then_edited.pdf",
+       "sample-vector_empty_mixed.pdf"
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "id": "wasmapi-init-row",
+   "doc": "docs/wasm-api.md",
+   "quote": "| `init` (median / worst of 5) | 3.30 ms / 3.90 ms |",
+   "checks": [
+    {
+     "file": "wasm-structure.csv",
+     "where": {
+      "kind": "init"
+     },
+     "expect": {
+      "median_ms": "3.30",
+      "worst_ms": "3.90",
+      "runs": "5"
+     }
+    }
+   ]
+  },
+  {
+   "id": "wasmapi-timer-limit",
+   "doc": "docs/wasm-api.md",
+   "quote": "- Timing resolution in Chrome workers is about 0.1 ms, so the sub-millisecond rows are good to roughly that.",
+   "checks": [
+    {
+     "protocol": "the timer resolution of performance.now() in a Chrome worker, a property of the browser"
+    }
+   ]
+  },
+  {
+   "id": "binarize-phase1-size",
+   "doc": "docs/detectors/binarize.md",
+   "quote": "Howe took the WASM build to 173 KB gzipped; with the other Phase 1 additions merged it is 183 KB (budget 1 MB; raw data not kept:",
+   "checks": [
+    {
+     "not_kept": "Phase 1 era WebAssembly sizes (October 2026), read from a build log that was not committed; the current sizes are in eval-sizes.json"
+    }
+   ]
+  },
+  {
+   "id": "writeup-textlayer",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "300 of 300 correct",
+   "checks": [
+    {
+     "file": "eval-structure-all.json",
+     "match": "text-layer state accuracy: 300/300",
+     "figures": [
+      "300"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "writeup-howe-2011",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "F-measure 89.59, paper 91.90",
+   "checks": [
+    {
+     "file": "eval-binarize-howe-dual-2011.json",
+     "values": [
+      {
+       "re": "^all +n=16 +mean F= +([\\d.]+)",
+       "digits": 2,
+       "text": "89.59"
+      },
+      {
+       "re": "^all +n=16 +mean F= +[\\d.]+ +published mean over the same images= +([\\d.]+)",
+       "digits": 2,
+       "text": "91.90"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "writeup-howe-2011-target",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "Misses our own target (within 1.5 points of 91.7) by 2.1 points",
+   "checks": [
+    {
+     "file": "eval-binarize-howe-dual-2011.json",
+     "values": [
+      {
+       "re": "^all +n=16 +mean F= +([\\d.]+)",
+       "digits": 1,
+       "text": "2.1",
+       "sub_from": 91.7
+      }
+     ]
+    }
+   ],
+   "config": [
+    "1.5",
+    "91.7"
+   ]
+  },
+  {
+   "id": "writeup-howe-train",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "F-measure 94.01, paper 93.84",
+   "checks": [
+    {
+     "file": "eval-binarize-howe-dual-train.json",
+     "values": [
+      {
+       "re": "^all +n=20 +mean F= +([\\d.]+)",
+       "digits": 2,
+       "text": "94.01"
+      },
+      {
+       "re": "^all +n=20 +mean F= +[\\d.]+ +published mean over the same images= +([\\d.]+)",
+       "digits": 2,
+       "text": "93.84"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "writeup-dibco-time",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "median 29.9 ms, largest 328.0 ms",
+   "checks": [
+    {
+     "file": "eval-quality-dibco.json",
+     "values": [
+      {
+       "re": "median ([\\d.]+) ms, max",
+       "digits": 1,
+       "text": "29.9"
+      },
+      {
+       "re": "max ([\\d.]+) ms",
+       "digits": 1,
+       "text": "328.0"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "writeup-quality-time",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "median 68.3 ms",
+   "checks": [
+    {
+     "file": "eval-quality-time.json",
+     "match": "median 68.3 ms",
+     "figures": [
+      "68.3"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "writeup-wasm-size",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "478,315 / 889,502 bytes",
+   "checks": [
+    {
+     "file": "eval-sizes.json",
+     "values": [
+      {
+       "re": "^wasm pixel-only,gzip -9,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "478,315"
+      },
+      {
+       "re": "^wasm pdf,gzip -9,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "889,502"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "writeup-budget",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "Budget 1,000,000 bytes",
+   "checks": [
+    {
+     "protocol": "the size budget of scripts/check-wasm-size.sh (WASM_GZ_BUDGET_BYTES), a setting"
+    }
+   ]
+  },
+  {
+   "id": "writeup-artefacts",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "builds the npm tarball (1,834,660 bytes), the wheel (1,777,841 bytes), the sdist (466,586 bytes) and the two crates (380,680 and 47,907 bytes; `docs/benchmarks/eval-sizes.json`, built on 20 Nov 2026,",
+   "checks": [
+    {
+     "file": "eval-sizes.json",
+     "values": [
+      {
+       "re": "^airplanemode-pagetriage-1.0.0-rc.1.tgz,file,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "1,834,660"
+      },
+      {
+       "re": "^pagetriage-1.0.0rc1-cp39-abi3-macosx_11_0_arm64.whl,file,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "1,777,841"
+      },
+      {
+       "re": "^pagetriage-1.0.0rc1.tar.gz,file,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "466,586"
+      },
+      {
+       "re": "^pagetriage-core-1.0.0-rc.1.crate,file,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "380,680"
+      },
+      {
+       "re": "^pagetriage-cli-1.0.0-rc.1.crate,file,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "47,907"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "id": "writeup-wasm-bytes",
+   "doc": "docs/writeup-1.0-draft.md",
+   "quote": "The gzipped WebAssembly package is 889,502 bytes with the PDF parser and 478,315 without it (`docs/benchmarks/eval-sizes.json`, measured as `scripts/check-wasm-size.sh` does, budget 1,000,000).",
+   "checks": [
+    {
+     "file": "eval-sizes.json",
+     "values": [
+      {
+       "re": "^wasm pdf,gzip -9,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "889,502"
+      },
+      {
+       "re": "^wasm pixel-only,gzip -9,(\\d+),",
+       "digits": 0,
+       "commas": true,
+       "text": "478,315"
+      }
+     ]
+    }
+   ],
+   "config": [
+    "1,000,000"
+   ]
+  }
+ ]
+}

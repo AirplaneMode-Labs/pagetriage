@@ -11,7 +11,7 @@
 #     analyse_pdf_structure sits behind `#[cfg(feature = "pdf")]`;
 #   - the build command in the document is the one scripts/build-wasm.sh accepts;
 #   - every number in the `wasm-api:bench` block equals the row of docs/benchmarks/wasm-structure.csv it names, and every
-#     CSV row names its machine, browser, commit, build and command and says "not measured on 8 GB", and the decompression
+#     CSV row names its date, machine, browser, commit, build and command and says "not measured on 8 GB", and the decompression
 #     bomb row is a bounded, truncated, degraded result, not a hang.
 #
 # Each input can be pointed elsewhere (WASM_API_DOC, STRUCTURE_SCHEMA, STRUCTURAL_LIMITS, WASM_LIB_RS, BENCH_CSV); the red log
@@ -178,8 +178,8 @@ function parseCsv(text) {
 const csvRows = parseCsv(csvText);
 check(csvRows.length >= 14, `the benchmark CSV has its rows (${csvRows.length})`);
 for (const [i, r] of csvRows.entries()) {
-  const missing = ["machine", "browser", "commit", "build", "command", "kind", "subject"].filter((c) => !r[c]);
-  check(missing.length === 0, `CSV row ${i + 2} (${r.subject}) names ${missing.length ? "no " + missing.join(", ") : "machine, browser, commit, build and command"}`);
+  const missing = ["date", "machine", "browser", "commit", "build", "command", "kind", "subject"].filter((c) => !r[c]);
+  check(missing.length === 0, `CSV row ${i + 2} (${r.subject}) names ${missing.length ? "no " + missing.join(", ") : "date, machine, browser, commit, build and command"}`);
   check(r.eight_gb_laptop === "not measured on 8 GB", `CSV row ${i + 2} (${r.subject}) says "not measured on 8 GB"`);
   check(/Apple M5 Pro 48 GB/.test(r.machine), `CSV row ${i + 2} names the machine as Apple M5 Pro 48 GB`);
 }
