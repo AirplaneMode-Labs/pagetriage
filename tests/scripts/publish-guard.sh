@@ -9,6 +9,18 @@ command -v node >/dev/null || { fail "node not found"; finish; exit 1; }
 GUARD=${GUARD_SCRIPT:-$REPO/scripts/release/publish-guard.sh}
 [ -f "$GUARD" ] || { fail "scripts/release/publish-guard.sh exists"; finish; exit 1; }
 S=$(mktemp -d); trap 'rm -rf "$S"' EXIT
+# Symlinks: on Windows (Git Bash) `ln -s` silently COPIES an existing target, and fails on a missing one, unless MSYS=winsymlinks:nativestrict
+# (the same rule as tests/scripts/release-manifest.sh; run 44651022212: both link refusals below "passed" the guard on Windows because no
+# link had been made). With it, `ln -s` makes a native link or fails. Every link is asserted with [ -L ], and a link that cannot be made
+# FAILS the run: the refusal of a link would be unproven there.
+export MSYS=winsymlinks:nativestrict
+# mklink <target> <link>: ln -s, then [ -L ]; returns 1 (and records a failure) when no link was made
+mklink() {
+  local err; err=$(ln -s "$1" "$2" 2>&1)
+  if [ -L "$2" ]; then return 0; fi
+  fail "could not create a symlink: the refusal of a link is unproven on this runner (${2##*/}: $err)"
+  return 1
+}
 STUB=$S/stub; mkdir -p "$STUB/bin"
 # stand-in gh: `gh api repos/<repo>/git/ref/tags/v<ver> --jq ...` prints $STUB/gh.ref, `gh api repos/<repo>/git/tags/<sha> --jq ...` prints
 # $STUB/gh.tag.<sha>; a missing file is a failed call (exit 1), like a 404
@@ -167,10 +179,15 @@ D=$(mkset nocrate); rm "$D/pagetriage-cli-$V.crate"; refuses "a missing crate is
 D=$(mkset wrongver); mv "$D/pagetriage-core-$V.crate" "$D/pagetriage-core-1.0.1.crate"; refuses "a crate of another version is refused" 1 exact-set "$D" "$S/l6"
 D=$(mkset plainwheel); mv "$D/pagetriage-$PV-cp39-abi3-win_amd64.whl" "$D/pagetriage-$V-cp39-abi3-win_amd64.whl"; refuses "a wheel named with the SemVer form (not PEP 440) is refused" 1 exact-set "$D" "$S/l7"
 D=$(mkset sub); mkdir "$D/sub"; refuses "a subdirectory is refused" 1 exact-set "$D" "$S/l8"
-D=$(mkset link); ln -s "$D/SHA256SUMS" "$D/pagetriage-extra.whl.link" 2>/dev/null; rm -f "$D/pagetriage-extra.whl.link"; ln -s "$S/elsewhere" "$D/pagetriage-$PV-cp39-abi3-macosx_11_0_arm64.whl.tmp"; rm -f "$D/pagetriage-$PV-cp39-abi3-macosx_11_0_arm64.whl"; ln -s "$D/SHA256SUMS" "$D/pagetriage-$PV-cp39-abi3-macosx_11_0_arm64.whl"; rm -f "$D"/*.tmp
-refuses "a symbolic link in the set is refused" 1 exact-set "$D" "$S/l9"
+D=$(mkset link); rm -f "$D/pagetriage-$PV-cp39-abi3-macosx_11_0_arm64.whl"
+if mklink "$D/SHA256SUMS" "$D/pagetriage-$PV-cp39-abi3-macosx_11_0_arm64.whl"; then
+  refuses "a symbolic link in the set is refused" 1 exact-set "$D" "$S/l9"
+fi
 refuses "a directory that does not exist is refused" 1 exact-set "$S/no-such-dir" "$S/l10"
-LINKDIR=$S/linkdir; ln -s "$(mkset target)" "$LINKDIR"; refuses "a symlinked verify directory is refused" 1 exact-set "$LINKDIR" "$S/l11"
+LINKDIR=$S/linkdir
+if mklink "$(mkset target)" "$LINKDIR"; then
+  refuses "a symlinked verify directory is refused" 1 exact-set "$LINKDIR" "$S/l11"
+fi
 
 echo "== crate digests: the re-packaged crates have the digests the owner signed (S1-126)"
 sha() { if command -v sha256sum >/dev/null 2>&1; then sha256sum "$1" | cut -d' ' -f1; else shasum -a 256 "$1" | cut -d' ' -f1; fi; }
