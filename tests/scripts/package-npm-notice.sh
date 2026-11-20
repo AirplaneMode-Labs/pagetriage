@@ -40,8 +40,9 @@ WANT_VERSION=$(workspace_version "$REPO/Cargo.toml")
 TGZ=$(ls "$S"/dist/npm/*.tgz 2>/dev/null | head -1)
 expect_eq "exactly one tarball in dist/npm" 1 "$(ls "$S"/dist/npm/*.tgz 2>/dev/null | wc -l | tr -d ' ')"
 expect_eq "the tarball is airplanemode-pagetriage-<version>.tgz" "airplanemode-pagetriage-$WANT_VERSION.tgz" "$(basename "$TGZ")"
-expect_eq "package.json name is @airplanemode/pagetriage" '"name": "@airplanemode/pagetriage",' "$(tar -xzOf "$TGZ" package/package.json | grep -m1 '"name"' | sed 's/^ *//')"
-expect_eq "package.json version is the workspace version" "\"version\": \"$WANT_VERSION\"," "$(tar -xzOf "$TGZ" package/package.json | grep -m1 '"version"' | sed 's/^ *//')"
+# the first matching line, by awk and not grep -m1: a reader that stops early leaves tar writing to a closed pipe (tests/scripts/lib.sh, gq)
+expect_eq "package.json name is @airplanemode/pagetriage" '"name": "@airplanemode/pagetriage",' "$(tar -xzOf "$TGZ" package/package.json | awk '/"name"/ && !n { print; n = 1 }' | sed 's/^ *//')"
+expect_eq "package.json version is the workspace version" "\"version\": \"$WANT_VERSION\"," "$(tar -xzOf "$TGZ" package/package.json | awk '/"version"/ && !n { print; n = 1 }' | sed 's/^ *//')"
 LIST=$(tar -tzf "$TGZ" 2>/dev/null)
 for f in LICENSE-MIT LICENSE-APACHE NOTICE; do
   expect_eq "tarball lists package/$f" 1 "$(printf '%s\n' "$LIST" | grep -c "^package/$f$")"

@@ -81,7 +81,7 @@ precheck() {
     case "$r" in
       other) echo "block $i: info string '$info' is not one of the quick-start roles"; bad=1 ;;
       clone)
-        if grep -vE -e '^git clone https://github\.com/AirplaneMode-Labs/pagetriage( .*)?$' -e '^cd pagetriage$' -e '^$' "$body" | grep -q .; then echo "block $i: a plain sh block may hold only the git clone line"; bad=1; fi ;;
+        if grep -vE -e '^git clone https://github\.com/AirplaneMode-Labs/pagetriage( .*)?$' -e '^cd pagetriage$' -e '^$' "$body" | gq .; then echo "block $i: a plain sh block may hold only the git clone line"; bad=1; fi ;;
       *)
         if grep -iEn "$FORBIDDEN_RE" "$body" >/dev/null 2>&1; then
           echo "block $i ($info): forbidden text: $(grep -iEn "$FORBIDDEN_RE" "$body" | head -1 | cut -c1-120)"; bad=1

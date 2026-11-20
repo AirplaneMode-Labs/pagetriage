@@ -7,7 +7,7 @@ set -uo pipefail
 . "$(dirname "$0")/lib.sh"
 WANT='Live demo: https://airplanemode-labs.github.io/pagetriage/'
 check() { # check <file>: prints nothing, exit 0 when the line is within the first 12 lines
-  head -n 12 "$1" | grep -qxF "$WANT"
+  head -n 12 "$1" | gq -xF "$WANT"
 }
 README=${README_FILE:-$REPO/README.md}
 if check "$README"; then ok "README.md has '$WANT' within its first 12 lines"; else fail "README.md has '$WANT' within its first 12 lines"; fi

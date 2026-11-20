@@ -216,7 +216,7 @@ prove() {
     PROOFS=$((PROOFS+1))
   else
     echo "FAILED: $name: want exit $want_rc, first stderr line '$want_first', reason '$want_reason'; got exit $rc, '$first', reason '${reason:--}'" >&2
-    sed -e 's/^/  stderr: /' "$se" | head -5 >&2
+    head -n 5 "$se" | sed -e 's/^/  stderr: /' >&2
     rm -f "$so" "$se"
     die "refusal proof failed: $name"
   fi
@@ -237,7 +237,7 @@ phase_sign_core() {
   log "sign with the published RFC 8032 TEST key (rehearsal only; the tool prints its own banner)"
   tool sign --dir "$(native "$DIST")" --test-key rfc8032-1
   log "SHA256SUMS: LF only, one line per artefact, passes the platform checker"
-  if tr -d '\n' < "$DIST/SHA256SUMS" | grep -q "$(printf '\r')"; then die "SHA256SUMS holds a carriage return"; fi
+  if tr -d '\n' < "$DIST/SHA256SUMS" | grep "$(printf '\r')" >/dev/null; then die "SHA256SUMS holds a carriage return"; fi
   local entries lines
   entries=$(ls "$DIST" | grep -vc -e '^release-manifest.json$' -e '^SHA256SUMS$' || true)
   lines=$(wc -l < "$DIST/SHA256SUMS" | tr -d ' ')
@@ -341,7 +341,7 @@ phase_gate() {
     bash scripts/check-no-builder-paths.sh "$f"
   done
   log "gate: no plain release version in any artefact name (the release candidate is $VERSION)"
-  if ls "$DIST" | sed -E 's/1\.0\.0(-rc\.[0-9]+|rc[0-9]+)//g' | grep -qE '(^|[-_])1\.0\.0($|[-_.])'; then die "an artefact name reads the release version before the tag"; fi
+  if ls "$DIST" | sed -E 's/1\.0\.0(-rc\.[0-9]+|rc[0-9]+)//g' | grep -E '(^|[-_])1\.0\.0($|[-_.])' >/dev/null; then die "an artefact name reads the release version before the tag"; fi
   if [ "$OUT_ROOT" = "$REPO" ]; then bash tests/scripts/no-plain-1.0.0.sh | tail -3; fi
   echo "gate ok"
 }

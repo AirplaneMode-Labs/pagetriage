@@ -97,7 +97,7 @@ while IFS= read -r line; do
   NUSES=$((NUSES+1))
   spec=$(printf '%s' "$line" | sed -E 's/^[[:space:]]*(- )?uses:[[:space:]]*//')
   if [[ "$spec" =~ ^([A-Za-z0-9._/-]+)@([0-9a-f]{40})[[:space:]]+#[[:space:]]+([A-Za-z0-9._-]+)[[:space:]]*$ ]]; then
-    if ! printf '%s\n' "$TABLE" | grep -qxF "${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}"; then
+    if ! printf '%s\n' "$TABLE" | gq -xF "${BASH_REMATCH[1]} ${BASH_REMATCH[2]} ${BASH_REMATCH[3]}"; then
       echo "  not a table row: $spec"; BADPIN=$((BADPIN+1)); fi
   else
     echo "  not 'owner/repo@<40-hex> # <tag>': $spec"; BADPIN=$((BADPIN+1))
@@ -221,7 +221,8 @@ NPCF=$(printf '%s\n' "$CODE" | grep -c 'persist-credentials: false')
 expect_eq "every checkout has persist-credentials: false ($NCHK checkouts)" "$NCHK" "$NPCF"
 BAD=0
 for j in $(jobs_of "$CI"); do
-  job_text "$CI" "$j" | grep -qE '^    permissions:' || { echo "  job $j sets no permissions"; BAD=$((BAD+1)); }
+  # gq, not grep -q: the determinism job's text is over 4096 bytes and grep -q would leave awk writing to a closed pipe (lib.sh, CI run 44656239981)
+  job_text "$CI" "$j" | gq -E '^    permissions:' || { echo "  job $j sets no permissions"; BAD=$((BAD+1)); }
 done
 expect_eq "every job sets its own permissions" 0 "$BAD"
 
@@ -261,7 +262,7 @@ if [ ! -f "$PUB" ]; then fail ".github/workflows/publish.yml exists"; else
   expect_eq "publish.yml: concurrency group, never cancelled mid-publish" 1 "$(printf '%s\n' "$PC" | awk '/^concurrency:/{c=1; next} c && /^[^ ]/{exit} c{print}' | grep -cE 'cancel-in-progress: false')"
   expect_eq "publish.yml: exactly two jobs, build and publish" "build publish" "$(jobs_of "$PUB" | tr '\n' ' ' | sed 's/ $//')"
   expect_eq "publish.yml: the build and publish job names are 'build (\${{ matrix.os }})' and 'publish'" 2 "$([ "$(printf '%s\n' "$PC" | grep -cF 'name: build (${{ matrix.os }})')" = 1 ] && [ "$(printf '%s\n' "$PC" | grep -cxF '    name: publish')" = 1 ] && echo 2 || echo 0)"
-  expect_eq "publish.yml: every job sets its own permissions" 0 "$(for j in $(jobs_of "$PUB"); do job_text "$PUB" "$j" | grep -qE '^    permissions:' || echo "$j"; done | wc -l | tr -d ' ')"
+  expect_eq "publish.yml: every job sets its own permissions" 0 "$(for j in $(jobs_of "$PUB"); do job_text "$PUB" "$j" | gq -E '^    permissions:' || echo "$j"; done | wc -l | tr -d ' ')"
   PB=$(job_text "$PUB" build | nocomments); PP=$(job_text "$PUB" publish | nocomments)
   # locks 1 and 3: repository and branch guards on both jobs, the armed variable on publish
   expect_eq "publish.yml: both jobs carry the repository and main-branch guard (lock 1)" 2 "$(printf '%s\n%s\n' "$PB" "$PP" | grep -cF "if: github.repository == 'AirplaneMode-Labs/pagetriage' && github.ref == 'refs/heads/main'")"

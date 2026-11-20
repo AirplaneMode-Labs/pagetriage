@@ -110,7 +110,7 @@ if grep -Eq "upstream commit 3b341ccf[0-9a-f]{28}77f1" "$TMP/mutant-sha.txt"; th
 # Wheel carries NOTICE (S1-082).
 grep -q '"NOTICE"' crates/pagetriage-py/pyproject.toml && cmp -s NOTICE crates/pagetriage-py/NOTICE && ok "pyproject license-files lists NOTICE and the crate copy equals the root NOTICE" || fail "pyproject license-files lacks NOTICE or crates/pagetriage-py/NOTICE differs from root"
 if [ -n "${PAGETRIAGE_WHEEL:-}" ]; then
-  unzip -l "$PAGETRIAGE_WHEEL" | grep -q "dist-info/licenses/NOTICE" && ok "wheel lists dist-info/licenses/NOTICE" || fail "wheel does not list NOTICE"
+  unzip -l "$PAGETRIAGE_WHEEL" | gq "dist-info/licenses/NOTICE" && ok "wheel lists dist-info/licenses/NOTICE" || fail "wheel does not list NOTICE"
   WN=$(unzip -Z1 "$PAGETRIAGE_WHEEL" | grep "dist-info/licenses/NOTICE$" | head -1)
   unzip -p "$PAGETRIAGE_WHEEL" "$WN" > "$TMP/wheel-NOTICE" 2>/dev/null
   out=$(check_notice "$TMP/wheel-NOTICE" "$TMP/expected-py.tsv") && ok "wheel NOTICE carries every MIT-only crate block of the pagetriage-py tree" || fail "wheel NOTICE blocks: $out"

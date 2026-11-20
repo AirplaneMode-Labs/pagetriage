@@ -57,7 +57,7 @@ scan() {
     find "$root/$d" -maxdepth 3 \( -name node_modules -o -name wasm -o -name wasm-pdf -o -name package \) -prune -o -type f -print > "$tmp/dfiles" 2>/dev/null
     while IFS= read -r f; do
       rel=${f#"$root"/}
-      if printf '%s\n' "$(basename "$f")" | strip_rc | grep -qE "$NAMEPLAIN"; then echo "$rel: file name reads a plain 1.0.0"; n=$((n+1)); fi
+      if printf '%s\n' "$(basename "$f")" | strip_rc | gq -E "$NAMEPLAIN"; then echo "$rel: file name reads a plain 1.0.0"; n=$((n+1)); fi
       case "$(basename "$f")" in
         *.json)
           if grep -I -E '"version"[[:space:]]*:[[:space:]]*"1\.0\.0"' "$f" >/dev/null 2>&1; then echo "$rel: manifest version reads a plain 1.0.0"; n=$((n+1)); fi ;;
