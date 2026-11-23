@@ -32,7 +32,7 @@ toml = "1.2.1"
 # miniz_oxide backend, weezl 0.2.1); they are made direct at exactly the locked versions, with the
 # same features lopdf asks for, so the dependency tree gains no package (`cargo tree` before and
 # after is in docs/detectors/streams.md). Both compile to wasm32-unknown-unknown.
-flate2 = { version = "=1.1.10", default-features = false, features = ["rust_backend"], optional = true }
+flate2 = { version = "=1.1.11", default-features = false, features = ["rust_backend"], optional = true }
 weezl = { version = "=0.2.1", default-features = false, features = ["std"], optional = true }
 
 [target.'cfg(not(target_arch = "wasm32"))'.dependencies]
